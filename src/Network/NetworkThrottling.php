@@ -1,0 +1,159 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of the playwright-php/playwright package.
+ * For the full copyright and license information, please view
+ * the LICENSE file that was distributed with this source code.
+ */
+
+namespace PlaywrightPHP\Network;
+
+/**
+ * Network throttling presets and configuration.
+ *
+ * @author Simon André <smn.andre@gmail.com>
+ */
+final readonly class NetworkThrottling
+{
+    public function __construct(
+        public int $downloadThroughput,
+        public int $uploadThroughput,
+        public int $latency,
+    ) {
+    }
+
+    /**
+     * No throttling (default).
+     */
+    public static function none(): self
+    {
+        return new self(
+            downloadThroughput: 0,
+            uploadThroughput: 0,
+            latency: 0,
+        );
+    }
+
+    /**
+     * Slow 3G connection.
+     */
+    public static function slow3G(): self
+    {
+        return new self(
+            downloadThroughput: 50 * 1024, // 50 KB/s
+            uploadThroughput: 50 * 1024,   // 50 KB/s
+            latency: 2000,                 // 2s
+        );
+    }
+
+    /**
+     * Fast 3G connection.
+     */
+    public static function fast3G(): self
+    {
+        return new self(
+            downloadThroughput: 150 * 1024, // 150 KB/s
+            uploadThroughput: 75 * 1024,    // 75 KB/s
+            latency: 562,                   // 562ms
+        );
+    }
+
+    /**
+     * 4G connection.
+     */
+    public static function fast4G(): self
+    {
+        return new self(
+            downloadThroughput: 1.6 * 1024 * 1024, // 1.6 MB/s
+            uploadThroughput: 750 * 1024,           // 750 KB/s
+            latency: 150,                           // 150ms
+        );
+    }
+
+    /**
+     * DSL connection.
+     */
+    public static function dsl(): self
+    {
+        return new self(
+            downloadThroughput: 2 * 1024 * 1024, // 2 MB/s
+            uploadThroughput: 1 * 1024 * 1024,   // 1 MB/s
+            latency: 5,                          // 5ms
+        );
+    }
+
+    /**
+     * WiFi connection.
+     */
+    public static function wifi(): self
+    {
+        return new self(
+            downloadThroughput: 30 * 1024 * 1024, // 30 MB/s
+            uploadThroughput: 15 * 1024 * 1024,   // 15 MB/s
+            latency: 2,                           // 2ms
+        );
+    }
+
+    /**
+     * Create custom throttling configuration.
+     */
+    public static function custom(int $downloadThroughput, int $uploadThroughput, int $latency): self
+    {
+        return new self($downloadThroughput, $uploadThroughput, $latency);
+    }
+
+    /**
+     * Convert to array for transport.
+     */
+    public function toArray(): array
+    {
+        return [
+            'downloadThroughput' => $this->downloadThroughput,
+            'uploadThroughput' => $this->uploadThroughput,
+            'latency' => $this->latency,
+        ];
+    }
+
+    /**
+     * Check if throttling is disabled.
+     */
+    public function isDisabled(): bool
+    {
+        return 0 === $this->downloadThroughput
+               && 0 === $this->uploadThroughput
+               && 0 === $this->latency;
+    }
+
+    /**
+     * Get human-readable description.
+     */
+    public function getDescription(): string
+    {
+        if ($this->isDisabled()) {
+            return 'No throttling';
+        }
+
+        $download = $this->formatThroughput($this->downloadThroughput);
+        $upload = $this->formatThroughput($this->uploadThroughput);
+
+        return \sprintf('Download: %s, Upload: %s, Latency: %dms', $download, $upload, $this->latency);
+    }
+
+    /**
+     * Format throughput for display.
+     */
+    private function formatThroughput(int $throughput): string
+    {
+        if ($throughput >= 1024 * 1024) {
+            return \sprintf('%.1f MB/s', $throughput / (1024 * 1024));
+        }
+
+        if ($throughput >= 1024) {
+            return \sprintf('%.0f KB/s', $throughput / 1024);
+        }
+
+        return \sprintf('%d B/s', $throughput);
+    }
+}

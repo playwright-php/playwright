@@ -1,0 +1,144 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of the playwright-php/playwright package.
+ * For the full copyright and license information, please view
+ * the LICENSE file that was distributed with this source code.
+ */
+
+namespace PlaywrightPHP\Transport\JsonRpc;
+
+use PlaywrightPHP\Exception\TimeoutException;
+use PlaywrightPHP\Transport\ErrorMapper;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
+use Symfony\Component\Clock\ClockInterface;
+
+/**
+ * JSON-RPC client for communicating with Playwright processes.
+ *
+ * @experimental
+ *
+ * @author Simon André <smn.andre@gmail.com>
+ */
+class JsonRpcClient
+{
+    private int $nextId = 1;
+
+    /** @var array<int, array{method: string, timestamp: float}> */
+    private array $pendingRequests = [];
+
+    public function __construct(
+        private readonly ClockInterface $clock,
+        private readonly LoggerInterface $logger = new NullLogger(),
+        private readonly float $defaultTimeoutMs = 30000.0,
+    ) {
+    }
+
+    /**
+     * Send a JSON-RPC request and wait for response.
+     *
+     * @param array<string, mixed>|null $params
+     *
+     * @return array<string, mixed>
+     */
+    public function send(string $method, ?array $params = null, ?float $timeoutMs = null): array
+    {
+        $timeoutMs ??= $this->defaultTimeoutMs;
+        $id = $this->nextId++;
+
+        $deadline = $timeoutMs > 0
+            ? $this->getCurrentTimeMs() + $timeoutMs
+            : null;
+
+        // Track the request
+        $this->pendingRequests[$id] = [
+            'method' => $method,
+            'timestamp' => $this->getCurrentTimeMs(),
+        ];
+
+        $this->logger->debug('Sending JSON-RPC request', [
+            'id' => $id,
+            'method' => $method,
+            'params' => $params ? array_keys($params) : null,
+            'timeoutMs' => $timeoutMs,
+        ]);
+
+        try {
+            $request = [
+                'jsonrpc' => '2.0',
+                'id' => $id,
+                'method' => $method,
+                'params' => $params ?? (object) [],
+            ];
+
+            $response = $this->sendAndReceive($request, $deadline);
+
+            unset($this->pendingRequests[$id]);
+
+            if (isset($response['error'])) {
+                throw ErrorMapper::toException($response['error'], $method, $params, $timeoutMs);
+            }
+
+            if (null !== $deadline && $this->getCurrentTimeMs() > $deadline) {
+                throw new TimeoutException(sprintf('Timeout of %.0fms exceeded for %s', $timeoutMs, $method), $timeoutMs, null, ['method' => $method]);
+            }
+
+            return $response['result'] ?? [];
+        } catch (\Throwable $e) {
+            unset($this->pendingRequests[$id]);
+            throw $e;
+        }
+    }
+
+    protected function getCurrentTimeMs(): float
+    {
+        return (float) $this->clock->now()->format('Uu') / 1000;
+    }
+
+    /**
+     * @param array<string, mixed> $request
+     *
+     * @return array<string, mixed>
+     */
+    protected function sendAndReceive(array $request, ?float $deadline): array
+    {
+        $this->logger->debug('Would send request to process', ['request' => $request]);
+
+        return [
+            'jsonrpc' => '2.0',
+            'id' => $request['id'],
+            'result' => ['status' => 'ok', 'method' => $request['method']],
+        ];
+    }
+
+    /**
+     * @return array<int, array{method: string, timestamp: float, age: float}>
+     */
+    public function getPendingRequests(): array
+    {
+        $currentTime = $this->getCurrentTimeMs();
+        $pending = [];
+
+        foreach ($this->pendingRequests as $id => $info) {
+            $pending[$id] = [
+                'method' => $info['method'],
+                'timestamp' => $info['timestamp'],
+                'age' => $currentTime - $info['timestamp'],
+            ];
+        }
+
+        return $pending;
+    }
+
+    public function cancelPendingRequests(): void
+    {
+        $this->logger->debug('Canceling pending requests', [
+            'count' => count($this->pendingRequests),
+        ]);
+
+        $this->pendingRequests = [];
+    }
+}

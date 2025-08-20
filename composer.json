@@ -1,0 +1,92 @@
+{
+    "name": "playwright-php/playwright",
+    "description": "Modern PHP library for Playwright automation: browsing, scraping, screenshots, testing, and more.",
+    "license": "MIT",
+    "type": "library",
+    "keywords": [
+        "playwright",
+        "php",
+        "browser",
+        "automation",
+        "testing",
+        "test",
+        "scraping",
+        "screenshots",
+        "web",
+        "headless",
+        "chromium",
+        "firefox",
+        "webkit"
+    ],
+    "authors": [
+        {
+            "name": "Simon André",
+            "email": "smn.andre@gmail.com",
+            "homepage": "https://github.com/smnandre"
+        },
+        {
+            "name": "PlaywrightPHP Contributors",
+            "homepage": "https://github.com/playwright-php/playwright"
+        }
+    ],
+    "require": {
+        "php": "^8.3",
+        "psr/log": "^3.0",
+        "symfony/console": "^7.3 || ^8.0",
+        "symfony/process": "^7.3 || ^8.0"
+    },
+    "require-dev": {
+        "friendsofphp/php-cs-fixer": "^3.40",
+        "monolog/monolog": "^3.9",
+        "phpstan/phpstan": "^2.1",
+        "phpunit/phpunit": "^12.3",
+        "symfony/clock": "^7.3 || ^8.0",
+        "symfony/var-dumper": "^7.3 || ^8.0"
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+  "autoload": {
+        "psr-4": {
+            "PlaywrightPHP\\": "src/"
+        },
+        "files": [
+            "src/Testing/functions.php"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "PlaywrightPHP\\Tests\\": "tests/"
+        }
+    },
+    "bin": [
+        "bin/playwright"
+    ],
+    "config": {
+        "allow-plugins": {
+            "phpstan/extension-installer": true
+        },
+        "sort-packages": true
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "1.0-dev"
+        }
+    },
+    "scripts": {
+        "post-install-cmd": "bin/install-server",
+        "analyse": "vendor/bin/phpstan analyse",
+        "check": [
+            "@cs-check",
+            "@analyse",
+            "@test"
+        ],
+        "cs-check": "vendor/bin/php-cs-fixer fix --dry-run --diff",
+        "cs-fix": "vendor/bin/php-cs-fixer fix",
+        "install-browsers": "bin/install-server -v && npm run install-browsers --prefix bin",
+        "install-browsers-with-deps": "bin/install-server -v && npm run install-browsers-with-deps --prefix bin",
+        "test": "vendor/bin/phpunit",
+        "test-coverage": "vendor/bin/phpunit --coverage-xml coverage",
+        "test:integration": "vendor/bin/phpunit --testsuite integration",
+        "test:unit": "vendor/bin/phpunit --testsuite unit"
+    }
+}

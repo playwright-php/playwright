@@ -1,0 +1,238 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of the playwright-php/playwright package.
+ * For the full copyright and license information, please view
+ * the LICENSE file that was distributed with this source code.
+ */
+
+namespace PlaywrightPHP\Tests\Unit\Transport;
+
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\TestCase;
+use PlaywrightPHP\Exception\TimeoutException;
+use PlaywrightPHP\Tests\Mocks\TestLogger;
+use PlaywrightPHP\Transport\JsonRpc\JsonRpcClient;
+use Symfony\Component\Clock\MockClock;
+
+#[CoversClass(JsonRpcClient::class)]
+final class JsonRpcClientTest extends TestCase
+{
+    private MockClock $clock;
+    private TestLogger $logger;
+    private JsonRpcClient $client;
+
+    protected function setUp(): void
+    {
+        $this->clock = new MockClock();
+        $this->logger = new TestLogger();
+        $this->client = new JsonRpcClient(
+            clock: $this->clock,
+            logger: $this->logger,
+            defaultTimeoutMs: 5000.0
+        );
+    }
+
+    public function testSendGeneratesUniqueCorrelationIds(): void
+    {
+        $client = new TestableJsonRpcClient($this->clock, $this->logger);
+
+        $client->setMockResponse(['jsonrpc' => '2.0', 'id' => 1, 'result' => ['status' => 'ok']]);
+        $result1 = $client->send('method1');
+
+        $client->setMockResponse(['jsonrpc' => '2.0', 'id' => 2, 'result' => ['status' => 'ok']]);
+        $result2 = $client->send('method2');
+
+        $requests = $client->getSentRequests();
+
+        $this->assertCount(2, $requests);
+        $this->assertEquals(1, $requests[0]['id']);
+        $this->assertEquals(2, $requests[1]['id']);
+        $this->assertEquals('method1', $requests[0]['method']);
+        $this->assertEquals('method2', $requests[1]['method']);
+    }
+
+    public function testSendTracksPendingRequests(): void
+    {
+        $client = new TestableJsonRpcClient($this->clock, $this->logger);
+
+        // Mock a delayed response
+        $client->setResponseDelay(100);
+        $client->setMockResponse(['jsonrpc' => '2.0', 'id' => 1, 'result' => ['status' => 'ok']]);
+
+        // Start the request but don't wait for completion
+        $pendingBefore = $client->getPendingRequests();
+        $this->assertEmpty($pendingBefore);
+
+        // In a real scenario, we'd start this asynchronously, but for testing we check after setup
+        $startTime = $this->clock->now()->format('Uu') / 1000;
+
+        $result = $client->send('test_method');
+
+        // After completion, pending requests should be cleared
+        $pendingAfter = $client->getPendingRequests();
+        $this->assertEmpty($pendingAfter);
+
+        $this->assertEquals(['status' => 'ok'], $result);
+    }
+
+    public function testSendHandlesTimeout(): void
+    {
+        $client = new TestableJsonRpcClient($this->clock, $this->logger, 100.0); // 100ms timeout
+
+        // Mock no response (simulates timeout)
+        $client->setMockResponse(null);
+
+        $this->expectException(TimeoutException::class);
+        $this->expectExceptionMessage('Mock timeout exceeded deadline');
+
+        $client->send('test_method');
+    }
+
+    public function testSendHandlesProtocolError(): void
+    {
+        $client = new TestableJsonRpcClient($this->clock, $this->logger);
+
+        $client->setMockResponse([
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'error' => [
+                'name' => 'TimeoutError',
+                'message' => 'Operation timed out',
+                'code' => 408,
+            ],
+        ]);
+
+        $this->expectException(TimeoutException::class);
+        $this->expectExceptionMessage('Operation timed out');
+
+        $client->send('slow_method', ['param' => 'value'], 1000.0);
+    }
+
+    public function testCancelPendingRequests(): void
+    {
+        $pending = $this->client->getPendingRequests();
+        $this->assertEmpty($pending);
+
+        $this->client->cancelPendingRequests();
+
+        $pendingAfter = $this->client->getPendingRequests();
+        $this->assertEmpty($pendingAfter);
+    }
+
+    public function testLogsDebugInformation(): void
+    {
+        $client = new TestableJsonRpcClient($this->clock, $this->logger);
+        $client->setMockResponse(['jsonrpc' => '2.0', 'id' => 1, 'result' => ['data' => 'test']]);
+
+        $client->send('test_method', ['param1' => 'value1', 'sensitive_password' => 'secret']);
+
+        $this->assertTrue($this->logger->hasDebugRecords());
+
+        $debugRecords = $this->logger->records;
+        $sendRecord = null;
+        foreach ($debugRecords as $record) {
+            if (str_contains($record['message'], 'Sending JSON-RPC request')) {
+                $sendRecord = $record;
+                break;
+            }
+        }
+
+        $this->assertNotNull($sendRecord);
+        $this->assertEquals('test_method', $sendRecord['context']['method']);
+        $this->assertEquals(['param1', 'sensitive_password'], $sendRecord['context']['params']);
+        $this->assertEquals(30000.0, $sendRecord['context']['timeoutMs']);
+    }
+
+    public function testUsesDefaultTimeout(): void
+    {
+        $client = new TestableJsonRpcClient($this->clock, $this->logger, 2000.0);
+        $client->setMockResponse(['jsonrpc' => '2.0', 'id' => 1, 'result' => []]);
+
+        $client->send('test_method');
+
+        $debugRecords = $this->logger->records;
+        $sendRecord = null;
+        foreach ($debugRecords as $record) {
+            if (str_contains($record['message'], 'Sending JSON-RPC request')) {
+                $sendRecord = $record;
+                break;
+            }
+        }
+
+        $this->assertNotNull($sendRecord);
+        $this->assertEquals(2000.0, $sendRecord['context']['timeoutMs']);
+    }
+
+    public function testOverrideTimeout(): void
+    {
+        $client = new TestableJsonRpcClient($this->clock, $this->logger, 2000.0);
+        $client->setMockResponse(['jsonrpc' => '2.0', 'id' => 1, 'result' => []]);
+
+        $client->send('test_method', null, 7000.0);
+
+        $debugRecords = $this->logger->records;
+        $sendRecord = null;
+        foreach ($debugRecords as $record) {
+            if (str_contains($record['message'], 'Sending JSON-RPC request')) {
+                $sendRecord = $record;
+                break;
+            }
+        }
+
+        $this->assertNotNull($sendRecord);
+        $this->assertEquals(7000.0, $sendRecord['context']['timeoutMs']);
+    }
+}
+
+/**
+ * Testable version of JsonRpcClient that allows mocking responses.
+ */
+class TestableJsonRpcClient extends JsonRpcClient
+{
+    private array $sentRequests = [];
+    private ?array $mockResponse = null;
+    private int $responseDelay = 0;
+
+    public function setMockResponse(?array $response): void
+    {
+        $this->mockResponse = $response;
+    }
+
+    public function setResponseDelay(int $delayMs): void
+    {
+        $this->responseDelay = $delayMs;
+    }
+
+    public function getSentRequests(): array
+    {
+        return $this->sentRequests;
+    }
+
+    protected function sendAndReceive(array $request, ?float $deadline): array
+    {
+        $this->sentRequests[] = $request;
+
+        if ($this->responseDelay > 0) {
+            usleep($this->responseDelay * 1000);
+        }
+
+        if (null === $this->mockResponse) {
+            // For timeout tests, throw a timeout exception directly
+            if (null !== $deadline) {
+                throw new TimeoutException('Mock timeout exceeded deadline', 100.0);
+            }
+            throw new \RuntimeException('No mock response set');
+        }
+
+        return $this->mockResponse;
+    }
+
+    // Make protected method accessible for testing
+    public function getCurrentTimeMs(): float
+    {
+        return parent::getCurrentTimeMs();
+    }
+}

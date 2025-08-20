@@ -1,0 +1,13 @@
+{
+    "name": "playwright-php-server",
+    "version": "1.0.0",
+    "description": "Playwright server for PHP",
+    "main": "playwright-server.js",
+    "dependencies": {
+        "playwright": "^1.40.0"
+    },
+    "scripts": {
+        "install-browsers": "npx playwright install",
+        "install-browsers-with-deps": "npx playwright install --with-deps"
+    }
+}

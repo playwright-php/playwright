@@ -1,0 +1,62 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of the playwright-php/playwright package.
+ * For the full copyright and license information, please view
+ * the LICENSE file that was distributed with this source code.
+ */
+
+namespace PlaywrightPHP\Network;
+
+use PlaywrightPHP\Transport\TransportInterface;
+
+/**
+ * @author Simon André <smn.andre@gmail.com>
+ */
+class Route implements RouteInterface
+{
+    private RequestInterface $request;
+
+    public function __construct(
+        private readonly TransportInterface $transport,
+        private readonly string $contextId,
+        private readonly string $routeId,
+        array $requestData,
+    ) {
+        $this->request = new Request($requestData);
+    }
+
+    public function request(): RequestInterface
+    {
+        return $this->request;
+    }
+
+    public function abort(string $errorCode = 'failed'): void
+    {
+        $this->transport->sendAsync([
+            'action' => 'route.abort',
+            'routeId' => $this->routeId,
+            'errorCode' => $errorCode,
+        ]);
+    }
+
+    public function continue(?array $options = null): void
+    {
+        $this->transport->sendAsync([
+            'action' => 'route.continue',
+            'routeId' => $this->routeId,
+            'options' => $options,
+        ]);
+    }
+
+    public function fulfill(array $options): void
+    {
+        $this->transport->sendAsync([
+            'action' => 'route.fulfill',
+            'routeId' => $this->routeId,
+            'options' => $options,
+        ]);
+    }
+}

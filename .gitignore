@@ -1,0 +1,17 @@
+/.phpunit.cache/
+/bin/pnpm-lock.yaml
+/bin/package.lock
+/bin/yarn.lock
+/coverage/
+/node_modules/
+/screenshots/
+/vendor/
+/test-failures/
+/todo/
+/.php-cs-fixer.cache
+/composer.lock
+/package-lock.json
+/playwright-server.log
+/phpstan.neon
+/phpunit.xml
+/transport.log
