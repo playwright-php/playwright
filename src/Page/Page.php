@@ -41,7 +41,7 @@ class Page implements PageInterface
 {
     private KeyboardInterface $keyboard;
     private MouseInterface $mouse;
-    private PageEventHandler $eventHandler;
+    private PageEventHandlerInterface $eventHandler;
     private LoggerInterface $logger;
 
     public function __construct(
@@ -108,7 +108,7 @@ class Page implements PageInterface
         return $this->mouse;
     }
 
-    public function events(): PageEventHandler
+    public function events(): PageEventHandlerInterface
     {
         return $this->eventHandler;
     }
@@ -255,6 +255,16 @@ class Page implements PageInterface
     public function type(string $selector, string $text, array $options = []): self
     {
         $this->locator($selector)->type($text, $options);
+
+        return $this;
+    }
+
+    /**
+     * Opens Playwright Inspector and pauses script execution.
+     */
+    public function pause(): self
+    {
+        $this->sendCommand('pause');
 
         return $this;
     }
