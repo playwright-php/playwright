@@ -19,7 +19,13 @@ interface RouteInterface
 
     public function abort(string $errorCode = 'failed'): void;
 
+    /**
+     * @param array<string, mixed>|null $options
+     */
     public function continue(?array $options = null): void;
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function fulfill(array $options): void;
 }

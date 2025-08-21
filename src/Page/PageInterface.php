@@ -93,7 +93,7 @@ interface PageInterface
 
     public function mouse(): MouseInterface;
 
-    public function events(): PageEventHandler;
+    public function events(): PageEventHandlerInterface;
 
     public function route(string $url, callable $handler): void;
 

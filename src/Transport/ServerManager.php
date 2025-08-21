@@ -13,7 +13,7 @@ namespace PlaywrightPHP\Transport;
 /**
  * @author Simon André <smn.andre@gmail.com>
  */
-class ServerManager
+final readonly class ServerManager
 {
     public function getServerScriptPath(): string
     {

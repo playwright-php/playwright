@@ -19,10 +19,16 @@ interface RequestInterface
 
     public function method(): string;
 
+    /**
+     * @return array<string, string>
+     */
     public function headers(): array;
 
     public function postData(): ?string;
 
+    /**
+     * @return array<string, mixed>|null
+     */
     public function postDataJSON(): ?array;
 
     public function resourceType(): string;

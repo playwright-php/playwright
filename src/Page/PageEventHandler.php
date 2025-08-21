@@ -15,7 +15,7 @@ use PlaywrightPHP\Event\EventEmitter;
 /**
  * @author Simon André <smn.andre@gmail.com>
  */
-class PageEventHandler
+final class PageEventHandler implements PageEventHandlerInterface
 {
     use EventEmitter {
         emit as protected;

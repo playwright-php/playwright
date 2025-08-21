@@ -15,7 +15,7 @@ use PlaywrightPHP\Transport\TransportInterface;
 /**
  * @author Simon André <smn.andre@gmail.com>
  */
-class Response implements ResponseInterface
+final class Response implements ResponseInterface
 {
     private ?string $body = null;
     private ?array $jsonCache = null;

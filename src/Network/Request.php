@@ -13,7 +13,7 @@ namespace PlaywrightPHP\Network;
 /**
  * @author Simon André <smn.andre@gmail.com>
  */
-class Request implements RequestInterface
+final class Request implements RequestInterface
 {
     public function __construct(
         private readonly array $data,
@@ -37,7 +37,7 @@ class Request implements RequestInterface
 
     public function postData(): ?string
     {
-        return $this->data['postData'];
+        return $this->data['postData'] ?? null;
     }
 
     public function postDataJSON(): ?array

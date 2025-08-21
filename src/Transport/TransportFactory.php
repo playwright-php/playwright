@@ -17,7 +17,7 @@ use Psr\Log\LoggerInterface;
 /**
  * @author Simon André <smn.andre@gmail.com>
  */
-class TransportFactory
+final class TransportFactory
 {
     public function create(PlaywrightConfig $config, LoggerInterface $logger): TransportInterface
     {
@@ -28,19 +28,12 @@ class TransportFactory
             throw new \RuntimeException('playwright-server.js not found.');
         }
 
-        // Use NodeBinaryResolver if no explicit node path provided
-        if ($config->nodePath) {
-            $nodePath = $config->nodePath;
-        } else {
-            $nodeResolver = new NodeBinaryResolver();
-            $nodePath = $nodeResolver->resolve();
-        }
-
+        $nodePath = $config->nodePath ?? (new NodeBinaryResolver())->resolve();
         $command = [$nodePath, $serverScriptPath];
 
         $transportConfig = [
             'command' => $command,
-            'timeout' => $config->timeoutMs, // Use modern timeoutMs
+            'timeout' => $config->timeoutMs,
             'cwd' => dirname($serverScriptPath), // Removed legacy cwd override
             'env' => $config->env,
             'verbose' => false, // TODO: Integrate with logger instead of verbose flag

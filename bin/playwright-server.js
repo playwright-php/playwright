@@ -223,6 +223,9 @@ class PlaywrightServer {
     if (!page) throw new Error(`Page not found: ${command.pageId}`);
 
     switch (method) {
+      case 'pause':
+        await page.pause();
+        return;
       case 'close':
         await page.close();
         this.pages.delete(command.pageId);
@@ -503,6 +506,14 @@ class PlaywrightServer {
         headless: true,
         ...command.options
       };
+
+      if (command?.options?.env?.PWDEBUG) {
+        try {
+          process.env.PWDEBUG = String(command.options.env.PWDEBUG);
+        } catch (e) {
+          // Non-fatal: continue without inspector
+        }
+      }
 
       if (command.browser === 'chromium' || !command.browser) {
         launchOptions.args = [

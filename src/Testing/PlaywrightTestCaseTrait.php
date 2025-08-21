@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace PlaywrightPHP\Testing;
 
+use Monolog\Handler\StreamHandler;
+use Monolog\Logger;
 use PlaywrightPHP\Browser\BrowserContextInterface;
 use PlaywrightPHP\Browser\BrowserInterface;
 use PlaywrightPHP\Configuration\PlaywrightConfig;
@@ -17,6 +19,7 @@ use PlaywrightPHP\Locator\LocatorInterface;
 use PlaywrightPHP\Page\PageInterface;
 use PlaywrightPHP\PlaywrightClient;
 use PlaywrightPHP\PlaywrightFactory;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Process\ExecutableFinder;
 
 /**
@@ -29,11 +32,11 @@ trait PlaywrightTestCaseTrait
     protected BrowserContextInterface $context;
     protected PageInterface $page;
 
-    protected function setUpPlaywright(?\Psr\Log\LoggerInterface $logger = null, ?PlaywrightConfig $customConfig = null): void
+    protected function setUpPlaywright(?LoggerInterface $logger = null, ?PlaywrightConfig $customConfig = null): void
     {
         if (isset($_SERVER['PLAYWRIGHT_PHP_TEST_LOGGER_URL'])) {
-            $logger = new \Monolog\Logger('playwright-php-test', [
-                new \Monolog\Handler\StreamHandler($_SERVER['PLAYWRIGHT_PHP_TEST_LOGGER_URL']),
+            $logger = new Logger('playwright-php-test', [
+                new StreamHandler($_SERVER['PLAYWRIGHT_PHP_TEST_LOGGER_URL']),
             ]);
         }
 
@@ -45,7 +48,6 @@ trait PlaywrightTestCaseTrait
         }
 
         if (null !== $customConfig) {
-            // Use custom config but ensure node path is set
             $config = new PlaywrightConfig(
                 nodePath: $node,
                 minNodeVersion: $customConfig->minNodeVersion,
@@ -87,7 +89,9 @@ trait PlaywrightTestCaseTrait
         if ($status->isFailure() || $status->isError()) {
             $failuresDir = getcwd().'/test-failures';
             if (!is_dir($failuresDir)) {
-                mkdir($failuresDir, 0777, true);
+                if (!mkdir($failuresDir, 0777, true) && !is_dir($failuresDir)) {
+                    throw new \RuntimeException(sprintf('Directory "%s" was not created', $failuresDir));
+                }
             }
             $this->page->screenshot($failuresDir.'/'.$this->getName().'.png');
             $this->context->stopTracing($this->page, $failuresDir.'/'.$this->getName().'.zip');
