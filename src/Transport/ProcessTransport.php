@@ -55,7 +55,6 @@ class ProcessTransport implements TransportInterface
             $this->inputStream = new InputStream();
 
             if (!isset($this->config['command'])) {
-                // Use NodeBinaryResolver to find node
                 $nodeResolver = new NodeBinaryResolver();
                 $nodePath = $nodeResolver->resolve();
                 $command = [$nodePath, (new ServerManager())->getServerScriptPath()];
@@ -76,7 +75,6 @@ class ProcessTransport implements TransportInterface
             $this->process->setInput($this->inputStream);
             $this->process->start();
 
-            // Wait for server to be ready - with faster polling
             $ready = false;
             $start = microtime(true);
             while ((microtime(true) - $start) < 10) {
@@ -85,7 +83,7 @@ class ProcessTransport implements TransportInterface
                     $ready = true;
                     break;
                 }
-                usleep(10000); // ✅ Reduced from 100ms to 10ms
+                usleep(10000);
             }
             if (!$ready) {
                 throw new NetworkException('Playwright server did not start or respond with READY');
@@ -103,7 +101,6 @@ class ProcessTransport implements TransportInterface
 
         if ($errorOutput) {
             $this->logger->error('SERVER STDERR: '.$errorOutput);
-            // ✅ Only log to file if verbose mode is enabled
             if ($this->config['verbose'] ?? false) {
                 file_put_contents(
                     dirname(__DIR__, 2).'/bin/playwright-server.log',
@@ -183,7 +180,7 @@ class ProcessTransport implements TransportInterface
         $startTime = microtime(true);
         while (null === $result && (microtime(true) - $startTime) < 15) {
             $this->readOutput();
-            usleep(1000); // Keep this minimal for startup
+            usleep(1000);
             if (!$this->process->isRunning()) {
                 throw new NetworkException('Playwright server process exited unexpectedly before sending READY signal.');
             }
@@ -215,7 +212,6 @@ class ProcessTransport implements TransportInterface
 
         $json = json_encode($message);
 
-        // Log via PSR-3 only; avoid hardcoded file paths
         if ($this->config['verbose'] ?? false) {
             $this->logger->info('SEND > '.$json);
         } else {
@@ -227,14 +223,12 @@ class ProcessTransport implements TransportInterface
         $timeout = $this->config['timeout'] ?? 30;
         $startTime = microtime(true);
 
-        // ✅ CRITICAL FIX: Much faster polling with adaptive timing
         $pollInterval = 1000; // Start with 1ms
-        $maxInterval = 50000;  // Max 50ms
+        $maxInterval = 50000; // Max 50ms
 
         while (null === $result && (microtime(true) - $startTime) < $timeout) {
             $this->readOutput();
 
-            // Check if we got a result after reading
             if (null !== $result) {
                 break;
             }
@@ -243,7 +237,7 @@ class ProcessTransport implements TransportInterface
                 throw new NetworkException('Playwright server process exited unexpectedly while waiting for a response.');
             }
 
-            // ✅ Adaptive polling: start fast, slow down if needed
+            // Adaptive polling: start fast, slow down if needed
             usleep((int) $pollInterval);
             $pollInterval = min($pollInterval * 1.2, $maxInterval);
         }
@@ -270,7 +264,6 @@ class ProcessTransport implements TransportInterface
         $this->logger->debug('Posting message', ['action' => $message['action'] ?? 'unknown']);
         $this->inputStream->write($json."\n");
 
-        // Process any pending events/responses after sending async message
         $this->readOutput();
     }
 

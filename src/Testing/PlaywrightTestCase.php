@@ -15,16 +15,18 @@ use PHPUnit\Framework\TestCase;
 /**
  * @author Simon André <smn.andre@gmail.com>
  */
-class PlaywrightTestCase extends TestCase
+abstract class PlaywrightTestCase extends TestCase
 {
     use PlaywrightTestCaseTrait;
 
+    #[\Override]
     protected function setUp(): void
     {
         parent::setUp();
         $this->setUpPlaywright();
     }
 
+    #[\Override]
     protected function tearDown(): void
     {
         $this->tearDownPlaywright();

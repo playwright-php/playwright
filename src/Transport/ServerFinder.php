@@ -33,7 +33,7 @@ final class ServerFinder
             getcwd().'/node_modules/playwright',
             // Parent directories (monorepo)
             dirname(getcwd()).'/node_modules/playwright',
-            dirname(dirname(getcwd())).'/node_modules/playwright',
+            dirname(getcwd(), 2).'/node_modules/playwright',
             // Custom user path
             $this->getUserConfiguredPath(),
         ];
@@ -49,12 +49,10 @@ final class ServerFinder
 
     private function getUserConfiguredPath(): ?string
     {
-        // From environment variable
         if ($envPath = getenv('PLAYWRIGHT_PATH')) {
             return $envPath;
         }
 
-        // From composer.json extra config
         $composerPath = getcwd().'/composer.json';
         if (file_exists($composerPath)) {
             $composer = json_decode(file_get_contents($composerPath), true);
@@ -77,7 +75,6 @@ final class ServerFinder
             throw new NetworkException('Playwright not found. Please run: npm install playwright');
         }
 
-        // Use NodeBinaryResolver to find Node.js
         $nodeResolver = $this->nodeResolver ?? new NodeBinaryResolver();
         $nodePath = $nodeResolver->resolve();
 

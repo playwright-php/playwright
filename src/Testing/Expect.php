@@ -18,7 +18,7 @@ use PlaywrightPHP\Page\PageInterface;
 /**
  * @author Simon André <smn.andre@gmail.com>
  */
-class Expect implements ExpectInterface
+final class Expect implements ExpectInterface
 {
     private bool $negated = false;
 

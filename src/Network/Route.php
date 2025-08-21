@@ -15,7 +15,7 @@ use PlaywrightPHP\Transport\TransportInterface;
 /**
  * @author Simon André <smn.andre@gmail.com>
  */
-class Route implements RouteInterface
+final class Route implements RouteInterface
 {
     private RequestInterface $request;
 
