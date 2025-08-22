@@ -17,6 +17,7 @@ use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\ClockInterface;
+use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
 
 /**
@@ -26,12 +27,16 @@ use Symfony\Component\Process\Process;
  *
  * @author Simon André <smn.andre@gmail.com>
  */
-final class ProcessJsonRpcClient extends JsonRpcClient
+final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientInterface
 {
     private string $outputBuffer = '';
+    private ?InputStream $inputStream = null;
 
     /** @var array<int, array{resolve: callable, reject: callable, method: string}> */
     private array $pendingRequests = [];
+
+    /** @var array<int, array> */
+    private array $responses = [];
 
     public function __construct(
         private readonly Process $process,
@@ -45,14 +50,26 @@ final class ProcessJsonRpcClient extends JsonRpcClient
             logger: $logger ?? new NullLogger(),
             defaultTimeoutMs: $defaultTimeoutMs
         );
+
+        // Get the input stream from the ProcessLauncher
+        $this->inputStream = $this->processLauncher->getInputStream();
+        if (!$this->inputStream instanceof InputStream) {
+            throw new NetworkException('ProcessLauncher must have an InputStream for JSON-RPC communication');
+        }
     }
 
     protected function sendAndReceive(array $request, ?float $deadline): array
     {
         $this->ensureProcessRunning();
 
-        $requestId = $request['id'];
+        // Handle both JSON-RPC format (id) and raw format (requestId)
+        $requestId = $request['id'] ?? $request['requestId'] ?? null;
+        if (null === $requestId) {
+            throw new NetworkException('Request must have either id or requestId');
+        }
+
         $json = json_encode($request, JSON_THROW_ON_ERROR);
+        $framedMessage = LspFraming::encode($json);
 
         $this->logger->debug('Sending JSON-RPC request to process', [
             'json' => $json,
@@ -60,7 +77,7 @@ final class ProcessJsonRpcClient extends JsonRpcClient
         ]);
 
         try {
-            $this->process->getInputStream()->write($json."\n");
+            $this->inputStream->write($framedMessage);
         } catch (\Throwable $e) {
             throw new NetworkException('Failed to write to process stdin: '.$e->getMessage(), 0, $e);
         }
@@ -102,49 +119,88 @@ final class ProcessJsonRpcClient extends JsonRpcClient
         if ('' !== $stderr) {
             $this->logger->warning('Process stderr', ['stderr' => $stderr]);
         }
+
+        $this->processAndDispatchMessages();
+    }
+
+    private function processAndDispatchMessages(): void
+    {
+        $decoded = LspFraming::decode($this->outputBuffer);
+
+        foreach ($decoded['messages'] as $messageContent) {
+            $this->dispatchMessage($messageContent);
+        }
+
+        $this->outputBuffer = $decoded['remainingBuffer'];
+    }
+
+    private function dispatchMessage(string $messageContent): void
+    {
+        $messageContent = trim($messageContent);
+        if ('' === $messageContent) {
+            return;
+        }
+
+        try {
+            $data = json_decode($messageContent, true, 512, JSON_THROW_ON_ERROR);
+            if (!is_array($data)) {
+                // Handle plain text READY for backward compatibility
+                if ('READY' === $messageContent) {
+                    $this->logger->debug('Process signaled ready');
+
+                    return;
+                }
+                $this->logger->warning('Received non-array JSON from process', ['message' => $messageContent]);
+
+                return;
+            }
+
+            // Handle structured ready message
+            if (isset($data['type']) && 'ready' === $data['type']) {
+                $this->logger->debug('Process signaled ready', ['message' => $data['message'] ?? 'READY']);
+
+                return;
+            }
+
+            if (isset($data['id'])) {
+                $this->logger->debug('Received JSON-RPC response', [
+                    'id' => $data['id'],
+                    'hasError' => isset($data['error']),
+                    'hasResult' => isset($data['result']),
+                ]);
+                $this->responses[$data['id']] = $data;
+            } elseif (isset($data['requestId'])) {
+                $this->logger->debug('Received raw response', [
+                    'requestId' => $data['requestId'],
+                    'hasError' => isset($data['error']),
+                ]);
+                $this->responses[$data['requestId']] = $data;
+            }
+
+            if (isset($data['event'])) {
+                $this->logger->debug('Received event from process', ['event' => $data['event']]);
+            }
+        } catch (\JsonException $e) {
+            // Handle plain text READY for backward compatibility
+            if ('READY' === $messageContent) {
+                $this->logger->debug('Process signaled ready');
+
+                return;
+            }
+            $this->logger->warning('Failed to parse JSON from process', [
+                'message' => $messageContent,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     private function findResponseForRequest(int $requestId): ?array
     {
-        while (($pos = strpos($this->outputBuffer, "\n")) !== false) {
-            $line = substr($this->outputBuffer, 0, $pos);
-            $this->outputBuffer = substr($this->outputBuffer, $pos + 1);
+        if (isset($this->responses[$requestId])) {
+            $response = $this->responses[$requestId];
+            unset($this->responses[$requestId]);
 
-            $line = trim($line);
-            if ('' === $line) {
-                continue;
-            }
-
-            if ('READY' === $line) {
-                $this->logger->debug('Process signaled ready');
-                continue;
-            }
-
-            try {
-                $data = json_decode($line, true, 512, JSON_THROW_ON_ERROR);
-                if (!is_array($data)) {
-                    $this->logger->warning('Received non-array JSON from process', ['line' => $line]);
-                    continue;
-                }
-                if (isset($data['id']) && $data['id'] === $requestId) {
-                    $this->logger->debug('Received JSON-RPC response', [
-                        'id' => $requestId,
-                        'hasError' => isset($data['error']),
-                        'hasResult' => isset($data['result']),
-                    ]);
-
-                    return $data;
-                }
-                if (isset($data['event'])) {
-                    $this->logger->debug('Received event from process', ['event' => $data['event']]);
-                }
-            } catch (\JsonException $e) {
-                $this->logger->warning('Failed to parse JSON from process', [
-                    'line' => $line,
-                    'error' => $e->getMessage(),
-                ]);
-                continue;
-            }
+            return $response;
         }
 
         return null;

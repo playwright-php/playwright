@@ -87,7 +87,66 @@ if (DEBUG) {
 }
 
 const {chromium, firefox, webkit} = require('playwright');
-const readline = require('readline');
+
+class LspFraming {
+  static encode(content) {
+    const contentLength = Buffer.byteLength(content, 'utf8');
+    return `Content-Length: ${contentLength}\r\n\r\n${content}`;
+  }
+
+  static decode(buffer) {
+    const messages = [];
+    let remaining = buffer;
+
+    while (true) {
+      const result = this.extractOneMessage(remaining);
+      if (!result) break;
+      
+      const [message, newRemaining] = result;
+      messages.push(message);
+      remaining = newRemaining;
+    }
+
+    return { messages, remainingBuffer: remaining };
+  }
+
+  static extractOneMessage(buffer) {
+    const headerEndPos = buffer.indexOf('\r\n\r\n');
+    if (headerEndPos === -1) return null;
+
+    const headers = buffer.slice(0, headerEndPos).toString('utf8');
+    const contentStart = headerEndPos + 4;
+
+    const contentLength = this.parseContentLength(headers);
+    if (contentLength === null) {
+      throw new Error('Missing or invalid Content-Length header');
+    }
+
+    if (buffer.length < contentStart + contentLength) return null;
+
+    const content = buffer.slice(contentStart, contentStart + contentLength).toString('utf8');
+    const remaining = buffer.slice(contentStart + contentLength);
+
+    return [content, remaining];
+  }
+
+  static parseContentLength(headers) {
+    const lines = headers.split('\r\n');
+    for (const line of lines) {
+      const match = line.trim().match(/^Content-Length:\s*(\d+)$/i);
+      if (match) {
+        return parseInt(match[1], 10);
+      }
+    }
+    return null;
+  }
+}
+
+function sendFramedResponse(data) {
+  const json = JSON.stringify(data);
+  const framed = LspFraming.encode(json);
+  process.stdout.write(framed);
+}
 
 class PlaywrightServer {
   constructor() {
@@ -116,7 +175,7 @@ class PlaywrightServer {
 
       // Enhanced error logging for debugging
       if (DEBUG) {
-        console.log('DETAILED ERROR:', {
+        debugLogger.error('DETAILED ERROR', {
           command: command.action,
           error: message,
           stack: error.stack,
@@ -286,21 +345,32 @@ class PlaywrightServer {
         await page.addStyleTag(command.options);
         return {success: true};
       case 'route':
-        await page.route(command.url, (route) => {
+        await page.route(command.url, async (route) => {
           const routeId = `route_${++this.routeCounter}`;
           this.routes.set(routeId, route);
+          // Enrich request data with headers and postData
+          const req = route.request();
+          let postData = null;
+          try {
+            postData = req.postData();
+          } catch (e) {
+            postData = null;
+          }
           const event = {
             objectId: command.pageId,
             event: 'route',
             params: {
               routeId,
               request: {
-                url: route.request().url(),
-                method: route.request().method(),
+                url: req.url(),
+                method: req.method(),
+                headers: req.headers(),
+                postData: postData ?? null,
+                resourceType: req.resourceType ? req.resourceType() : 'document'
               }
             }
           };
-          process.stdout.write(JSON.stringify(event) + '\n');
+          sendFramedResponse(event);
         });
         return;
       case 'goBack':
@@ -594,34 +664,53 @@ class PlaywrightServer {
 }
 
 const server = new PlaywrightServer();
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-  terminal: false
-});
+let inputBuffer = Buffer.alloc(0);
 
-process.stdout.write("READY\n");
+sendFramedResponse({type: 'ready', message: 'READY'});
 
-rl.on('line', async (line) => {
-  if (!line.trim()) return;
-  let command;
+process.stdin.on('data', async (chunk) => {
+  inputBuffer = Buffer.concat([inputBuffer, chunk]);
+  
   try {
-    command = JSON.parse(line);
-    const result = await server.handleCommand(command);
-    if (result) {
-      if (command.requestId) {
-        result.requestId = command.requestId;
+    const decoded = LspFraming.decode(inputBuffer);
+    inputBuffer = decoded.remainingBuffer;
+    
+    for (const messageContent of decoded.messages) {
+      if (!messageContent.trim()) continue;
+      
+      let command;
+      try {
+        command = JSON.parse(messageContent);
+        const result = await server.handleCommand(command);
+        if (result) {
+          if (command.requestId) {
+            result.requestId = command.requestId;
+          }
+          sendFramedResponse(result);
+        }
+      } catch (error) {
+        if (DEBUG) {
+          debugLogger.error('SERVER ERROR', {
+            error: error.message, 
+            stack: error.stack, 
+            command: messageContent
+          });
+        }
+        const errorResponse = {error: error.message, parseError: true};
+        if (command && command.requestId) {
+          errorResponse.requestId = command.requestId;
+        }
+        sendFramedResponse(errorResponse);
       }
-      process.stdout.write(JSON.stringify(result) + '\n');
     }
   } catch (error) {
     if (DEBUG) {
-      console.log('SERVER ERROR:', error.message, error.stack, 'COMMAND:', line);
+      debugLogger.error('LSP FRAMING ERROR', {
+        error: error.message,
+        stack: error.stack
+      });
     }
-    const errorResponse = {error: error.message, parseError: true};
-    if (command && command.requestId) {
-      errorResponse.requestId = command.requestId;
-    }
-    process.stdout.write(JSON.stringify(errorResponse) + '\n');
+    const errorResponse = {error: 'LSP framing error: ' + error.message};
+    sendFramedResponse(errorResponse);
   }
 });

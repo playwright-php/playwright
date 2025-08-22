@@ -12,6 +12,7 @@ namespace PlaywrightPHP\Transport\JsonRpc;
 
 use PlaywrightPHP\Exception\ProcessCrashedException;
 use PlaywrightPHP\Exception\ProcessLaunchException;
+use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
 
 /**
@@ -51,4 +52,6 @@ interface ProcessLauncherInterface
      * @throws ProcessCrashedException
      */
     public function waitForExit(Process $process, ?float $timeoutSeconds = null): int;
+
+    public function getInputStream(): ?InputStream;
 }

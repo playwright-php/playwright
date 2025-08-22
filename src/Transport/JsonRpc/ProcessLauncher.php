@@ -15,6 +15,7 @@ use PlaywrightPHP\Exception\ProcessLaunchException;
 use PlaywrightPHP\Support\RingBuffer;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
+use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
 
 /**
@@ -27,6 +28,7 @@ use Symfony\Component\Process\Process;
 final class ProcessLauncher implements ProcessLauncherInterface
 {
     private RingBuffer $stderrBuf;
+    private ?InputStream $lastInputStream = null;
 
     public function __construct(
         private readonly LoggerInterface $logger = new NullLogger(),
@@ -42,8 +44,10 @@ final class ProcessLauncher implements ProcessLauncherInterface
         }
 
         try {
+            $this->lastInputStream = new InputStream();
             $process = new Process($command, $cwd, $env, null, $timeout);
             $process->setTimeout($timeout);
+            $process->setInput($this->lastInputStream);
 
             $process->start(function (string $type, string $data): void {
                 if (Process::ERR === $type) {
@@ -159,6 +163,11 @@ final class ProcessLauncher implements ProcessLauncherInterface
         }
 
         return $exitCode;
+    }
+
+    public function getInputStream(): ?InputStream
+    {
+        return $this->lastInputStream;
     }
 
     private function log(string $message, array $context = []): void

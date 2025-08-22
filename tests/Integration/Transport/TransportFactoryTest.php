@@ -14,7 +14,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use PlaywrightPHP\Configuration\PlaywrightConfig;
-use PlaywrightPHP\Transport\ProcessTransport;
+use PlaywrightPHP\Transport\JsonRpc\JsonRpcTransport;
 use PlaywrightPHP\Transport\TransportFactory;
 use Psr\Log\NullLogger;
 
@@ -40,7 +40,7 @@ class TransportFactoryTest extends TestCase
 
         $transport = $this->factory->create($config, $this->logger);
 
-        $this->assertInstanceOf(ProcessTransport::class, $transport);
+        $this->assertInstanceOf(JsonRpcTransport::class, $transport);
     }
 
     #[Test]
@@ -49,7 +49,7 @@ class TransportFactoryTest extends TestCase
         $config = new PlaywrightConfig();
         $transport = $this->factory->create($config, $this->logger);
 
-        $this->assertInstanceOf(ProcessTransport::class, $transport);
+        $this->assertInstanceOf(JsonRpcTransport::class, $transport);
     }
 
     #[Test]
@@ -60,7 +60,7 @@ class TransportFactoryTest extends TestCase
         );
         $transport = $this->factory->create($config, $this->logger);
 
-        $this->assertInstanceOf(ProcessTransport::class, $transport);
+        $this->assertInstanceOf(JsonRpcTransport::class, $transport);
     }
 
     #[Test]
@@ -71,7 +71,7 @@ class TransportFactoryTest extends TestCase
         );
         $transport = $this->factory->create($config, $this->logger);
 
-        $this->assertInstanceOf(ProcessTransport::class, $transport);
+        $this->assertInstanceOf(JsonRpcTransport::class, $transport);
     }
 
     #[Test]
@@ -82,6 +82,6 @@ class TransportFactoryTest extends TestCase
         );
         $transport = $this->factory->create($config, $this->logger);
 
-        $this->assertInstanceOf(ProcessTransport::class, $transport);
+        $this->assertInstanceOf(JsonRpcTransport::class, $transport);
     }
 }

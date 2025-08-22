@@ -16,6 +16,7 @@ use PlaywrightPHP\Exception\NetworkException;
 use PlaywrightPHP\Tests\Mocks\TestLogger;
 use PlaywrightPHP\Transport\JsonRpc\JsonRpcTransport;
 use PlaywrightPHP\Transport\JsonRpc\ProcessLauncherInterface;
+use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
 
 #[CoversClass(JsonRpcTransport::class)]
@@ -36,10 +37,16 @@ final class JsonRpcTransportTest extends TestCase
         $mockProcess->method('isRunning')->willReturn(true);
         $mockProcess->method('getPid')->willReturn(12345);
 
+        $mockInputStream = $this->createMock(InputStream::class);
+
         $this->processLauncher
             ->expects($this->once())
             ->method('start')
             ->willReturn($mockProcess);
+
+        $this->processLauncher
+            ->method('getInputStream')
+            ->willReturn($mockInputStream);
 
         $transport = new JsonRpcTransport(
             processLauncher: $this->processLauncher,
@@ -87,9 +94,15 @@ final class JsonRpcTransportTest extends TestCase
         $mockProcess->method('isRunning')->willReturn(false);
         $mockProcess->method('getPid')->willReturn(12345);
 
+        $mockInputStream = $this->createMock(InputStream::class);
+
         $this->processLauncher
             ->method('start')
             ->willReturn($mockProcess);
+
+        $this->processLauncher
+            ->method('getInputStream')
+            ->willReturn($mockInputStream);
 
         $transport = new JsonRpcTransport(
             processLauncher: $this->processLauncher,
@@ -109,9 +122,15 @@ final class JsonRpcTransportTest extends TestCase
         $mockProcess->expects($this->once())
             ->method('stop');
 
+        $mockInputStream = $this->createMock(InputStream::class);
+
         $this->processLauncher
             ->method('start')
             ->willReturn($mockProcess);
+
+        $this->processLauncher
+            ->method('getInputStream')
+            ->willReturn($mockInputStream);
 
         $transport = new JsonRpcTransport(
             processLauncher: $this->processLauncher,
@@ -172,9 +191,15 @@ final class JsonRpcTransportTest extends TestCase
         $mockProcess->expects($this->once())
             ->method('stop');
 
+        $mockInputStream = $this->createMock(InputStream::class);
+
         $this->processLauncher
             ->method('start')
             ->willReturn($mockProcess);
+
+        $this->processLauncher
+            ->method('getInputStream')
+            ->willReturn($mockInputStream);
 
         $transport = new JsonRpcTransport(
             processLauncher: $this->processLauncher,
