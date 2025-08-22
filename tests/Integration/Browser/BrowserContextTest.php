@@ -16,41 +16,25 @@ use PHPUnit\Framework\TestCase;
 use PlaywrightPHP\Browser\BrowserContext;
 use PlaywrightPHP\Page\PageInterface;
 use PlaywrightPHP\Testing\PlaywrightTestCaseTrait;
-use Symfony\Component\Process\Process;
+use PlaywrightPHP\Tests\Support\HttpServerTestTrait;
 
 #[CoversClass(BrowserContext::class)]
 class BrowserContextTest extends TestCase
 {
     use PlaywrightTestCaseTrait;
-
-    private static ?Process $server = null;
-    private static string $docroot;
-    private static int $port;
+    use HttpServerTestTrait;
 
     public static function setUpBeforeClass(): void
     {
-        self::$docroot = sys_get_temp_dir().'/playwright-php-tests-'.uniqid('', true);
-        mkdir(self::$docroot);
-
-        file_put_contents(self::$docroot.'/index.html', '<h1>Hello</h1>');
-        file_put_contents(self::$docroot.'/geolocation.html', '<button onclick="getLocation()">Get Location</button><script>function getLocation() { navigator.geolocation.getCurrentPosition(p => document.body.innerHTML += p.coords.latitude + "," + p.coords.longitude, err => document.body.innerHTML += "Error: " + err.message); }</script>');
-
-        self::$port = self::findFreePort();
-        self::$server = new Process(['php', '-S', 'localhost:'.self::$port, '-t', self::$docroot]);
-        self::$server->start();
-        // Give the server a moment to start
-        usleep(100000);
+        self::startHttpServer([
+            'index.html' => '<h1>Hello</h1>',
+            'geolocation.html' => '<button onclick="getLocation()">Get Location</button><script>function getLocation() { navigator.geolocation.getCurrentPosition(p => document.body.innerHTML += p.coords.latitude + "," + p.coords.longitude, err => document.body.innerHTML += "Error: " + err.message); }</script>',
+        ]);
     }
 
     public static function tearDownAfterClass(): void
     {
-        if (self::$server && self::$server->isRunning()) {
-            self::$server->stop();
-        }
-        // Cleanup temp files
-        unlink(self::$docroot.'/index.html');
-        unlink(self::$docroot.'/geolocation.html');
-        rmdir(self::$docroot);
+        self::stopHttpServer();
     }
 
     public function setUp(): void
@@ -129,7 +113,7 @@ class BrowserContextTest extends TestCase
     public function itGetsStorageState(): void
     {
         $page = $this->context->newPage();
-        $page->goto('http://localhost:'.self::$port.'/index.html');
+        $page->goto(self::getServerUrl('index.html'));
         $page->evaluate('localStorage.setItem("foo", "bar")');
 
         $storageState = $this->context->storageState();
@@ -137,7 +121,7 @@ class BrowserContextTest extends TestCase
         $this->assertArrayHasKey('cookies', $storageState);
         $this->assertArrayHasKey('origins', $storageState);
         $this->assertCount(1, $storageState['origins']);
-        $this->assertEquals('http://localhost:'.self::$port, $storageState['origins'][0]['origin']);
+        $this->assertEquals(rtrim(self::getServerUrl(), '/'), $storageState['origins'][0]['origin']);
         $this->assertEquals('bar', $storageState['origins'][0]['localStorage'][0]['value']);
 
         $page->close();
@@ -149,7 +133,7 @@ class BrowserContextTest extends TestCase
         $this->context->grantPermissions(['geolocation']);
         $this->context->setGeolocation(59.95, 30.31667);
         $page = $this->context->newPage();
-        $page->goto('http://localhost:'.self::$port.'/geolocation.html');
+        $page->goto(self::getServerUrl('geolocation.html'));
 
         $page->click('button');
 
@@ -174,7 +158,7 @@ class BrowserContextTest extends TestCase
         $this->context->setOffline(true);
 
         try {
-            $page->goto('http://localhost:'.self::$port);
+            $page->goto(self::getServerUrl());
             $this->fail('Should have thrown an exception for offline mode.');
         } catch (\Exception $e) {
             $this->assertTrue(
@@ -186,17 +170,8 @@ class BrowserContextTest extends TestCase
         }
 
         $this->context->setOffline(false);
-        $page->goto('http://localhost:'.self::$port);
+        $page->goto(self::getServerUrl());
         $this->assertStringContainsString('Hello', $page->content());
         $page->close();
-    }
-
-    private static function findFreePort(): int
-    {
-        $sock = socket_create_listen(0);
-        socket_getsockname($sock, $addr, $port);
-        socket_close($sock);
-
-        return $port;
     }
 }

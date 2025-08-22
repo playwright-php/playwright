@@ -13,10 +13,16 @@ namespace PlaywrightPHP\Console;
 /**
  * @author Simon André <smn.andre@gmail.com>
  */
-class ConsoleMessage implements ConsoleMessageInterface
+final class ConsoleMessage
 {
+    /**
+     * @var array<string, mixed>
+     */
     private array $data;
 
+    /**
+     * @param array<string, mixed> $data
+     */
     public function __construct(array $data)
     {
         $this->data = $data;
@@ -24,23 +30,51 @@ class ConsoleMessage implements ConsoleMessageInterface
 
     public function type(): string
     {
-        return $this->data['type'];
+        $type = $this->data['type'];
+        if (!is_string($type)) {
+            throw new \RuntimeException('Invalid console message type');
+        }
+
+        return $type;
     }
 
     public function text(): string
     {
-        return $this->data['text'];
+        $text = $this->data['text'];
+        if (!is_string($text)) {
+            throw new \RuntimeException('Invalid console message text');
+        }
+
+        return $text;
     }
 
+    /**
+     * @return array<mixed>
+     */
     public function args(): array
     {
         // This is a simplified implementation. A real implementation would
         // need to deserialize the JSHandles from the server.
-        return $this->data['args'];
+        $args = $this->data['args'];
+        if (!is_array($args)) {
+            throw new \RuntimeException('Invalid console message args');
+        }
+
+        return $args;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function location(): array
     {
-        return $this->data['location'];
+        $location = $this->data['location'];
+        if (!is_array($location)) {
+            throw new \RuntimeException('Invalid console message location');
+        }
+
+        // PHPStan hint: after validation, this is array<string, mixed>
+        /* @phpstan-var array<string, mixed> $location */
+        return $location;
     }
 }

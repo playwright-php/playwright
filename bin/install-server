@@ -6,27 +6,28 @@
  * Installs Node.js dependencies for the Playwright server using Symfony Process
  */
 
-require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__.'/../vendor/autoload.php';
 
 use Symfony\Component\Console\Output\ConsoleOutput;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Process\Process;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 
-class PlaywrightServerInstaller
+final class PlaywrightServerInstaller
 {
     private string $serverDir;
+
     private OutputInterface $output;
+
     private bool $verbose;
 
     public function __construct()
     {
-        // Server assets live in this repository's bin/ directory
         $this->serverDir = __DIR__;
         $this->output = new ConsoleOutput();
-        $this->verbose = \in_array('-v', $_SERVER['argv'] ?? [], true) 
-            || \in_array('--verbose', $_SERVER['argv'] ?? [], true);
-        
+        $this->verbose = \in_array('-v', $_SERVER['argv'] ?? [], true)
+                || \in_array('--verbose', $_SERVER['argv'] ?? [], true);
+
         if ($this->verbose) {
             $this->output->setVerbosity(OutputInterface::VERBOSITY_VERBOSE);
         }
@@ -34,26 +35,26 @@ class PlaywrightServerInstaller
 
     public function install(): int
     {
-        $this->output->writeln('🚀 <info>Installing Playwright Server...</info>');
-        
+        $this->output->writeln('<info>Installing Playwright Server...</info>');
+
         try {
             $this->checkRequirements();
             $this->ensureServerDirectory();
             $this->installNodeDependencies();
             $this->verifyInstallation();
-            
+
             $this->output->writeln('✅ <info>Playwright Server installed successfully!</info>');
+
             return 0;
-            
         } catch (Exception $e) {
             $this->output->writeln("❌ <error>Installation failed: {$e->getMessage()}</error>");
-            
+
             if ($this->verbose && $e instanceof ProcessFailedException) {
                 $this->output->writeln('<error>Process output:</error>');
-                $this->output->writeln('<error>' . $e->getProcess()->getOutput() . '</error>');
-                $this->output->writeln('<error>' . $e->getProcess()->getErrorOutput() . '</error>');
+                $this->output->writeln('<error>'.$e->getProcess()->getOutput().'</error>');
+                $this->output->writeln('<error>'.$e->getProcess()->getErrorOutput().'</error>');
             }
-            
+
             return 1;
         }
     }
@@ -62,58 +63,55 @@ class PlaywrightServerInstaller
     {
         $this->output->writeln('Checking requirements...', OutputInterface::VERBOSITY_VERBOSE);
 
-        // Check Node.js version
         $nodeProcess = new Process(['node', '--version']);
         $nodeProcess->run();
 
         if (!$nodeProcess->isSuccessful()) {
             throw new \RuntimeException('Node.js is required but not found.');
         }
-        
+
         $nodeVersion = trim($nodeProcess->getOutput());
         $version = str_replace('v', '', $nodeVersion);
-        
+
         if (version_compare($version, '20.0.0', '<')) {
             throw new \RuntimeException(sprintf('Node.js 20+ is required, found version %s. Please upgrade Node.js.', $nodeVersion));
         }
-        
+
         $this->output->writeln("✓ Node.js $nodeVersion found");
-        
-        // Check npm
+
         $npmProcess = new Process(['npm', '--version']);
         $npmProcess->run();
-        
+
         if (!$npmProcess->isSuccessful()) {
             throw new \RuntimeException('npm is required but not found.');
         }
-        
+
         $npmVersion = trim($npmProcess->getOutput());
         $this->output->writeln("✓ npm $npmVersion found");
-        
-        // Check for package managers preference
+
         $this->checkPackageManager();
     }
 
     private function checkPackageManager(): void
     {
-        // Check for pnpm (fastest)
         $pnpmProcess = new Process(['pnpm', '--version']);
         $pnpmProcess->run();
-        
+
         if ($pnpmProcess->isSuccessful()) {
             $this->output->writeln('✓ pnpm detected - using for faster installs', OutputInterface::VERBOSITY_VERBOSE);
+
             return;
         }
-        
-        // Check for yarn
+
         $yarnProcess = new Process(['yarn', '--version']);
         $yarnProcess->run();
-        
+
         if ($yarnProcess->isSuccessful()) {
             $this->output->writeln('✓ yarn detected', OutputInterface::VERBOSITY_VERBOSE);
+
             return;
         }
-        
+
         $this->output->writeln('✓ Using npm for package installation', OutputInterface::VERBOSITY_VERBOSE);
     }
 
@@ -122,32 +120,32 @@ class PlaywrightServerInstaller
         if (!is_dir($this->serverDir)) {
             throw new \RuntimeException("Server directory not found: {$this->serverDir}");
         }
-        
-        if (!is_file($this->serverDir . '/package.json')) {
+
+        if (!is_file($this->serverDir.'/package.json')) {
             throw new \RuntimeException('package.json not found in server directory');
         }
-        
+
         $this->output->writeln('✓ Server directory found');
     }
 
     private function installNodeDependencies(): void
     {
         $this->output->writeln('Installing Node.js dependencies...');
-        
-        // Check if dependencies are already up to date
+
         if ($this->isDependenciesUpToDate()) {
             $this->output->writeln('✓ Dependencies already up to date');
+
             return;
         }
-        
+
         $packageManager = $this->detectPackageManager();
         $command = $this->getInstallCommand($packageManager);
-        
+
         $this->output->writeln("Using $packageManager for installation", OutputInterface::VERBOSITY_VERBOSE);
-        
+
         $process = new Process($command, $this->serverDir);
         $process->setTimeout(300); // 5 minutes timeout
-        
+
         if ($this->verbose) {
             $process->run(function ($type, $buffer) {
                 $this->output->write($buffer);
@@ -155,34 +153,33 @@ class PlaywrightServerInstaller
         } else {
             $process->run();
         }
-        
+
         if (!$process->isSuccessful()) {
             throw new ProcessFailedException($process);
         }
-        
+
         $this->output->writeln('✓ Node.js dependencies installed');
     }
 
     private function isDependenciesUpToDate(): bool
     {
-        $packageJsonPath = $this->serverDir . '/package.json';
-        $nodeModulesPath = $this->serverDir . '/node_modules';
-        
+        $packageJsonPath = $this->serverDir.'/package.json';
+        $nodeModulesPath = $this->serverDir.'/node_modules';
+
         if (!is_dir($nodeModulesPath)) {
             return false;
         }
-        
-        // Check if lock file exists and is newer than package.json
+
         $lockFiles = [
-            'package-lock.json',
-            'yarn.lock',
-            'pnpm-lock.yaml'
+                'package-lock.json',
+                'yarn.lock',
+                'pnpm-lock.yaml',
         ];
-        
+
         $packageTime = filemtime($packageJsonPath);
-        
+
         foreach ($lockFiles as $lockFile) {
-            $lockPath = $this->serverDir . '/' . $lockFile;
+            $lockPath = $this->serverDir.'/'.$lockFile;
             if (is_file($lockPath) && filemtime($lockPath) >= $packageTime) {
                 return true;
             }
@@ -193,64 +190,59 @@ class PlaywrightServerInstaller
 
     private function detectPackageManager(): string
     {
-        // Check for lock files to determine preferred package manager
-        if (is_file($this->serverDir . '/pnpm-lock.yaml')) {
+        if (is_file($this->serverDir.'/pnpm-lock.yaml')) {
             return 'pnpm';
         }
-        
-        if (is_file($this->serverDir . '/yarn.lock')) {
+
+        if (is_file($this->serverDir.'/yarn.lock')) {
             return 'yarn';
         }
-        
-        // Check if pnpm is available and prefer it for speed
+
         $pnpmProcess = new Process(['pnpm', '--version']);
         $pnpmProcess->run();
-        
+
         if ($pnpmProcess->isSuccessful()) {
             return 'pnpm';
         }
-        
-        // Check if yarn is available
+
         $yarnProcess = new Process(['yarn', '--version']);
         $yarnProcess->run();
-        
+
         if ($yarnProcess->isSuccessful()) {
             return 'yarn';
         }
-        
+
         return 'npm';
     }
 
     private function getInstallCommand(string $packageManager): array
     {
-        $hasPnpmLock = is_file($this->serverDir . '/pnpm-lock.yaml');
-        $hasYarnLock = is_file($this->serverDir . '/yarn.lock');
-        $hasNpmLock = is_file($this->serverDir . '/package-lock.json');
+        $hasPnpmLock = is_file($this->serverDir.'/pnpm-lock.yaml');
+        $hasYarnLock = is_file($this->serverDir.'/yarn.lock');
+        $hasNpmLock = is_file($this->serverDir.'/package-lock.json');
 
         return match ($packageManager) {
             'pnpm' => $hasPnpmLock
-                ? ['pnpm', 'install', '--prod', '--frozen-lockfile']
-                : ['pnpm', 'install', '--prod', '--no-frozen-lockfile'],
+                    ? ['pnpm', 'install', '--prod', '--frozen-lockfile']
+                    : ['pnpm', 'install', '--prod', '--no-frozen-lockfile'],
             'yarn' => $hasYarnLock
-                ? ['yarn', 'install', '--production', '--frozen-lockfile']
-                : ['yarn', 'install', '--production'],
+                    ? ['yarn', 'install', '--production', '--frozen-lockfile']
+                    : ['yarn', 'install', '--production'],
             default => $hasNpmLock
-                ? ['npm', 'ci', '--only=production']
-                : ['npm', 'install', '--only=production']
+                    ? ['npm', 'ci', '--only=production']
+                    : ['npm', 'install', '--only=production']
         };
     }
 
     private function makeServerExecutable(): void
     {
-        // No executable to chmod in current layout; Node script is invoked by ProcessTransport
         $this->output->writeln('✓ Server script present');
     }
 
     private function verifyInstallation(): void
     {
         $this->output->writeln('Verifying installation...', OutputInterface::VERBOSITY_VERBOSE);
-        
-        // Verify by resolving the 'playwright' package and checking the server JS entry exists
+
         $resolve = new Process(['node', '-p', "require.resolve('playwright')"], $this->serverDir);
         $resolve->setTimeout(30);
         $resolve->run();
@@ -259,7 +251,7 @@ class PlaywrightServerInstaller
             throw new \RuntimeException('Server verification failed - playwright package not resolvable');
         }
 
-        if (!is_file($this->serverDir . '/playwright-server.js')) {
+        if (!is_file($this->serverDir.'/playwright-server.js')) {
             throw new \RuntimeException('Server entry script not found: playwright-server.js');
         }
 
@@ -268,8 +260,8 @@ class PlaywrightServerInstaller
 }
 
 // Handle CLI arguments
-$help = \in_array('-h', $_SERVER['argv'] ?? [], true) 
-    || \in_array('--help', $_SERVER['argv'] ?? [], true);
+$help = \in_array('-h', $_SERVER['argv'] ?? [], true)
+        || \in_array('--help', $_SERVER['argv'] ?? [], true);
 
 if ($help) {
     echo "Playwright Server Installer\n";
@@ -289,6 +281,5 @@ if ($help) {
     exit(0);
 }
 
-// Run installer
 $installer = new PlaywrightServerInstaller();
 exit($installer->install());

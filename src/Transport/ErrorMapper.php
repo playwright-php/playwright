@@ -82,6 +82,9 @@ final class ErrorMapper
         );
     }
 
+    /**
+     * @param array<string, mixed> $arr
+     */
     private static function getString(array $arr, string $key): ?string
     {
         $v = $arr[$key] ?? null;
@@ -89,6 +92,9 @@ final class ErrorMapper
         return is_string($v) ? $v : null;
     }
 
+    /**
+     * @param array<string, mixed> $arr
+     */
     private static function getInt(array $arr, string $key): ?int
     {
         $v = $arr[$key] ?? null;

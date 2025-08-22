@@ -22,7 +22,7 @@ final class LspFramingTest extends TestCase
         $json = '{"jsonrpc":"2.0","id":1}';
         $encoded = LspFraming::encode($json);
         $expected = "Content-Length: 24\r\n\r\n{\"jsonrpc\":\"2.0\",\"id\":1}";
-        
+
         self::assertSame($expected, $encoded);
     }
 
@@ -43,7 +43,7 @@ final class LspFramingTest extends TestCase
     {
         $framed = "Content-Length: 24\r\n\r\n{\"jsonrpc\":\"2.0\",\"id\":1}";
         $decoded = LspFraming::decode($framed);
-        
+
         self::assertCount(1, $decoded['messages']);
         self::assertSame('{"jsonrpc":"2.0","id":1}', $decoded['messages'][0]);
         self::assertSame('', $decoded['remainingBuffer']);
@@ -71,10 +71,10 @@ final class LspFramingTest extends TestCase
         $message2 = '{"id":2}';
         $framed1 = LspFraming::encode($message1);
         $framed2 = LspFraming::encode($message2);
-        $combined = $framed1 . $framed2;
-        
+        $combined = $framed1.$framed2;
+
         $decoded = LspFraming::decode($combined);
-        
+
         self::assertCount(2, $decoded['messages']);
         self::assertSame($message1, $decoded['messages'][0]);
         self::assertSame($message2, $decoded['messages'][1]);
@@ -86,10 +86,10 @@ final class LspFramingTest extends TestCase
         $completeMessage = '{"id":1}';
         $framed = LspFraming::encode($completeMessage);
         $trailingData = 'Content-Length: 50';
-        $input = $framed . $trailingData;
-        
+        $input = $framed.$trailingData;
+
         $decoded = LspFraming::decode($input);
-        
+
         self::assertCount(1, $decoded['messages']);
         self::assertSame($completeMessage, $decoded['messages'][0]);
         self::assertSame($trailingData, $decoded['remainingBuffer']);
@@ -102,10 +102,10 @@ final class LspFramingTest extends TestCase
         $framed1 = LspFraming::encode($message1);
         $framed2 = LspFraming::encode($message2);
         $trailingData = 'Content-Length: 100\r\n\r\nincomplete';
-        $input = $framed1 . $framed2 . $trailingData;
-        
+        $input = $framed1.$framed2.$trailingData;
+
         $decoded = LspFraming::decode($input);
-        
+
         self::assertCount(2, $decoded['messages']);
         self::assertSame($message1, $decoded['messages'][0]);
         self::assertSame($message2, $decoded['messages'][1]);
@@ -144,7 +144,7 @@ final class LspFramingTest extends TestCase
     {
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Missing or invalid Content-Length header');
-        
+
         LspFraming::decode("Invalid-Header: 25\r\n\r\ncontent");
     }
 
@@ -153,7 +153,7 @@ final class LspFramingTest extends TestCase
         $largeContent = str_repeat('x', 1000000); // 1MB
         $encoded = LspFraming::encode($largeContent);
         $decoded = LspFraming::decode($encoded);
-        
+
         self::assertCount(1, $decoded['messages']);
         self::assertSame($largeContent, $decoded['messages'][0]);
         self::assertSame('', $decoded['remainingBuffer']);
@@ -164,7 +164,7 @@ final class LspFramingTest extends TestCase
         $utf8Content = '{"text":"こんにちは世界🌍"}';
         $encoded = LspFraming::encode($utf8Content);
         $decoded = LspFraming::decode($encoded);
-        
+
         self::assertCount(1, $decoded['messages']);
         self::assertSame($utf8Content, $decoded['messages'][0]);
         self::assertSame('', $decoded['remainingBuffer']);

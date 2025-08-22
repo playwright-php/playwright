@@ -8,18 +8,15 @@ declare(strict_types=1);
  * the LICENSE file that was distributed with this source code.
  */
 
-namespace PlaywrightPHP\Console;
+namespace PlaywrightPHP\Event;
 
 /**
  * @author Simon André <smn.andre@gmail.com>
  */
-interface ConsoleMessageInterface
+interface EventDispatcherInterface
 {
-    public function type(): string;
-
-    public function text(): string;
-
-    public function args(): array;
-
-    public function location(): array;
+    /**
+     * @param array<string, mixed> $params
+     */
+    public function dispatchEvent(string $eventName, array $params): void;
 }

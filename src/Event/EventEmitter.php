@@ -15,6 +15,7 @@ namespace PlaywrightPHP\Event;
  */
 trait EventEmitter
 {
+    /** @var array<string, array<callable>> */
     private array $listeners = [];
 
     public function on(string $event, callable $listener): void
@@ -42,10 +43,13 @@ trait EventEmitter
         }
         $index = array_search($listener, $this->listeners[$event], true);
         if (false !== $index) {
-            array_splice($this->listeners[$event], $index, 1);
+            array_splice($this->listeners[$event], (int) $index, 1);
         }
     }
 
+    /**
+     * @param array<mixed> $args
+     */
     protected function emit(string $event, array $args = []): void
     {
         if (!isset($this->listeners[$event])) {

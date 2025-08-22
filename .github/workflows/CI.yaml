@@ -1,0 +1,138 @@
+name: "CI"
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cs:
+    name: "Code style"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Git: checkout"
+        uses: actions/checkout@v4
+
+      - name: "PHP: setup 8.3"
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+          tools: php-cs-fixer
+
+      - name: "Composer: validate"
+        run: composer validate --strict
+
+      - name: "Composer: install"
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: "Php-CS-Fixer: version"
+        run: vendor/bin/php-cs-fixer -V
+
+      - name: "Php-CS-Fixer: check"
+        run: composer run cs-check
+
+  sa:
+    name: "Static Analysis"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Git: checkout"
+        uses: actions/checkout@v4
+
+      - name: "PHP: setup 8.4"
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+          tools: phpstan
+
+      - name: "Composer: install"
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: "PHPStan: version"
+        run: vendor/bin/phpstan --version
+
+      - name: "PHPStan: analyse"
+        run: composer run analyse
+
+  unit-tests:
+    name: "Unit Tests (PHP ${{ matrix.php-version }})"
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php-version: ['8.3', '8.4']
+      fail-fast: false
+    steps:
+      - name: "Git: checkout"
+        uses: actions/checkout@v4
+
+      - name: "PHP: setup ${{ matrix.php-version }}"
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          coverage: none
+          tools: phpunit
+
+      - name: "Composer: install"
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: "PHPUnit: unit tests"
+        run: composer run test:unit
+
+  integration-tests:
+    name: "Integration Tests (PHP ${{ matrix.php-version }} ${{ matrix.dependencies }})"
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - php-version: '8.3'
+            dependencies: 'low'
+          - php-version: '8.4'
+            dependencies: 'high'
+      fail-fast: false
+    steps:
+      - name: "Git: checkout"
+        uses: actions/checkout@v4
+
+      - name: "PHP: setup ${{ matrix.php-version }}"
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          coverage: pcov
+          tools: phpunit
+
+      - name: "Node: setup"
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: "Composer: install (${{ matrix.dependencies }})"
+        run: |
+          if [ "${{ matrix.dependencies }}" == "low" ]; then
+            composer update --prefer-lowest --prefer-dist --no-interaction --no-progress
+          else
+            composer install --prefer-dist --no-interaction --no-progress
+          fi
+
+      - name: "Playwright: install browsers"
+        run: composer run install-browsers
+
+      - name: "PHPUnit: version"
+        run: vendor/bin/phpunit --version
+
+      - name: "PHPUnit: all tests with coverage"
+        run: composer run test -- --coverage-clover=coverage.xml
+
+      - name: "Codecov: upload coverage"
+        uses: codecov/codecov-action@v5
+        if: matrix.php-version == '8.4' && matrix.dependencies == 'high'
+        with:
+          files: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false

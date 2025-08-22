@@ -21,22 +21,34 @@ final class Playwright
     private static array $clients = [];
     private static bool $shutdownRegistered = false;
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public static function chromium(array $options = []): BrowserContextInterface
     {
         return self::launch('chromium', $options);
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public static function firefox(array $options = []): BrowserContextInterface
     {
         return self::launch('firefox', $options);
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public static function safari(array $options = []): BrowserContextInterface
     {
         // Safari maps to WebKit
         return self::launch('webkit', $options);
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     private static function launch(string $browserType, array $options): BrowserContextInterface
     {
         $client = PlaywrightFactory::create();
@@ -52,14 +64,28 @@ final class Playwright
             $builder->withHeadless((bool) $options['headless']);
         }
         if (array_key_exists('slowMo', $options)) {
-            $builder->withSlowMo((int) $options['slowMo']);
+            $slowMo = $options['slowMo'];
+            if (is_numeric($slowMo)) {
+                $builder->withSlowMo((int) $slowMo);
+            }
         }
         if (!empty($options['args'])) {
-            $builder->withArgs((array) $options['args']);
+            $args = $options['args'];
+            if (is_array($args)) {
+                $stringArgs = array_filter($args, 'is_string');
+                $builder->withArgs($stringArgs);
+            }
         }
 
         $browser = $builder->launch();
         $contextOptions = $options['context'] ?? [];
+
+        // Ensure contextOptions is properly typed
+        if (!is_array($contextOptions)) {
+            $contextOptions = [];
+        }
+
+        /** @phpstan-var array<string, mixed> $contextOptions */
         $context = empty($contextOptions) ? $browser->context() : $browser->newContext($contextOptions);
 
         // Keep client alive and ensure graceful shutdown

@@ -94,7 +94,7 @@ final class RequestTest extends TestCase
         $request = $this->createRequest();
         $this->assertSame('fetch', $request->resourceType());
     }
-    
+
     private function createRequest(array $data = []): Request
     {
         return new Request(array_merge($this->requestData, $data));

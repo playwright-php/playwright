@@ -24,18 +24,33 @@ interface PageInterface
 {
     public function locator(string $selector): LocatorInterface;
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function goto(string $url, array $options = []): ?ResponseInterface;
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function click(string $selector, array $options = []): self;
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function type(string $selector, string $text, array $options = []): self;
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function screenshot(?string $path = null, array $options = []): string;
 
     public function content(): ?string;
 
     public function evaluate(string $expression, mixed $arg = null): mixed;
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function waitForSelector(string $selector, array $options = []): ?LocatorInterface;
 
     public function close(): void;
@@ -51,12 +66,24 @@ interface PageInterface
      */
     public function cookies(?array $urls = null): array;
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function goBack(array $options = []): self;
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function goForward(array $options = []): self;
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function reload(array $options = []): self;
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function setContent(string $html, array $options = []): self;
 
     public function url(): string;
@@ -70,10 +97,14 @@ interface PageInterface
 
     public function setViewportSize(int $width, int $height): self;
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function waitForLoadState(string $state = 'load', array $options = []): self;
 
     /**
-     * @param string|callable $url
+     * @param string|callable      $url
+     * @param array<string, mixed> $options
      */
     public function waitForURL($url, array $options = []): self;
 
@@ -108,9 +139,9 @@ interface PageInterface
     /**
      * Set files to an input element with type="file".
      *
-     * @param string        $selector The input selector
-     * @param array<string> $files    Array of file paths to set
-     * @param array         $options  Additional options
+     * @param string               $selector The input selector
+     * @param array<string>        $files    Array of file paths to set
+     * @param array<string, mixed> $options  Additional options
      */
     public function setInputFiles(string $selector, array $files, array $options = []): self;
 }

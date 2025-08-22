@@ -15,6 +15,7 @@ namespace PlaywrightPHP\Locator;
  */
 class SelectorChain
 {
+    /** @var array<string> */
     private array $selectors = [];
 
     public function __construct(string $selector)

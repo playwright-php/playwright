@@ -20,6 +20,9 @@ use Psr\Log\LoggerInterface;
  */
 class BrowserBuilder
 {
+    /**
+     * @var array<string, mixed>
+     */
     private array $launchOptions = [];
 
     public function __construct(
@@ -44,6 +47,9 @@ class BrowserBuilder
         return $this;
     }
 
+    /**
+     * @param array<string> $args
+     */
     public function withArgs(array $args): self
     {
         $this->launchOptions['args'] = $args;
@@ -53,6 +59,12 @@ class BrowserBuilder
 
     public function withInspector(): self
     {
+        if (!isset($this->launchOptions['env'])) {
+            $this->launchOptions['env'] = [];
+        }
+        if (!is_array($this->launchOptions['env'])) {
+            $this->launchOptions['env'] = [];
+        }
         $this->launchOptions['env']['PWDEBUG'] = 'console';
 
         return $this;
@@ -72,7 +84,20 @@ class BrowserBuilder
         ]);
 
         if (isset($response['error'])) {
+            if (!is_string($response['error'])) {
+                throw new PlaywrightException('Browser launch failed with unknown error');
+            }
             throw new PlaywrightException($response['error']);
+        }
+
+        if (!is_string($response['browserId'])) {
+            throw new PlaywrightException('Invalid browserId returned from transport');
+        }
+        if (!is_string($response['defaultContextId'])) {
+            throw new PlaywrightException('Invalid defaultContextId returned from transport');
+        }
+        if (!is_string($response['version'])) {
+            throw new PlaywrightException('Invalid version returned from transport');
         }
 
         return new Browser(

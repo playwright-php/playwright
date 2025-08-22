@@ -15,8 +15,14 @@ namespace PlaywrightPHP\Input;
  */
 interface MouseInterface
 {
+    /**
+     * @param array<string, mixed> $options
+     */
     public function click(float $x, float $y, array $options = []): void;
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function move(float $x, float $y, array $options = []): void;
 
     public function wheel(float $deltaX, float $deltaY): void;

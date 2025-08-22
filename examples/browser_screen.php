@@ -12,16 +12,15 @@ require_once __DIR__.'/../vendor/autoload.php';
 
 use PlaywrightPHP\Playwright;
 
-$browser = Playwright::chromium();
+$browser = Playwright::chromium([
+    'headless' => false,
+]);
 $page = $browser->newPage();
 
 $page->goto('https://example.com');
 echo 'Url: '.$page->url()."\n";
 
 $file = $page->screenshot('./screenshot_example.png');
-echo 'Screenshot saved to: '.$file."\n";
-
-$file = $page->screenshot();
 echo 'Screenshot saved to: '.$file."\n";
 
 $page->close();

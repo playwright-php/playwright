@@ -14,6 +14,7 @@ use PlaywrightPHP\Browser\BrowserContextInterface;
 use PlaywrightPHP\Configuration\PlaywrightConfig;
 use PlaywrightPHP\Console\ConsoleMessage;
 use PlaywrightPHP\Dialog\Dialog;
+use PlaywrightPHP\Event\EventDispatcherInterface;
 use PlaywrightPHP\Exception\NetworkException;
 use PlaywrightPHP\Exception\PlaywrightException;
 use PlaywrightPHP\Exception\TimeoutException;
@@ -37,7 +38,7 @@ use Psr\Log\NullLogger;
 /**
  * @author Simon André <smn.andre@gmail.com>
  */
-class Page implements PageInterface
+final class Page implements PageInterface, EventDispatcherInterface
 {
     private KeyboardInterface $keyboard;
     private MouseInterface $mouse;
@@ -61,36 +62,53 @@ class Page implements PageInterface
         }
     }
 
+    /**
+     * @param array<string, mixed> $params
+     */
     public function dispatchEvent(string $eventName, array $params): void
     {
         switch ($eventName) {
             case 'dialog':
-                $dialog = $this->createDialog(
-                    $params['dialogId'],
-                    $params['type'],
-                    $params['message'],
-                    $params['defaultValue'] ?? null
-                );
-                $this->eventHandler->publicEmit('dialog', [$dialog]);
+                if (is_string($params['dialogId']) && is_string($params['type']) && is_string($params['message'])) {
+                    $defaultValue = $params['defaultValue'] ?? null;
+                    $defaultValue = is_string($defaultValue) ? $defaultValue : null;
+                    $dialog = $this->createDialog(
+                        $params['dialogId'],
+                        $params['type'],
+                        $params['message'],
+                        $defaultValue
+                    );
+                    $this->eventHandler->publicEmit('dialog', [$dialog]);
+                }
                 break;
             case 'console':
                 $this->eventHandler->publicEmit('console', [$this->createConsoleMessage($params)]);
                 break;
             case 'request':
-                $this->eventHandler->publicEmit('request', [$this->createRequest($params['request'])]);
+                if (is_array($params['request'])) {
+                    $this->eventHandler->publicEmit('request', [$this->createRequest($params['request'])]);
+                }
                 break;
             case 'response':
-                $this->eventHandler->publicEmit('response', [$this->createResponse($this->pageId, $params['response'])]);
+                if (is_array($params['response'])) {
+                    $this->eventHandler->publicEmit('response', [$this->createResponse($this->pageId, $params['response'])]);
+                }
                 break;
             case 'requestfailed':
-                $this->eventHandler->publicEmit('requestfailed', [$this->createRequest($params['request'])]);
+                if (is_array($params['request'])) {
+                    $this->eventHandler->publicEmit('requestfailed', [$this->createRequest($params['request'])]);
+                }
                 break;
             case 'route':
-                $route = $this->createRoute(
-                    $this->pageId,
-                    $params['routeId'],
-                    $params['request']
-                );
+                if (is_string($params['routeId']) && is_array($params['request'])) {
+                    $route = $this->createRoute(
+                        $this->pageId,
+                        $params['routeId'],
+                        $params['request']
+                    );
+                } else {
+                    break;
+                }
                 $this->eventHandler->publicEmit('route', [$route]);
                 break;
             default:
@@ -118,6 +136,9 @@ class Page implements PageInterface
         return new Locator($this->transport, $this->pageId, $selector);
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function goto(string $url, array $options = []): ?ResponseInterface
     {
         $this->logger->debug('Navigating to URL', ['url' => $url, 'options' => $options]);
@@ -126,7 +147,9 @@ class Page implements PageInterface
             $response = $this->sendCommand('goto', ['url' => $url, 'options' => $options]);
             $this->logger->info('Successfully navigated to URL', ['url' => $url]);
 
-            return $response['response'] ? $this->createResponse($this->pageId, $response['response']) : null;
+            $responseData = $response['response'] ?? null;
+
+            return $responseData && is_array($responseData) ? $this->createResponse($this->pageId, $responseData) : null;
         } catch (\Throwable $e) {
             $this->logger->error('Failed to navigate to URL', [
                 'url' => $url,
@@ -140,8 +163,8 @@ class Page implements PageInterface
     /**
      * Take a screenshot of the page.
      *
-     * @param string|null $path    Screenshot path. If null, auto-generates based on current URL and datetime
-     * @param array       $options Screenshot options (quality, fullPage, etc.)
+     * @param string|null          $path    Screenshot path. If null, auto-generates based on current URL and datetime
+     * @param array<string, mixed> $options Screenshot options (quality, fullPage, etc.)
      *
      * @return string Returns the screenshot file path
      */
@@ -152,6 +175,11 @@ class Page implements PageInterface
             $this->url(),
             $this->getScreenshotDirectory()
         );
+
+        // Ensure we have a string path
+        if (!is_string($finalPath)) {
+            throw new \RuntimeException('Invalid screenshot path generated');
+        }
 
         $this->logger->debug('Taking screenshot', ['path' => $finalPath, 'options' => $options]);
 
@@ -175,8 +203,8 @@ class Page implements PageInterface
     /**
      * Take an auto-generated screenshot with custom suffix.
      *
-     * @param string $suffix  Custom suffix for the filename (will be slugified)
-     * @param array  $options Screenshot options
+     * @param string               $suffix  Custom suffix for the filename (will be slugified)
+     * @param array<string, mixed> $options Screenshot options
      *
      * @return string The generated screenshot path
      */
@@ -220,7 +248,10 @@ class Page implements PageInterface
 
     public function content(): ?string
     {
-        return $this->sendCommand('content')['content'] ?? null;
+        $response = $this->sendCommand('content');
+        $content = $response['content'] ?? null;
+
+        return is_string($content) ? $content : null;
     }
 
     public function evaluate(string $expression, mixed $arg = null): mixed
@@ -230,7 +261,10 @@ class Page implements PageInterface
         return $response['result'] ?? null;
     }
 
-    public function waitForSelector(string $selector, array $options = []): ?LocatorInterface
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function waitForSelector(string $selector, array $options = []): LocatorInterface
     {
         $this->sendCommand('waitForSelector', ['selector' => $selector, 'options' => $options]);
 
@@ -242,6 +276,9 @@ class Page implements PageInterface
         $this->sendCommand('close');
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function click(string $selector, array $options = []): self
     {
         $this->locator($selector)->click($options);
@@ -252,6 +289,9 @@ class Page implements PageInterface
         return $this;
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function type(string $selector, string $text, array $options = []): self
     {
         $this->locator($selector)->type($text, $options);
@@ -269,6 +309,11 @@ class Page implements PageInterface
         return $this;
     }
 
+    /**
+     * @param array<string, mixed> $params
+     *
+     * @return array<string, mixed>
+     */
     private function sendCommand(string $action, array $params = []): array
     {
         $payload = array_merge($params, [
@@ -280,7 +325,14 @@ class Page implements PageInterface
 
         if (isset($response['error'])) {
             $error = $response['error'];
-            $message = $error['message'] ?? $error ?? 'Unknown error';
+            if (!is_array($error)) {
+                throw new PlaywrightException('Invalid error response from transport');
+            }
+
+            $message = $error['message'] ?? 'Unknown error';
+            if (!is_string($message)) {
+                $message = 'Unknown error';
+            }
 
             // Log the error for debugging
             $this->logger->error('Playwright server error', ['error' => $error]);
@@ -290,8 +342,9 @@ class Page implements PageInterface
                 throw new PlaywrightException('Browser context has been closed');
             }
 
-            if (isset($error['name'])) {
-                switch ($error['name']) {
+            $errorName = $error['name'] ?? null;
+            if (is_string($errorName)) {
+                switch ($errorName) {
                     case 'TimeoutError':
                         throw new TimeoutException($message);
                     case 'NetworkError':
@@ -327,9 +380,29 @@ class Page implements PageInterface
 
     public function cookies(?array $urls = null): array
     {
-        return $this->sendCommand('cookies', ['urls' => $urls])['cookies'];
+        $response = $this->sendCommand('cookies', ['urls' => $urls]);
+        $cookies = $response['cookies'];
+
+        if (!is_array($cookies)) {
+            return [];
+        }
+
+        // Validate cookie structure
+        $validatedCookies = [];
+        foreach ($cookies as $cookie) {
+            if (is_array($cookie)) {
+                // Basic validation - add more specific checks if needed
+                $validatedCookies[] = $cookie;
+            }
+        }
+
+        /* @phpstan-var array<array{name: string, value: string, domain: string, path: string, expires: int, httpOnly: bool, secure: bool, sameSite: 'Lax'|'None'|'Strict'}> $validatedCookies */
+        return $validatedCookies;
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function goBack(array $options = []): self
     {
         $this->sendCommand('goBack', ['options' => $options]);
@@ -337,6 +410,9 @@ class Page implements PageInterface
         return $this;
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function goForward(array $options = []): self
     {
         $this->sendCommand('goForward', ['options' => $options]);
@@ -344,6 +420,9 @@ class Page implements PageInterface
         return $this;
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function reload(array $options = []): self
     {
         $this->sendCommand('reload', ['options' => $options]);
@@ -351,6 +430,9 @@ class Page implements PageInterface
         return $this;
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function setContent(string $html, array $options = []): self
     {
         $this->sendCommand('setContent', ['html' => $html, 'options' => $options]);
@@ -360,17 +442,49 @@ class Page implements PageInterface
 
     public function url(): string
     {
-        return $this->sendCommand('url')['value'];
+        $response = $this->sendCommand('url');
+        $url = $response['value'];
+        if (!is_string($url)) {
+            throw new \RuntimeException('Invalid URL response from transport');
+        }
+
+        return $url;
     }
 
     public function title(): string
     {
-        return $this->sendCommand('title')['value'];
+        $response = $this->sendCommand('title');
+        $title = $response['value'];
+        if (!is_string($title)) {
+            throw new \RuntimeException('Invalid title response from transport');
+        }
+
+        return $title;
     }
 
+    /**
+     * @return array{width: int, height: int}|null
+     */
     public function viewportSize(): ?array
     {
-        return $this->sendCommand('viewportSize')['value'];
+        $response = $this->sendCommand('viewportSize');
+        $viewport = $response['value'];
+
+        if (null === $viewport) {
+            return null;
+        }
+
+        if (!is_array($viewport)
+            || !array_key_exists('width', $viewport)
+            || !array_key_exists('height', $viewport)
+            || !is_int($viewport['width'])
+            || !is_int($viewport['height'])
+        ) {
+            throw new \RuntimeException('Invalid viewportSize response from transport');
+        }
+
+        /* @phpstan-var array{width: int, height: int} $viewport */
+        return ['width' => $viewport['width'], 'height' => $viewport['height']];
     }
 
     public function setViewportSize(int $width, int $height): self
@@ -380,6 +494,9 @@ class Page implements PageInterface
         return $this;
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function waitForLoadState(string $state = 'load', array $options = []): self
     {
         $this->sendCommand('waitForLoadState', ['state' => $state, 'options' => $options]);
@@ -387,6 +504,9 @@ class Page implements PageInterface
         return $this;
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function waitForURL($url, array $options = []): self
     {
         $this->sendCommand('waitForURL', ['url' => $url, 'options' => $options]);
@@ -397,6 +517,10 @@ class Page implements PageInterface
         return $this;
     }
 
+    /**
+     * @param string|callable      $url
+     * @param array<string, mixed> $options
+     */
     public function waitForResponse($url, array $options = []): ResponseInterface
     {
         $action = $options['action'] ?? null;
@@ -455,6 +579,9 @@ class Page implements PageInterface
         ]);
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function setInputFiles(string $selector, array $files, array $options = []): self
     {
         $this->logger->debug('Setting input files', ['selector' => $selector, 'files' => $files]);
@@ -485,25 +612,25 @@ class Page implements PageInterface
     /**
      * Create a Response object from transport data.
      */
-    private function createResponse(string $pageId, array $data): Response
+    private function createResponse(string $pageId, $data): Response
     {
-        return new Response($this->transport, $pageId, $data);
+        return new Response($this->transport, $pageId, $this->validateResponseData($data));
     }
 
     /**
      * Create a Request object from transport data.
      */
-    private function createRequest(array $data): Request
+    private function createRequest($data): Request
     {
-        return new Request($data);
+        return new Request($this->validateRequestData($data));
     }
 
     /**
      * Create a Route object from transport data.
      */
-    private function createRoute(string $contextId, string $routeId, array $requestData): Route
+    private function createRoute(string $contextId, string $routeId, $requestData): Route
     {
-        return new Route($this->transport, $contextId, $routeId, $requestData);
+        return new Route($this->transport, $routeId, $this->validateRequestData($requestData));
     }
 
     /**
@@ -516,9 +643,41 @@ class Page implements PageInterface
 
     /**
      * Create a ConsoleMessage object from transport data.
+     *
+     * @param array<string, mixed> $params
      */
     private function createConsoleMessage(array $params): ConsoleMessage
     {
         return new ConsoleMessage($params);
+    }
+
+    /**
+     * Helper method to validate transport data for Request creation.
+     *
+     * @return array<string, mixed>
+     */
+    private function validateRequestData($data): array
+    {
+        if (!is_array($data)) {
+            throw new \RuntimeException('Invalid request data from transport');
+        }
+
+        /* @phpstan-var array<string, mixed> $data */
+        return $data;
+    }
+
+    /**
+     * Helper method to validate transport data for Response creation.
+     *
+     * @return array<string, mixed>
+     */
+    private function validateResponseData($data): array
+    {
+        if (!is_array($data)) {
+            throw new \RuntimeException('Invalid response data from transport');
+        }
+
+        /* @phpstan-var array<string, mixed> $data */
+        return $data;
     }
 }

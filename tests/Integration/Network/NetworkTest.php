@@ -16,38 +16,25 @@ use PHPUnit\Framework\TestCase;
 use PlaywrightPHP\Network\Route;
 use PlaywrightPHP\Network\RouteInterface;
 use PlaywrightPHP\Testing\PlaywrightTestCaseTrait;
-use Symfony\Component\Process\Process;
+use PlaywrightPHP\Tests\Support\HttpServerTestTrait;
 
 #[CoversClass(Route::class)]
 class NetworkTest extends TestCase
 {
     use PlaywrightTestCaseTrait;
-
-    private static ?Process $server = null;
-    private static string $docroot;
-    private static int $port;
+    use HttpServerTestTrait;
 
     public static function setUpBeforeClass(): void
     {
-        self::$docroot = sys_get_temp_dir().'/playwright-php-tests-'.uniqid('', true);
-        mkdir(self::$docroot);
-
-        file_put_contents(self::$docroot.'/index.html', '<h1>Network Test</h1><img src="/image.png">');
-        file_put_contents(self::$docroot.'/image.png', 'fake image data');
-
-        self::$port = self::findFreePort();
-        self::$server = new Process(['php', '-S', 'localhost:'.self::$port, '-t', self::$docroot]);
-        self::$server->start();
-        usleep(100000);
+        self::startHttpServer([
+            'index.html' => '<h1>Network Test</h1><img src="/image.png">',
+            'image.png' => 'fake image data',
+        ]);
     }
 
     public static function tearDownAfterClass(): void
     {
-        if (self::$server && self::$server->isRunning()) {
-            self::$server->stop();
-        }
-        array_map('unlink', glob(self::$docroot.'/*.*'));
-        rmdir(self::$docroot);
+        self::stopHttpServer();
     }
 
     public function setUp(): void
@@ -64,7 +51,7 @@ class NetworkTest extends TestCase
     public function itCanAbortARequest(): void
     {
         $this->page->route('**/*.png', fn (RouteInterface $route) => $route->abort());
-        $response = $this->page->goto('http://localhost:'.self::$port.'/index.html', ['waitUntil' => 'domcontentloaded']);
+        $response = $this->page->goto(self::getServerUrl('index.html'), ['waitUntil' => 'domcontentloaded']);
         $this->assertTrue($response->ok());
     }
 
@@ -75,17 +62,8 @@ class NetworkTest extends TestCase
             'status' => 201,
             'body' => '<h1>Intercepted</h1>',
         ]));
-        $response = $this->page->goto('http://localhost:'.self::$port.'/index.html');
+        $response = $this->page->goto(self::getServerUrl('index.html'));
         $this->assertEquals(201, $response->status());
         $this->assertStringContainsString('<h1>Intercepted</h1>', $this->page->content());
-    }
-
-    private static function findFreePort(): int
-    {
-        $sock = socket_create_listen(0);
-        socket_getsockname($sock, $addr, $port);
-        socket_close($sock);
-
-        return $port;
     }
 }
