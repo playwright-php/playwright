@@ -185,6 +185,99 @@ final class JsonRpcClientTest extends TestCase
         $this->assertNotNull($sendRecord);
         $this->assertEquals(7000.0, $sendRecord['context']['timeoutMs']);
     }
+
+    public function testSendRawUsesRequestIdInsteadOfId(): void
+    {
+        $client = new TestableJsonRpcClient($this->clock, $this->logger);
+        $client->setMockResponse(['requestId' => 1, 'browserId' => 'browser_1', 'status' => 'ok']);
+
+        $message = ['action' => 'launch', 'browser' => 'chromium', 'options' => ['headless' => true]];
+        $result = $client->sendRaw($message);
+
+        $requests = $client->getSentRequests();
+        $this->assertCount(1, $requests);
+        
+        $sentRequest = $requests[0];
+        $this->assertEquals('launch', $sentRequest['action']);
+        $this->assertEquals('chromium', $sentRequest['browser']);
+        $this->assertEquals(['headless' => true], $sentRequest['options']);
+        $this->assertEquals(1, $sentRequest['requestId']);
+        $this->assertArrayNotHasKey('id', $sentRequest);
+        $this->assertArrayNotHasKey('jsonrpc', $sentRequest);
+
+        $this->assertEquals(['browserId' => 'browser_1', 'status' => 'ok', 'requestId' => 1], $result);
+    }
+
+    public function testSendRawLogsWithActionInsteadOfMethod(): void
+    {
+        $client = new TestableJsonRpcClient($this->clock, $this->logger);
+        $client->setMockResponse(['requestId' => 1, 'status' => 'ok']);
+
+        $message = ['action' => 'newContext', 'browserId' => 'browser_1'];
+        $client->sendRaw($message);
+
+        $this->assertTrue($this->logger->hasDebugRecords());
+
+        $debugRecords = $this->logger->records;
+        $sendRecord = null;
+        foreach ($debugRecords as $record) {
+            if (str_contains($record['message'], 'Sending raw request')) {
+                $sendRecord = $record;
+                break;
+            }
+        }
+
+        $this->assertNotNull($sendRecord);
+        $this->assertEquals('newContext', $sendRecord['context']['action']);
+        $this->assertEquals(30000.0, $sendRecord['context']['timeoutMs']);
+    }
+
+    public function testSendRawHandlesTimeoutWithAction(): void
+    {
+        $client = new TestableJsonRpcClient($this->clock, $this->logger, 100.0);
+        $client->setMockResponse(null);
+
+        $this->expectException(TimeoutException::class);
+        $this->expectExceptionMessage('Mock timeout exceeded deadline');
+
+        $client->sendRaw(['action' => 'slow_action']);
+    }
+
+    public function testSendRawGeneratesUniqueRequestIds(): void
+    {
+        $client = new TestableJsonRpcClient($this->clock, $this->logger);
+
+        $client->setMockResponse(['requestId' => 1, 'status' => 'ok']);
+        $client->sendRaw(['action' => 'action1']);
+
+        $client->setMockResponse(['requestId' => 2, 'status' => 'ok']);
+        $client->sendRaw(['action' => 'action2']);
+
+        $requests = $client->getSentRequests();
+        $this->assertCount(2, $requests);
+        $this->assertEquals(1, $requests[0]['requestId']);
+        $this->assertEquals(2, $requests[1]['requestId']);
+        $this->assertEquals('action1', $requests[0]['action']);
+        $this->assertEquals('action2', $requests[1]['action']);
+    }
+
+    public function testSendRawReturnsResponseDirectly(): void
+    {
+        $client = new TestableJsonRpcClient($this->clock, $this->logger);
+        
+        $mockResponse = [
+            'requestId' => 1, 
+            'browserId' => 'browser_1', 
+            'defaultContextId' => 'context_1',
+            'version' => '1.0.0'
+        ];
+        $client->setMockResponse($mockResponse);
+
+        $result = $client->sendRaw(['action' => 'launch']);
+
+        // Should return the response directly without processing
+        $this->assertEquals($mockResponse, $result);
+    }
 }
 
 /**

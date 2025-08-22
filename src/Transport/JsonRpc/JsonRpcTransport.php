@@ -103,15 +103,17 @@ final class JsonRpcTransport implements TransportInterface
         $this->ensureConnected();
 
         try {
-            $method = $message['action'] ?? 'unknown';
-            $params = $this->extractParams($message);
+            // Send the message in the original format, not JSON-RPC format
+            // The LSP framing handles the transport protocol, but the message content
+            // remains compatible with the existing Node.js server
             $timeout = $this->config['timeout'] ?? null;
+            $timeoutMs = $timeout ? $timeout * 1000 : null;
 
-            return $this->client->send($method, $params, $timeout ? $timeout * 1000 : null);
+            return $this->client->sendRaw($message, $timeoutMs);
         } catch (\Throwable $e) {
             $this->logger->error('JSON-RPC send failed', [
                 'error' => $e->getMessage(),
-                'method' => $message['action'] ?? 'unknown',
+                'action' => $message['action'] ?? 'unknown',
             ]);
             throw $e;
         }

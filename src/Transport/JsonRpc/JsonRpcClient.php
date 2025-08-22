@@ -23,7 +23,7 @@ use Symfony\Component\Clock\ClockInterface;
  *
  * @author Simon André <smn.andre@gmail.com>
  */
-class JsonRpcClient
+class JsonRpcClient implements JsonRpcClientInterface
 {
     private int $nextId = 1;
 
@@ -32,7 +32,7 @@ class JsonRpcClient
 
     public function __construct(
         private readonly ClockInterface $clock,
-        private readonly LoggerInterface $logger = new NullLogger(),
+        protected readonly LoggerInterface $logger = new NullLogger(),
         private readonly float $defaultTimeoutMs = 30000.0,
     ) {
     }
@@ -87,6 +87,50 @@ class JsonRpcClient
             }
 
             return $response['result'] ?? [];
+        } catch (\Throwable $e) {
+            unset($this->pendingRequests[$id]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Send a raw message in the original format and wait for response.
+     *
+     * @param array<string, mixed> $message
+     *
+     * @return array<string, mixed>
+     */
+    public function sendRaw(array $message, ?float $timeoutMs = null): array
+    {
+        $timeoutMs ??= $this->defaultTimeoutMs;
+        $id = $this->nextId++;
+
+        $deadline = $timeoutMs > 0
+            ? $this->getCurrentTimeMs() + $timeoutMs
+            : null;
+
+        // Add requestId to the original message format
+        $request = $message;
+        $request['requestId'] = $id;
+
+        // Track the request
+        $this->pendingRequests[$id] = [
+            'method' => $message['action'] ?? 'unknown',
+            'timestamp' => $this->getCurrentTimeMs(),
+        ];
+
+        $this->logger->debug('Sending raw request', [
+            'id' => $id,
+            'action' => $message['action'] ?? 'unknown',
+            'timeoutMs' => $timeoutMs,
+        ]);
+
+        try {
+            $response = $this->sendAndReceive($request, $deadline);
+            unset($this->pendingRequests[$id]);
+
+            // Return the response directly (already in the expected format)
+            return $response;
         } catch (\Throwable $e) {
             unset($this->pendingRequests[$id]);
             throw $e;

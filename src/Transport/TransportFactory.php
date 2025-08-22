@@ -12,6 +12,8 @@ namespace PlaywrightPHP\Transport;
 
 use PlaywrightPHP\Configuration\PlaywrightConfig;
 use PlaywrightPHP\Node\NodeBinaryResolver;
+use PlaywrightPHP\Transport\JsonRpc\JsonRpcTransport;
+use PlaywrightPHP\Transport\JsonRpc\ProcessLauncher;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -31,14 +33,17 @@ final class TransportFactory
         $nodePath = $config->nodePath ?? (new NodeBinaryResolver())->resolve();
         $command = [$nodePath, $serverScriptPath];
 
-        $transportConfig = [
-            'command' => $command,
-            'timeout' => $config->timeoutMs,
-            'cwd' => dirname($serverScriptPath), // Removed legacy cwd override
-            'env' => $config->env,
-            'verbose' => false, // TODO: Integrate with logger instead of verbose flag
-        ];
+        $processLauncher = new ProcessLauncher($logger);
 
-        return new ProcessTransport($transportConfig, $logger);
+        return new JsonRpcTransport(
+            $processLauncher,
+            [
+                'command' => $command,
+                'timeout' => $config->timeoutMs / 1000,
+                'cwd' => dirname($serverScriptPath),
+                'env' => $config->env,
+            ],
+            $logger
+        );
     }
 }
