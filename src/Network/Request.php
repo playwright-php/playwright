@@ -58,7 +58,7 @@ final class Request implements RequestInterface
             }
         }
 
-        /* @phpstan-var array<string, string> $stringHeaders */
+        /* @var array<string, string> $stringHeaders */
         return $stringHeaders;
     }
 
@@ -83,7 +83,7 @@ final class Request implements RequestInterface
         }
 
         // PHPStan hint: after validation, this is array<string, mixed>
-        /* @phpstan-var array<string, mixed> $decoded */
+        /* @var array<string, mixed> $decoded */
         return $decoded;
     }
 

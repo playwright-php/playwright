@@ -172,7 +172,7 @@ final readonly class StorageState
             // Add specific field validation if needed
         }
 
-        /* @phpstan-var array<array{name: string, value: string, domain: string, path: string, expires: int, httpOnly: bool, secure: bool, sameSite: 'Lax'|'None'|'Strict'}> $cookies */
+        /* @var array<array{name: string, value: string, domain: string, path: string, expires: int, httpOnly: bool, secure: bool, sameSite: 'Lax'|'None'|'Strict'}> $cookies */
         return $cookies;
     }
 
@@ -190,7 +190,7 @@ final readonly class StorageState
             }
         }
 
-        /* @phpstan-var array<array{origin: string, localStorage?: array<array{name: string, value: string}>}> $origins */
+        /* @var array<array{origin: string, localStorage?: array<array{name: string, value: string}>}> $origins */
         return $origins;
     }
 }

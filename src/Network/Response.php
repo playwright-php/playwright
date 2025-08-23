@@ -81,7 +81,7 @@ final class Response implements ResponseInterface
             }
         }
 
-        /* @phpstan-var array<string, string> $stringHeaders */
+        /* @var array<string, string> $stringHeaders */
         return $stringHeaders;
     }
 
@@ -121,7 +121,7 @@ final class Response implements ResponseInterface
             }
             // Ensure we always have an array with proper typing
             if (is_array($decoded)) {
-                /* @phpstan-var array<string, mixed> $decoded */
+                /* @var array<string, mixed> $decoded */
                 $this->jsonCache = $decoded;
             } else {
                 $this->jsonCache = [];

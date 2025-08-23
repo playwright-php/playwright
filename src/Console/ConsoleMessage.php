@@ -74,7 +74,7 @@ final class ConsoleMessage
         }
 
         // PHPStan hint: after validation, this is array<string, mixed>
-        /* @phpstan-var array<string, mixed> $location */
+        /* @var array<string, mixed> $location */
         return $location;
     }
 }

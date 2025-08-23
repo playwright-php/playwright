@@ -420,14 +420,14 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
      *
      * @return array<string, mixed>
      */
-    private function validateTransportArray($data, string $context = ''): array
+    private function validateTransportArray(mixed $data, string $context = ''): array
     {
         if (!is_array($data)) {
             throw new \RuntimeException("Invalid {$context} data in transport response");
         }
 
         // PHPStan hint: we know this is array<string, mixed> after validation
-        /* @phpstan-var array<string, mixed> $data */
+        /* @var array<string, mixed> $data */
         return $data;
     }
 }

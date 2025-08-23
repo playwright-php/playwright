@@ -396,7 +396,7 @@ final class Page implements PageInterface, EventDispatcherInterface
             }
         }
 
-        /* @phpstan-var array<array{name: string, value: string, domain: string, path: string, expires: int, httpOnly: bool, secure: bool, sameSite: 'Lax'|'None'|'Strict'}> $validatedCookies */
+        /** @var array<array{name: string, value: string, domain: string, path: string, expires: int, httpOnly: bool, secure: bool, sameSite: 'Lax'|'None'|'Strict'}> $validatedCookies */
         return $validatedCookies;
     }
 
@@ -483,7 +483,7 @@ final class Page implements PageInterface, EventDispatcherInterface
             throw new \RuntimeException('Invalid viewportSize response from transport');
         }
 
-        /* @phpstan-var array{width: int, height: int} $viewport */
+        /** @var array{width: int, height: int} $viewport */
         return ['width' => $viewport['width'], 'height' => $viewport['height']];
     }
 
@@ -612,7 +612,7 @@ final class Page implements PageInterface, EventDispatcherInterface
     /**
      * Create a Response object from transport data.
      */
-    private function createResponse(string $pageId, $data): Response
+    private function createResponse(string $pageId, mixed $data): Response
     {
         return new Response($this->transport, $pageId, $this->validateResponseData($data));
     }
@@ -620,7 +620,7 @@ final class Page implements PageInterface, EventDispatcherInterface
     /**
      * Create a Request object from transport data.
      */
-    private function createRequest($data): Request
+    private function createRequest(mixed $data): Request
     {
         return new Request($this->validateRequestData($data));
     }
@@ -628,7 +628,7 @@ final class Page implements PageInterface, EventDispatcherInterface
     /**
      * Create a Route object from transport data.
      */
-    private function createRoute(string $contextId, string $routeId, $requestData): Route
+    private function createRoute(string $contextId, string $routeId, mixed $requestData): Route
     {
         return new Route($this->transport, $routeId, $this->validateRequestData($requestData));
     }
@@ -656,13 +656,13 @@ final class Page implements PageInterface, EventDispatcherInterface
      *
      * @return array<string, mixed>
      */
-    private function validateRequestData($data): array
+    private function validateRequestData(mixed $data): array
     {
         if (!is_array($data)) {
             throw new \RuntimeException('Invalid request data from transport');
         }
 
-        /* @phpstan-var array<string, mixed> $data */
+        /** @var array<string, mixed> $data */
         return $data;
     }
 
@@ -671,13 +671,13 @@ final class Page implements PageInterface, EventDispatcherInterface
      *
      * @return array<string, mixed>
      */
-    private function validateResponseData($data): array
+    private function validateResponseData(mixed $data): array
     {
         if (!is_array($data)) {
             throw new \RuntimeException('Invalid response data from transport');
         }
 
-        /* @phpstan-var array<string, mixed> $data */
+        /** @var array<string, mixed> $data */
         return $data;
     }
 }
