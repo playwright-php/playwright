@@ -17,6 +17,11 @@ use PlaywrightPHP\Page\PageInterface;
  */
 interface BrowserInterface
 {
+    public function context(): BrowserContextInterface;
+
+    /**
+     * @param array<string, mixed> $options
+     */
     public function newContext(array $options = []): BrowserContextInterface;
 
     /**

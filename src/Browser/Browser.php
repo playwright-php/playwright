@@ -17,7 +17,7 @@ use PlaywrightPHP\Transport\TransportInterface;
 /**
  * @author Simon André <smn.andre@gmail.com>
  */
-class Browser implements BrowserInterface
+final class Browser implements BrowserInterface
 {
     private ?BrowserContextInterface $defaultContext = null;
 
@@ -42,9 +42,16 @@ class Browser implements BrowserInterface
 
     public function context(): BrowserContextInterface
     {
+        if (null === $this->defaultContext) {
+            throw new \RuntimeException('Default context is not available');
+        }
+
         return $this->defaultContext;
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function newContext(array $options = []): BrowserContextInterface
     {
         $response = $this->transport->send([
@@ -53,6 +60,9 @@ class Browser implements BrowserInterface
             'options' => $options,
         ]);
 
+        if (!is_string($response['contextId'])) {
+            throw new \RuntimeException('Invalid contextId returned from transport');
+        }
         // ✅ Pass config to new context
         $context = new BrowserContext($this->transport, $response['contextId'], $this->config);
         $this->contexts[] = $context;

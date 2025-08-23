@@ -78,6 +78,7 @@ final class Expect implements ExpectInterface
                 ? \sprintf('Locator text contains "%s", but expected not to.', $text)
                 : \sprintf('Locator text does not contain "%s".', $text),
             function () use ($text): string {
+                \assert($this->subject instanceof LocatorInterface);
                 $actual = (string) ($this->subject->textContent() ?? '');
 
                 return $this->negated
@@ -106,6 +107,7 @@ final class Expect implements ExpectInterface
                 ? \sprintf('Locator text is exactly "%s", but expected not to be.', $text)
                 : \sprintf('Locator text is not exactly "%s".', $text),
             function () use ($text): string {
+                \assert($this->subject instanceof LocatorInterface);
                 $actual = (string) ($this->subject->textContent() ?? '');
 
                 return $this->negated
@@ -128,6 +130,7 @@ final class Expect implements ExpectInterface
                 ? \sprintf('Locator value is "%s", but expected not to be.', $value)
                 : \sprintf('Locator value is not "%s".', $value),
             function () use ($value): string {
+                \assert($this->subject instanceof LocatorInterface);
                 $actual = (string) $this->subject->inputValue();
 
                 return $this->negated
@@ -150,6 +153,7 @@ final class Expect implements ExpectInterface
                 ? \sprintf('Locator attribute "%s" is "%s", but expected not to be.', $name, $value)
                 : \sprintf('Locator attribute "%s" is not "%s".', $name, $value),
             function () use ($name, $value): string {
+                \assert($this->subject instanceof LocatorInterface);
                 $actual = $this->subject->getAttribute($name);
 
                 return $this->negated
@@ -224,6 +228,7 @@ final class Expect implements ExpectInterface
                 ? \sprintf('Locator count is %d, but expected not to be.', $count)
                 : \sprintf('Locator count is not %d.', $count),
             function () use ($count): string {
+                \assert($this->subject instanceof LocatorInterface);
                 $actual = $this->subject->count();
 
                 return $this->negated
@@ -259,6 +264,7 @@ final class Expect implements ExpectInterface
                 ? \sprintf('Page title is "%s", but expected not to be.', $title)
                 : \sprintf('Page title is not "%s".', $title),
             function () use ($title): string {
+                \assert($this->subject instanceof PageInterface);
                 $actual = $this->subject->title();
 
                 return $this->negated
@@ -281,6 +287,7 @@ final class Expect implements ExpectInterface
                 ? \sprintf('Page URL is "%s", but expected not to be.', $url)
                 : \sprintf('Page URL is not "%s".', $url),
             function () use ($url): string {
+                \assert($this->subject instanceof PageInterface);
                 $actual = $this->subject->url();
 
                 return $this->negated
@@ -307,7 +314,7 @@ final class Expect implements ExpectInterface
                 if ($actualResult === $expectedResult) {
                     // Assertion passed
                     // Increment PHPUnit's assertion count so consumers don't need addToAssertionCount
-                    Assert::assertTrue(true);
+                    Assert::assertEquals($expectedResult, $actualResult);
 
                     return;
                 }
@@ -327,8 +334,8 @@ final class Expect implements ExpectInterface
         $finalMessage = $message;
         if (null !== $failureMessageProvider) {
             try {
-                $computed = (string) $failureMessageProvider();
-                if ('' !== $computed) {
+                $computed = $failureMessageProvider();
+                if (\is_string($computed) && '' !== $computed) {
                     $finalMessage = $computed;
                 }
             } catch (\Throwable) {
@@ -362,7 +369,14 @@ final class Expect implements ExpectInterface
                 ? \sprintf('Locator CSS property "%s" is "%s", but expected not to be.', $name, $value)
                 : \sprintf('Locator CSS property "%s" is not "%s".', $name, $value),
             function () use ($name, $value): string {
-                $actual = (string) $this->subject->evaluate(\sprintf('(element) => window.getComputedStyle(element).%s', $name));
+                \assert($this->subject instanceof LocatorInterface);
+                $evaluated = $this->subject->evaluate(\sprintf('(element) => window.getComputedStyle(element).%s', $name));
+                $actual = match (true) {
+                    \is_string($evaluated) => $evaluated,
+                    \is_scalar($evaluated) => (string) $evaluated,
+                    \is_null($evaluated) => 'null',
+                    default => 'non-scalar',
+                };
 
                 return $this->negated
                     ? \sprintf('Expected CSS %s not %s. Actual: %s', \json_encode($name), \json_encode($value), \json_encode($actual))

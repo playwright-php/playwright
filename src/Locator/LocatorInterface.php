@@ -17,32 +17,68 @@ use PlaywrightPHP\FrameLocator\FrameLocatorInterface;
  */
 interface LocatorInterface
 {
+    /**
+     * @param array<string, mixed> $options
+     */
     public function click(array $options = []): void;
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function fill(string $value, array $options = []): void;
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function type(string $value, array $options = []): void;
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function press(string $key, array $options = []): void;
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function check(array $options = []): void;
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function uncheck(array $options = []): void;
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function hover(array $options = []): void;
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function dblclick(array $options = []): void;
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function clear(array $options = []): void;
 
     public function focus(): void;
 
     public function blur(): void;
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function screenshot(?string $path = null, array $options = []): ?string;
 
+    /**
+     * @return array<string>
+     */
     public function allInnerTexts(): array;
 
+    /**
+     * @return array<string>
+     */
     public function allTextContents(): array;
 
     public function innerHTML(): string;
@@ -69,24 +105,40 @@ interface LocatorInterface
 
     public function locator(string $selector): self;
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function waitFor(array $options = []): void;
 
     /**
-     * @param string|array|null $values
+     * @param string|array<string> $values
+     * @param array<string, mixed> $options
+     *
+     * @return array<string>
      */
-    public function selectOption($values, array $options = []): array;
+    public function selectOption(string|array $values, array $options = []): array;
 
     /**
-     * @param string|array $files
+     * @param string|array<string> $files
+     * @param array<string, mixed> $options
      */
-    public function setInputFiles($files, array $options = []): void;
+    public function setInputFiles(string|array $files, array $options = []): void;
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function textContent(array $options = []): ?string;
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function getAttribute(string $name, array $options = []): ?string;
 
     public function count(): int;
 
+    /**
+     * @return array<LocatorInterface>
+     */
     public function all(): array;
 
     public function first(): self;

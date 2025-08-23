@@ -19,9 +19,11 @@ final class Route implements RouteInterface
 {
     private RequestInterface $request;
 
+    /**
+     * @param array<string, mixed> $requestData
+     */
     public function __construct(
         private readonly TransportInterface $transport,
-        private readonly string $contextId,
         private readonly string $routeId,
         array $requestData,
     ) {

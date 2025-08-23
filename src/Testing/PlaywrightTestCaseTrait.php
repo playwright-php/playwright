@@ -35,9 +35,12 @@ trait PlaywrightTestCaseTrait
     protected function setUpPlaywright(?LoggerInterface $logger = null, ?PlaywrightConfig $customConfig = null): void
     {
         if (isset($_SERVER['PLAYWRIGHT_PHP_TEST_LOGGER_URL'])) {
-            $logger = new Logger('playwright-php-test', [
-                new StreamHandler($_SERVER['PLAYWRIGHT_PHP_TEST_LOGGER_URL']),
-            ]);
+            $loggerUrl = $_SERVER['PLAYWRIGHT_PHP_TEST_LOGGER_URL'];
+            if (is_string($loggerUrl)) {
+                $logger = new Logger('playwright-php-test', [
+                    new StreamHandler($loggerUrl),
+                ]);
+            }
         }
 
         $finder = new ExecutableFinder();
@@ -93,8 +96,15 @@ trait PlaywrightTestCaseTrait
                     throw new \RuntimeException(sprintf('Directory "%s" was not created', $failuresDir));
                 }
             }
-            $this->page->screenshot($failuresDir.'/'.$this->getName().'.png');
-            $this->context->stopTracing($this->page, $failuresDir.'/'.$this->getName().'.zip');
+            $testName = 'test';
+            if (method_exists($this, 'getName')) {
+                $name = $this->getName();
+                if (is_string($name)) {
+                    $testName = $name;
+                }
+            }
+            $this->page->screenshot($failuresDir.'/'.$testName.'.png');
+            $this->context->stopTracing($this->page, $failuresDir.'/'.$testName.'.zip');
         }
 
         $this->browser->close();
@@ -105,7 +115,7 @@ trait PlaywrightTestCaseTrait
     {
         // This is a simplified assertion. A real implementation
         // would query the page for the element.
-        $content = $this->page->content();
+        $content = $this->page->content() ?? '';
         $this->assertStringContainsString($selector, $content, "Element {$selector} not found.");
     }
 

@@ -17,7 +17,7 @@ namespace PlaywrightPHP\Support;
  */
 final class Sanitizer
 {
-    private const SENSITIVE_KEYS = [
+    private const array SENSITIVE_KEYS = [
         'password',
         'passwd',
         'secret',
@@ -34,7 +34,7 @@ final class Sanitizer
         'refresh_token',
     ];
 
-    private const REPLACEMENT = '[REDACTED]';
+    private const string REPLACEMENT = '[REDACTED]';
 
     /**
      * Sanitize parameters by removing or masking sensitive values.
@@ -92,7 +92,14 @@ final class Sanitizer
     private static function sanitizeObject(object $object): object
     {
         // Convert to array, sanitize, then convert back
-        $array = json_decode(json_encode($object), true);
+        $json = json_encode($object);
+        if (false === $json) {
+            throw new \RuntimeException('Failed to encode object to JSON');
+        }
+        $array = json_decode($json, true);
+        if (!is_array($array)) {
+            throw new \RuntimeException('Object could not be converted to array');
+        }
         $sanitized = self::sanitizeArray($array);
 
         return (object) $sanitized;
@@ -125,7 +132,11 @@ final class Sanitizer
         ];
 
         foreach ($patterns as $pattern => $replacement) {
-            $string = preg_replace($pattern, $replacement, $string);
+            $result = preg_replace($pattern, $replacement, $string);
+            if (null === $result) {
+                throw new \RuntimeException('preg_replace failed');
+            }
+            $string = $result;
         }
 
         return $string;

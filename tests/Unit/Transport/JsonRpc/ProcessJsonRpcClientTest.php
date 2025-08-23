@@ -95,22 +95,22 @@ final class ProcessJsonRpcClientTest extends TestCase
         $mockProcess = $this->createMock(Process::class);
         $mockProcessLauncher = $this->createMock(ProcessLauncherInterface::class);
         $mockInputStream = $this->createMock(InputStream::class);
-        
+
         $mockProcess->method('isRunning')->willReturn(false);
         $mockProcess->method('getExitCode')->willReturn(1);
         $mockProcess->method('getPid')->willReturn(12345);
         $mockProcessLauncher->method('getInputStream')->willReturn($mockInputStream);
-        
+
         $client = new ProcessJsonRpcClient(
             process: $mockProcess,
             processLauncher: $mockProcessLauncher,
             clock: $this->clock,
             logger: $this->logger
         );
-        
+
         $this->expectException(DisconnectedException::class);
         $this->expectExceptionMessage('Process exited with code 1');
-        
+
         $client->send('test.method');
     }
 
@@ -120,25 +120,25 @@ final class ProcessJsonRpcClientTest extends TestCase
         $mockInputStream
             ->method('write')
             ->willThrowException(new \RuntimeException('Write failed'));
-        
+
         $mockProcess = $this->createMock(Process::class);
         $mockProcessLauncher = $this->createMock(ProcessLauncherInterface::class);
-        
+
         $mockProcess->method('isRunning')->willReturn(true);
         $mockProcess->method('getPid')->willReturn(12345);
         $mockProcessLauncher->method('getInputStream')->willReturn($mockInputStream);
         $mockProcessLauncher->method('ensureRunning');
-        
+
         $client = new ProcessJsonRpcClient(
             process: $mockProcess,
             processLauncher: $mockProcessLauncher,
             clock: $this->clock,
             logger: $this->logger
         );
-        
+
         $this->expectException(NetworkException::class);
         $this->expectExceptionMessage('Failed to write to process stdin: Write failed');
-        
+
         $client->send('test.method');
     }
 }

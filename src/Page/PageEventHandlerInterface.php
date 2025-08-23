@@ -10,13 +10,14 @@ declare(strict_types=1);
 
 namespace PlaywrightPHP\Page;
 
-use PlaywrightPHP\Event\EventEmitter;
-
 /**
  * @author Simon André <smn.andre@gmail.com>
  */
 interface PageEventHandlerInterface
 {
+    /**
+     * @param array<mixed> $args
+     */
     public function publicEmit(string $event, array $args = []): void;
 
     public function onDialog(callable $handler): void;

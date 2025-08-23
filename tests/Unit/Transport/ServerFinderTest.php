@@ -34,16 +34,53 @@ final class ServerFinderTest extends TestCase
         $nodeResolver = $this->createMock(NodeBinaryResolverInterface::class);
         $nodeResolver->method('resolve')->willReturn('/usr/bin/node');
 
-        // Create finder with mocked node resolver
-        $finder = new ServerFinder($nodeResolver);
+        // Simulate a found Playwright installation via env var pointing to a temp dir
+        $tmpDir = sys_get_temp_dir().'/pwphp_'.bin2hex(random_bytes(4));
+        $tmpCwd = sys_get_temp_dir().'/pwphp_cwd_'.bin2hex(random_bytes(4));
+        $originalPath = getenv('PLAYWRIGHT_PATH');
+        $originalCwd = getcwd();
 
-        // If playwright is found, this should return server config
-        $result = $finder->findServer();
+        try {
+            if (!is_dir($tmpDir)) {
+                mkdir($tmpDir, 0777, true);
+            }
+            // Change to a temp working directory outside the repo to avoid picking up local node_modules
+            if (!is_dir($tmpCwd)) {
+                mkdir($tmpCwd, 0777, true);
+            }
+            chdir($tmpCwd);
+            putenv('PLAYWRIGHT_PATH='.$tmpDir);
 
-        $this->assertIsArray($result);
-        $this->assertArrayHasKey('strategy', $result);
-        $this->assertArrayHasKey('command', $result);
-        $this->assertArrayHasKey('env', $result);
+            // Create finder with mocked node resolver
+            $finder = new ServerFinder($nodeResolver);
+
+            // If playwright is found, this should return server config
+            $result = $finder->findServer();
+
+            $this->assertIsArray($result);
+            $this->assertArrayHasKey('strategy', $result);
+            $this->assertArrayHasKey('command', $result);
+            $this->assertArrayHasKey('env', $result);
+            $this->assertSame(realpath($tmpDir), $result['env']['PLAYWRIGHT_PATH'] ?? null);
+        } finally {
+            // Restore env var
+            if (false === $originalPath) {
+                putenv('PLAYWRIGHT_PATH');
+            } else {
+                putenv('PLAYWRIGHT_PATH='.$originalPath);
+            }
+            // Restore cwd
+            if (is_string($originalCwd)) {
+                chdir($originalCwd);
+            }
+            // Cleanup temp dir
+            if (is_dir($tmpDir)) {
+                @rmdir($tmpDir);
+            }
+            if (is_dir($tmpCwd)) {
+                @rmdir($tmpCwd);
+            }
+        }
     }
 
     public function testGetUserConfiguredPathFromEnv(): void

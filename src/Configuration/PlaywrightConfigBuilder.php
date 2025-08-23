@@ -249,7 +249,7 @@ final class PlaywrightConfigBuilder
             'username' => $username ?: null,
             'password' => $password ?: null,
             'bypass' => $bypass ?: null,
-        ], static fn ($v) => null !== $v && '' !== $v);
+        ], static fn ($v) => null !== $v);
 
         return $this;
     }

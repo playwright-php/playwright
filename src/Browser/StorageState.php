@@ -19,7 +19,7 @@ final readonly class StorageState
 {
     /**
      * @param array<array{name: string, value: string, domain: string, path: string, expires: int, httpOnly: bool, secure: bool, sameSite: 'Strict'|'Lax'|'None'}> $cookies
-     * @param array<array{origin: string, localStorage: array<array{name: string, value: string}>}>                                                                $origins
+     * @param array<array{origin: string, localStorage?: array<array{name: string, value: string}>}>                                                               $origins
      */
     public function __construct(
         public array $cookies = [],
@@ -33,10 +33,23 @@ final readonly class StorageState
     public static function fromJson(string $json): self
     {
         $data = \json_decode($json, true, 512, JSON_THROW_ON_ERROR);
+        if (!is_array($data)) {
+            throw new \InvalidArgumentException('Invalid JSON data for storage state');
+        }
+
+        $cookies = $data['cookies'] ?? [];
+        $origins = $data['origins'] ?? [];
+
+        if (!is_array($cookies)) {
+            throw new \InvalidArgumentException('Invalid cookies data in storage state');
+        }
+        if (!is_array($origins)) {
+            throw new \InvalidArgumentException('Invalid origins data in storage state');
+        }
 
         return new self(
-            cookies: $data['cookies'] ?? [],
-            origins: $data['origins'] ?? [],
+            cookies: self::validateCookies($cookies),
+            origins: self::validateOrigins($origins),
         );
     }
 
@@ -58,26 +71,33 @@ final readonly class StorageState
     }
 
     /**
-     * Create a StorageState from array data.
+     * @param array<string, mixed> $data
      */
     public static function fromArray(array $data): self
     {
+        $cookies = $data['cookies'] ?? [];
+        $origins = $data['origins'] ?? [];
+
+        if (!is_array($cookies)) {
+            throw new \InvalidArgumentException('Invalid cookies data in storage state array');
+        }
+        if (!is_array($origins)) {
+            throw new \InvalidArgumentException('Invalid origins data in storage state array');
+        }
+
         return new self(
-            cookies: $data['cookies'] ?? [],
-            origins: $data['origins'] ?? [],
+            cookies: self::validateCookies($cookies),
+            origins: self::validateOrigins($origins),
         );
     }
 
-    /**
-     * Convert to JSON string.
-     */
     public function toJson(int $flags = 0): string
     {
         return \json_encode($this->toArray(), $flags | JSON_THROW_ON_ERROR);
     }
 
     /**
-     * Convert to array.
+     * @return array<string, mixed>
      */
     public function toArray(): array
     {
@@ -87,9 +107,6 @@ final readonly class StorageState
         ];
     }
 
-    /**
-     * Save to JSON file.
-     */
     public function saveToFile(string $filePath): void
     {
         $directory = \dirname($filePath);
@@ -103,32 +120,23 @@ final readonly class StorageState
         }
     }
 
-    /**
-     * Check if storage state has any data.
-     */
     public function isEmpty(): bool
     {
         return empty($this->cookies) && empty($this->origins);
     }
 
-    /**
-     * Get cookie count.
-     */
     public function getCookieCount(): int
     {
         return \count($this->cookies);
     }
 
-    /**
-     * Get origin count.
-     */
     public function getOriginCount(): int
     {
         return \count($this->origins);
     }
 
     /**
-     * Get cookies for a specific domain.
+     * @return array<array{name: string, value: string, domain: string, path: string, expires: int, httpOnly: bool, secure: bool, sameSite: 'Strict'|'Lax'|'None'}>
      */
     public function getCookiesForDomain(string $domain): array
     {
@@ -136,7 +144,7 @@ final readonly class StorageState
     }
 
     /**
-     * Get localStorage data for a specific origin.
+     * @return array<array{name: string, value: string}>
      */
     public function getLocalStorageForOrigin(string $origin): array
     {
@@ -147,5 +155,97 @@ final readonly class StorageState
         }
 
         return [];
+    }
+
+    /**
+     * @param array<mixed, mixed> $cookies
+     *
+     * @return array<array{name: string, value: string, domain: string, path: string, expires: int, httpOnly: bool, secure: bool, sameSite: 'Lax'|'None'|'Strict'}>
+     */
+    private static function validateCookies(array $cookies): array
+    {
+        $result = [];
+        foreach ($cookies as $cookie) {
+            if (!is_array($cookie)) {
+                throw new \InvalidArgumentException('Invalid cookie data structure');
+            }
+
+            $name = $cookie['name'] ?? null;
+            $value = $cookie['value'] ?? null;
+            $domain = $cookie['domain'] ?? null;
+            $path = $cookie['path'] ?? null;
+            $expires = $cookie['expires'] ?? null;
+            $httpOnly = $cookie['httpOnly'] ?? null;
+            $secure = $cookie['secure'] ?? null;
+            $sameSite = $cookie['sameSite'] ?? null;
+
+            if (!is_string($name)
+                || !is_string($value)
+                || !is_string($domain)
+                || !is_string($path)
+                || !is_int($expires)
+                || !is_bool($httpOnly)
+                || !is_bool($secure)
+                || !is_string($sameSite)
+                || !in_array($sameSite, ['Lax', 'None', 'Strict'], true)
+            ) {
+                throw new \InvalidArgumentException('Invalid cookie fields');
+            }
+
+            $result[] = [
+                'name' => $name,
+                'value' => $value,
+                'domain' => $domain,
+                'path' => $path,
+                'expires' => $expires,
+                'httpOnly' => $httpOnly,
+                'secure' => $secure,
+                'sameSite' => $sameSite,
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param array<mixed, mixed> $origins
+     *
+     * @return array<array{origin: string, localStorage?: array<array{name: string, value: string}>}>
+     */
+    private static function validateOrigins(array $origins): array
+    {
+        $result = [];
+        foreach ($origins as $origin) {
+            if (!is_array($origin)) {
+                throw new \InvalidArgumentException('Invalid origin data structure');
+            }
+
+            $originStr = $origin['origin'] ?? null;
+            if (!is_string($originStr)) {
+                throw new \InvalidArgumentException('Invalid origin field');
+            }
+
+            $localStorageItems = [];
+            if (isset($origin['localStorage'])) {
+                if (!is_array($origin['localStorage'])) {
+                    throw new \InvalidArgumentException('Invalid localStorage type');
+                }
+                foreach ($origin['localStorage'] as $item) {
+                    if (!is_array($item) || !is_string($item['name'] ?? null) || !is_string($item['value'] ?? null)) {
+                        throw new \InvalidArgumentException('Invalid localStorage item');
+                    }
+                    $localStorageItems[] = ['name' => $item['name'], 'value' => $item['value']];
+                }
+            }
+
+            $originEntry = ['origin' => $originStr];
+            if ([] !== $localStorageItems) {
+                $originEntry['localStorage'] = $localStorageItems;
+            }
+
+            $result[] = $originEntry;
+        }
+
+        return $result;
     }
 }

@@ -15,7 +15,13 @@ namespace PlaywrightPHP\Input;
  */
 interface KeyboardInterface
 {
+    /**
+     * @param array<string, mixed> $options
+     */
     public function press(string $key, array $options = []): void;
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function type(string $text, array $options = []): void;
 }

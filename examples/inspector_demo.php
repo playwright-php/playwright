@@ -1,10 +1,17 @@
 <?php
+
 declare(strict_types=1);
 
-require __DIR__ . '/../vendor/autoload.php';
+/*
+ * This file is part of the playwright-php/playwright package.
+ * For the full copyright and license information, please view
+ * the LICENSE file that was distributed with this source code.
+ */
 
-use PlaywrightPHP\PlaywrightFactory;
+require __DIR__.'/../vendor/autoload.php';
+
 use PlaywrightPHP\Configuration\PlaywrightConfig;
+use PlaywrightPHP\PlaywrightFactory;
 
 // Simple demo: launch headed Chromium with Inspector and pause.
 

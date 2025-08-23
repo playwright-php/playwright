@@ -32,11 +32,10 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
     private string $outputBuffer = '';
     private ?InputStream $inputStream = null;
 
-    /** @var array<int, array{resolve: callable, reject: callable, method: string}> */
-    private array $pendingRequests = [];
-
-    /** @var array<int, array> */
+    /** @var array<int, array<string, mixed>> */
     private array $responses = [];
+
+    private ?\Closure $eventHandler = null;
 
     public function __construct(
         private readonly Process $process,
@@ -58,6 +57,11 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
         }
     }
 
+    public function setEventHandler(?\Closure $eventHandler): void
+    {
+        $this->eventHandler = $eventHandler;
+    }
+
     protected function sendAndReceive(array $request, ?float $deadline): array
     {
         $this->ensureProcessRunning();
@@ -66,6 +70,9 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
         $requestId = $request['id'] ?? $request['requestId'] ?? null;
         if (null === $requestId) {
             throw new NetworkException('Request must have either id or requestId');
+        }
+        if (!is_int($requestId)) {
+            throw new NetworkException('Request ID must be an integer');
         }
 
         $json = json_encode($request, JSON_THROW_ON_ERROR);
@@ -76,6 +83,10 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
             'pid' => $this->process->getPid(),
         ]);
 
+        if (null === $this->inputStream) {
+            throw new NetworkException('Input stream is not available');
+        }
+
         try {
             $this->inputStream->write($framedMessage);
         } catch (\Throwable $e) {
@@ -85,6 +96,9 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
         return $this->waitForResponse($requestId, $deadline);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     private function waitForResponse(int $requestId, ?float $deadline): array
     {
         $pollInterval = 1000; // 1ms
@@ -179,6 +193,9 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
 
             if (isset($data['event'])) {
                 $this->logger->debug('Received event from process', ['event' => $data['event']]);
+                if ($this->eventHandler) {
+                    ($this->eventHandler)($data);
+                }
             }
         } catch (\JsonException $e) {
             // Handle plain text READY for backward compatibility
@@ -194,6 +211,9 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
         }
     }
 
+    /**
+     * @return array<string, mixed>|null
+     */
     private function findResponseForRequest(int $requestId): ?array
     {
         if (isset($this->responses[$requestId])) {

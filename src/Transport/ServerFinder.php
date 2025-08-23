@@ -28,19 +28,26 @@ final class ServerFinder
 
     public function findPlaywright(): ?string
     {
+        $cwd = getcwd();
+        if (false === $cwd) {
+            return null;
+        }
+
         $possiblePaths = [
             // Current project
-            getcwd().'/node_modules/playwright',
+            $cwd.'/node_modules/playwright',
             // Parent directories (monorepo)
-            dirname(getcwd()).'/node_modules/playwright',
-            dirname(getcwd(), 2).'/node_modules/playwright',
+            dirname($cwd).'/node_modules/playwright',
+            dirname($cwd, 2).'/node_modules/playwright',
             // Custom user path
             $this->getUserConfiguredPath(),
         ];
 
         foreach ($possiblePaths as $path) {
-            if (is_dir($path)) {
-                return realpath($path);
+            if (null !== $path && is_dir($path)) {
+                $realPath = realpath($path);
+
+                return false !== $realPath ? $realPath : null;
             }
         }
 
@@ -55,9 +62,28 @@ final class ServerFinder
 
         $composerPath = getcwd().'/composer.json';
         if (file_exists($composerPath)) {
-            $composer = json_decode(file_get_contents($composerPath), true);
+            $contents = file_get_contents($composerPath);
+            if (false === $contents) {
+                return null;
+            }
+            $composer = json_decode($contents, true);
+            if (!is_array($composer)) {
+                return null;
+            }
 
-            return $composer['extra']['playwright-php']['playwright-path'] ?? null;
+            $extra = $composer['extra'] ?? null;
+            if (!is_array($extra)) {
+                return null;
+            }
+
+            $playwrightPhp = $extra['playwright-php'] ?? null;
+            if (!is_array($playwrightPhp)) {
+                return null;
+            }
+
+            $playwrightPath = $playwrightPhp['playwright-path'] ?? null;
+
+            return is_string($playwrightPath) ? $playwrightPath : null;
         }
 
         return null;

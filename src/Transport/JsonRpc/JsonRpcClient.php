@@ -10,6 +10,7 @@ declare(strict_types=1);
 
 namespace PlaywrightPHP\Transport\JsonRpc;
 
+use PlaywrightPHP\Exception\NetworkException;
 use PlaywrightPHP\Exception\TimeoutException;
 use PlaywrightPHP\Transport\ErrorMapper;
 use Psr\Log\LoggerInterface;
@@ -54,10 +55,7 @@ class JsonRpcClient implements JsonRpcClientInterface
             : null;
 
         // Track the request
-        $this->pendingRequests[$id] = [
-            'method' => $method,
-            'timestamp' => $this->getCurrentTimeMs(),
-        ];
+        $this->trackRequest($id, $method);
 
         $this->logger->debug('Sending JSON-RPC request', [
             'id' => $id,
@@ -79,14 +77,29 @@ class JsonRpcClient implements JsonRpcClientInterface
             unset($this->pendingRequests[$id]);
 
             if (isset($response['error'])) {
-                throw ErrorMapper::toException($response['error'], $method, $params, $timeoutMs);
+                $error = $response['error'];
+                if (!is_array($error)) {
+                    throw new NetworkException('Invalid error format in JSON-RPC response');
+                }
+
+                $typedError = [];
+                foreach ($error as $key => $value) {
+                    if (!is_string($key)) {
+                        throw new NetworkException('Invalid error format in JSON-RPC response: non-string key');
+                    }
+                    $typedError[$key] = $value;
+                }
+
+                throw ErrorMapper::toException($typedError, $method, $params, $timeoutMs);
             }
 
             if (null !== $deadline && $this->getCurrentTimeMs() > $deadline) {
                 throw new TimeoutException(sprintf('Timeout of %.0fms exceeded for %s', $timeoutMs, $method), $timeoutMs, null, ['method' => $method]);
             }
 
-            return $response['result'] ?? [];
+            $result = $response['result'] ?? [];
+
+            return is_array($result) ? $result : [];
         } catch (\Throwable $e) {
             unset($this->pendingRequests[$id]);
             throw $e;
@@ -114,10 +127,8 @@ class JsonRpcClient implements JsonRpcClientInterface
         $request['requestId'] = $id;
 
         // Track the request
-        $this->pendingRequests[$id] = [
-            'method' => $message['action'] ?? 'unknown',
-            'timestamp' => $this->getCurrentTimeMs(),
-        ];
+        $actionString = is_string($message['action'] ?? null) ? $message['action'] : 'unknown';
+        $this->trackRequest($id, $actionString);
 
         $this->logger->debug('Sending raw request', [
             'id' => $id,
@@ -184,5 +195,16 @@ class JsonRpcClient implements JsonRpcClientInterface
         ]);
 
         $this->pendingRequests = [];
+    }
+
+    /**
+     * Helper method to properly track requests.
+     */
+    private function trackRequest(int $id, string $method): void
+    {
+        $this->pendingRequests[$id] = [
+            'method' => $method,
+            'timestamp' => $this->getCurrentTimeMs(),
+        ];
     }
 }

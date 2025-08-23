@@ -18,8 +18,12 @@ use PlaywrightPHP\Transport\TransportInterface;
 final class Response implements ResponseInterface
 {
     private ?string $body = null;
+    /** @var array<string, mixed>|null */
     private ?array $jsonCache = null;
 
+    /**
+     * @param array<string, mixed> $data
+     */
     public function __construct(
         private readonly TransportInterface $transport,
         private readonly string $pageId,
@@ -29,17 +33,32 @@ final class Response implements ResponseInterface
 
     public function url(): string
     {
-        return $this->data['url'];
+        $url = $this->data['url'];
+        if (!is_string($url)) {
+            throw new \RuntimeException('Invalid URL in response data');
+        }
+
+        return $url;
     }
 
     public function status(): int
     {
-        return $this->data['status'];
+        $status = $this->data['status'];
+        if (!is_int($status)) {
+            throw new \RuntimeException('Invalid status in response data');
+        }
+
+        return $status;
     }
 
     public function statusText(): string
     {
-        return $this->data['statusText'];
+        $statusText = $this->data['statusText'];
+        if (!is_string($statusText)) {
+            throw new \RuntimeException('Invalid statusText in response data');
+        }
+
+        return $statusText;
     }
 
     public function ok(): bool
@@ -49,7 +68,21 @@ final class Response implements ResponseInterface
 
     public function headers(): array
     {
-        return $this->data['headers'];
+        $headers = $this->data['headers'];
+        if (!is_array($headers)) {
+            return [];
+        }
+
+        // Convert to proper string-to-string mapping
+        $stringHeaders = [];
+        foreach ($headers as $key => $value) {
+            if (is_string($key) && (is_string($value) || is_numeric($value))) {
+                $stringHeaders[$key] = (string) $value;
+            }
+        }
+
+        /* @var array<string, string> $stringHeaders */
+        return $stringHeaders;
     }
 
     public function body(): string
@@ -60,7 +93,15 @@ final class Response implements ResponseInterface
                 'pageId' => $this->pageId,
                 'responseId' => $this->data['responseId'],
             ]);
-            $this->body = base64_decode($response['binary']);
+            $binary = $response['binary'];
+            if (!is_string($binary)) {
+                throw new \RuntimeException('Invalid binary response data');
+            }
+            $decoded = base64_decode($binary);
+            if (false === $decoded) {
+                throw new \RuntimeException('Failed to decode binary response data');
+            }
+            $this->body = $decoded;
         }
 
         return $this->body;
@@ -78,7 +119,21 @@ final class Response implements ResponseInterface
             if (JSON_ERROR_NONE !== json_last_error()) {
                 throw new \JsonException('Invalid JSON: '.json_last_error_msg());
             }
-            $this->jsonCache = $decoded;
+            // Ensure we always have an array with proper typing
+            if (is_array($decoded)) {
+                $result = [];
+                foreach ($decoded as $key => $value) {
+                    if (!is_string($key)) {
+                        // Normalize to empty map if not object-like
+                        $result = [];
+                        break;
+                    }
+                    $result[$key] = $value;
+                }
+                $this->jsonCache = $result;
+            } else {
+                $this->jsonCache = [];
+            }
         }
 
         return $this->jsonCache;

@@ -11,13 +11,10 @@ declare(strict_types=1);
 namespace PlaywrightPHP\Tests\Unit\Testing;
 
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\UsesTrait;
 use PHPUnit\Framework\TestCase;
 use PlaywrightPHP\Testing\PlaywrightTestCase;
-use PlaywrightPHP\Testing\PlaywrightTestCaseTrait;
 
 #[CoversClass(PlaywrightTestCase::class)]
-#[UsesTrait(PlaywrightTestCaseTrait::class)]
 final class PlaywrightTestCaseTest extends TestCase
 {
     public function testPlaywrightTestCaseExtendsTestCase(): void

@@ -11,6 +11,7 @@ declare(strict_types=1);
 namespace PlaywrightPHP\Browser;
 
 use PlaywrightPHP\Configuration\PlaywrightConfig;
+use PlaywrightPHP\Event\EventDispatcherInterface;
 use PlaywrightPHP\Network\NetworkThrottling;
 use PlaywrightPHP\Network\Route;
 use PlaywrightPHP\Page\Page;
@@ -20,14 +21,26 @@ use PlaywrightPHP\Transport\TransportInterface;
 /**
  * @author Simon André <smn.andre@gmail.com>
  */
-class BrowserContext implements BrowserContextInterface
+final class BrowserContext implements BrowserContextInterface, EventDispatcherInterface
 {
     /**
      * @var array<string, PageInterface>
      */
     private array $pages = [];
+
+    /**
+     * @var array<array{url: string, handler: callable}>
+     */
     private array $routeHandlers = [];
+
+    /**
+     * @var array<string, mixed>
+     */
     private array $bindings = [];
+
+    /**
+     * @var array<string, mixed>
+     */
     private array $functions = [];
 
     public function __construct(
@@ -40,14 +53,22 @@ class BrowserContext implements BrowserContextInterface
         }
     }
 
+    /**
+     * @param array<string, mixed> $params
+     */
     public function dispatchEvent(string $eventName, array $params): void
     {
         if ('route' === $eventName) {
+            if (!is_string($params['routeId'])) {
+                throw new \RuntimeException('Invalid routeId in route event');
+            }
+            if (!is_array($params['request'])) {
+                throw new \RuntimeException('Invalid request data in route event');
+            }
             $route = new Route(
                 $this->transport,
-                $this->contextId,
                 $params['routeId'],
-                $params['request']
+                $this->validateTransportArray($params['request'], 'request')
             );
             foreach ($this->routeHandlers as $handler) {
                 if (fnmatch($handler['url'], $route->request()->url())) {
@@ -61,7 +82,7 @@ class BrowserContext implements BrowserContextInterface
 
         if ('binding' === $eventName) {
             $bindingName = $params['name'];
-            if (isset($this->bindings[$bindingName])) {
+            if (is_string($bindingName) && isset($this->bindings[$bindingName]) && is_callable($this->bindings[$bindingName])) {
                 $source = [
                     'context' => $this,
                     'page' => $this->pages[$params['pageId']] ?? null,
@@ -77,8 +98,12 @@ class BrowserContext implements BrowserContextInterface
 
         if ('function' === $eventName) {
             $functionName = $params['name'];
-            if (isset($this->functions[$functionName])) {
-                $result = $this->functions[$functionName](...$params['args']);
+            if (is_string($functionName) && isset($this->functions[$functionName]) && is_callable($this->functions[$functionName])) {
+                $args = $params['args'];
+                if (!is_array($args)) {
+                    return;
+                }
+                $result = $this->functions[$functionName](...$args);
                 $this->transport->sendAsync([
                     'action' => 'context.resolveFunction',
                     'functionId' => $params['functionId'],
@@ -88,6 +113,9 @@ class BrowserContext implements BrowserContextInterface
         }
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function newPage(array $options = []): PageInterface
     {
         $response = $this->transport->send([
@@ -97,7 +125,8 @@ class BrowserContext implements BrowserContextInterface
         ]);
 
         if (isset($response['error'])) {
-            throw new \RuntimeException('Transport error in newPage: '.$response['error']);
+            $errorMsg = is_string($response['error']) ? $response['error'] : 'Unknown transport error';
+            throw new \RuntimeException('Transport error in newPage: '.$errorMsg);
         }
 
         if (!isset($response['pageId']) || !is_string($response['pageId'])) {
@@ -118,6 +147,10 @@ class BrowserContext implements BrowserContextInterface
             'contextId' => $this->contextId,
         ]);
 
+        if (!is_string($response['value'])) {
+            throw new \RuntimeException('Invalid clipboard text response');
+        }
+
         return $response['value'];
     }
 
@@ -129,6 +162,9 @@ class BrowserContext implements BrowserContextInterface
         ]);
     }
 
+    /**
+     * @param array<array<string, mixed>> $cookies
+     */
     public function addCookies(array $cookies): void
     {
         $this->transport->send([
@@ -163,6 +199,9 @@ class BrowserContext implements BrowserContextInterface
         ]);
     }
 
+    /**
+     * @return array<array<string, mixed>>
+     */
     public function cookies(?array $urls = null): array
     {
         $response = $this->transport->send([
@@ -171,7 +210,15 @@ class BrowserContext implements BrowserContextInterface
             'urls' => $urls,
         ]);
 
-        return $response['cookies'];
+        if (!is_array($response['cookies'])) {
+            throw new \RuntimeException('Invalid cookies response');
+        }
+
+        // PHPStan hint: after validation, this is array<array<string, mixed>>
+        /** @phpstan-var array<array<string, mixed>> $cookies */
+        $cookies = $response['cookies'];
+
+        return $cookies;
     }
 
     public function exposeBinding(string $name, callable $callback): void
@@ -194,6 +241,9 @@ class BrowserContext implements BrowserContextInterface
         ]);
     }
 
+    /**
+     * @param array<string> $permissions
+     */
     public function grantPermissions(array $permissions): void
     {
         $this->transport->send([
@@ -203,11 +253,17 @@ class BrowserContext implements BrowserContextInterface
         ]);
     }
 
+    /**
+     * @return array<PageInterface>
+     */
     public function pages(): array
     {
         return array_values($this->pages);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function storageState(?string $path = null): array
     {
         $response = $this->transport->send([
@@ -216,7 +272,15 @@ class BrowserContext implements BrowserContextInterface
             'options' => $path ? ['path' => $path] : [],
         ]);
 
-        return $response['storageState'];
+        if (!is_array($response['storageState'])) {
+            throw new \RuntimeException('Invalid storageState response');
+        }
+
+        // PHPStan hint: after validation, this is array<string, mixed>
+        /** @phpstan-var array<string, mixed> $storageState */
+        $storageState = $response['storageState'];
+
+        return $storageState;
     }
 
     public function getStorageState(): StorageState
@@ -296,9 +360,14 @@ class BrowserContext implements BrowserContextInterface
             'name' => $name,
         ]);
 
-        return $response['value'] ?? null;
+        $value = $response['value'] ?? null;
+
+        return is_string($value) ? $value : null;
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function startTracing(PageInterface $page, array $options = []): void
     {
         $this->transport->send([
@@ -309,6 +378,9 @@ class BrowserContext implements BrowserContextInterface
         ]);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function waitForEvent(string $event, ?callable $predicate = null, ?int $timeout = null): array
     {
         return $this->transport->send([
@@ -341,5 +413,27 @@ class BrowserContext implements BrowserContextInterface
     public function disableNetworkThrottling(): void
     {
         $this->setNetworkThrottling(NetworkThrottling::none());
+    }
+
+    /**
+     * Helper method to validate and cast transport data to proper array type.
+     *
+     * @return array<string, mixed>
+     */
+    private function validateTransportArray(mixed $data, string $context = ''): array
+    {
+        if (!is_array($data)) {
+            throw new \RuntimeException("Invalid {$context} data in transport response");
+        }
+
+        $result = [];
+        foreach ($data as $key => $value) {
+            if (!is_string($key)) {
+                throw new \RuntimeException("Invalid {$context} payload: non-string key in transport response");
+            }
+            $result[$key] = $value;
+        }
+
+        return $result;
     }
 }

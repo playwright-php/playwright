@@ -196,7 +196,7 @@ final class JsonRpcClientTest extends TestCase
 
         $requests = $client->getSentRequests();
         $this->assertCount(1, $requests);
-        
+
         $sentRequest = $requests[0];
         $this->assertEquals('launch', $sentRequest['action']);
         $this->assertEquals('chromium', $sentRequest['browser']);
@@ -264,12 +264,12 @@ final class JsonRpcClientTest extends TestCase
     public function testSendRawReturnsResponseDirectly(): void
     {
         $client = new TestableJsonRpcClient($this->clock, $this->logger);
-        
+
         $mockResponse = [
-            'requestId' => 1, 
-            'browserId' => 'browser_1', 
+            'requestId' => 1,
+            'browserId' => 'browser_1',
             'defaultContextId' => 'context_1',
-            'version' => '1.0.0'
+            'version' => '1.0.0',
         ];
         $client->setMockResponse($mockResponse);
 

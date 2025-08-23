@@ -56,10 +56,18 @@ final class ScreenshotHelper
         $slug = preg_replace('/^https?:\/\//', '', $url);
 
         // Remove www.
-        $slug = preg_replace('/^www\./', '', $slug);
+        if (is_string($slug)) {
+            $slug = preg_replace('/^www\./', '', $slug);
+        }
+        if (null === $slug) {
+            $slug = 'invalid-url';
+        }
 
         // Replace non-alphanumeric characters with hyphens
         $slug = preg_replace('/[^a-zA-Z0-9]+/', '-', $slug);
+        if (null === $slug) {
+            $slug = 'invalid-url';
+        }
 
         // Remove leading/trailing hyphens
         $slug = trim($slug, '-');

@@ -24,7 +24,6 @@ use Psr\Log\NullLogger;
 final class Locator implements LocatorInterface
 {
     private SelectorChain $selectorChain;
-    private array $waitOptions = [];
     private LoggerInterface $logger;
 
     public function __construct(
@@ -47,17 +46,26 @@ final class Locator implements LocatorInterface
         return 'Locator(selector="'.$this->selectorChain.'")';
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function click(array $options = []): void
     {
         $this->waitForActionable();
         $this->sendCommand('locator.click', ['options' => $options]);
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function dblclick(array $options = []): void
     {
         $this->sendCommand('locator.dblclick', ['options' => $options]);
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function clear(array $options = []): void
     {
         $this->sendCommand('locator.clear', ['options' => $options]);
@@ -73,6 +81,9 @@ final class Locator implements LocatorInterface
         $this->sendCommand('locator.blur');
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function screenshot(?string $path = null, array $options = []): ?string
     {
         if ($path) {
@@ -80,72 +91,137 @@ final class Locator implements LocatorInterface
         }
         $response = $this->sendCommand('locator.screenshot', ['options' => $options]);
 
-        return $path ? null : $response['binary'];
+        if ($path) {
+            return null;
+        }
+        $binary = $response['binary'] ?? null;
+
+        return is_string($binary) ? $binary : null;
     }
 
+    /**
+     * @return array<string>
+     */
     public function allInnerTexts(): array
     {
-        return $this->sendCommand('locator.allInnerTexts')['value'];
+        $response = $this->sendCommand('locator.allInnerTexts');
+        $value = $response['value'] ?? [];
+        if (!is_array($value)) {
+            return [];
+        }
+
+        return array_filter($value, 'is_string');
     }
 
+    /**
+     * @return array<string>
+     */
     public function allTextContents(): array
     {
-        return $this->sendCommand('locator.allTextContents')['value'];
+        $response = $this->sendCommand('locator.allTextContents');
+        $value = $response['value'] ?? [];
+        if (!is_array($value)) {
+            return [];
+        }
+
+        return array_filter($value, 'is_string');
     }
 
     public function innerHTML(): string
     {
-        return $this->sendCommand('locator.innerHTML')['value'];
+        $response = $this->sendCommand('locator.innerHTML');
+        $value = $response['value'];
+        if (!is_string($value)) {
+            throw new \RuntimeException('Invalid innerHTML response');
+        }
+
+        return $value;
     }
 
     public function innerText(): string
     {
-        return $this->sendCommand('locator.innerText')['value'];
+        $response = $this->sendCommand('locator.innerText');
+        $value = $response['value'];
+        if (!is_string($value)) {
+            throw new \RuntimeException('Invalid innerText response');
+        }
+
+        return $value;
     }
 
     public function inputValue(): string
     {
-        return $this->sendCommand('locator.inputValue')['value'];
+        $response = $this->sendCommand('locator.inputValue');
+        $value = $response['value'];
+        if (!is_string($value)) {
+            throw new \RuntimeException('Invalid inputValue response');
+        }
+
+        return $value;
     }
 
     public function isAttached(): bool
     {
-        return $this->sendCommand('locator.isAttached')['value'];
+        $response = $this->sendCommand('locator.isAttached');
+        $value = $response['value'];
+
+        return is_bool($value) ? $value : false;
     }
 
     public function isChecked(): bool
     {
-        return $this->sendCommand('locator.isChecked')['value'];
+        $response = $this->sendCommand('locator.isChecked');
+        $value = $response['value'];
+
+        return is_bool($value) ? $value : false;
     }
 
     public function isDisabled(): bool
     {
-        return $this->sendCommand('locator.isDisabled')['value'];
+        $response = $this->sendCommand('locator.isDisabled');
+        $value = $response['value'];
+
+        return is_bool($value) ? $value : false;
     }
 
     public function isEditable(): bool
     {
-        return $this->sendCommand('locator.isEditable')['value'];
+        $response = $this->sendCommand('locator.isEditable');
+        $value = $response['value'];
+
+        return is_bool($value) ? $value : false;
     }
 
     public function isEmpty(): bool
     {
-        return $this->sendCommand('locator.isEmpty')['value'];
+        $response = $this->sendCommand('locator.isEmpty');
+        $value = $response['value'];
+
+        return is_bool($value) ? $value : false;
     }
 
     public function isEnabled(): bool
     {
-        return $this->sendCommand('locator.isEnabled')['value'];
+        $response = $this->sendCommand('locator.isEnabled');
+        $value = $response['value'];
+
+        return is_bool($value) ? $value : false;
     }
 
     public function isHidden(): bool
     {
-        return $this->sendCommand('locator.isHidden')['value'];
+        $response = $this->sendCommand('locator.isHidden');
+        $value = $response['value'];
+
+        return is_bool($value) ? $value : false;
     }
 
     public function isVisible(): bool
     {
-        return $this->sendCommand('locator.isVisible')['value'];
+        $response = $this->sendCommand('locator.isVisible');
+        $value = $response['value'];
+
+        return is_bool($value) ? $value : false;
     }
 
     public function locator(string $selector): self
@@ -156,17 +232,36 @@ final class Locator implements LocatorInterface
         return new Locator($this->transport, $this->pageId, $newSelectorChain, $this->frameSelector);
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function waitFor(array $options = []): void
     {
         $this->sendCommand('locator.waitFor', ['options' => $options]);
     }
 
-    public function selectOption($values, array $options = []): array
+    /**
+     * @param string|array<string> $values
+     * @param array<string, mixed> $options
+     *
+     * @return array<string>
+     */
+    public function selectOption(string|array $values, array $options = []): array
     {
-        return $this->sendCommand('locator.selectOption', ['values' => $values, 'options' => $options])['values'];
+        $response = $this->sendCommand('locator.selectOption', ['values' => $values, 'options' => $options]);
+        $values = $response['values'] ?? [];
+        if (!is_array($values)) {
+            return [];
+        }
+
+        return array_filter($values, 'is_string');
     }
 
-    public function setInputFiles($files, array $options = []): void
+    /**
+     * @param string|array<string> $files
+     * @param array<string, mixed> $options
+     */
+    public function setInputFiles(string|array $files, array $options = []): void
     {
         // Normalize files to array
         $fileArray = \is_array($files) ? $files : [$files];
@@ -201,32 +296,50 @@ final class Locator implements LocatorInterface
         }
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function fill(string $value, array $options = []): void
     {
         $this->waitForActionable();
         $this->sendCommand('locator.fill', ['value' => $value, 'options' => $options]);
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function type(string $text, array $options = []): void
     {
         $this->sendCommand('locator.type', ['text' => $text, 'options' => $options]);
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function press(string $key, array $options = []): void
     {
         $this->sendCommand('locator.press', ['key' => $key, 'options' => $options]);
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function check(array $options = []): void
     {
         $this->sendCommand('locator.check', ['options' => $options]);
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function uncheck(array $options = []): void
     {
         $this->sendCommand('locator.uncheck', ['options' => $options]);
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function hover(array $options = []): void
     {
         $this->sendCommand('locator.hover', ['options' => $options]);
@@ -235,21 +348,39 @@ final class Locator implements LocatorInterface
         $this->transport->processEvents();
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function textContent(array $options = []): ?string
     {
-        return $this->sendCommand('locator.textContent', ['options' => $options])['value'];
+        $response = $this->sendCommand('locator.textContent', ['options' => $options]);
+        $value = $response['value'] ?? null;
+
+        return is_string($value) ? $value : null;
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function getAttribute(string $name, array $options = []): ?string
     {
-        return $this->sendCommand('locator.getAttribute', ['name' => $name, 'options' => $options])['value'];
+        $response = $this->sendCommand('locator.getAttribute', ['name' => $name, 'options' => $options]);
+        $value = $response['value'] ?? null;
+
+        return is_string($value) ? $value : null;
     }
 
     public function count(): int
     {
-        return $this->sendCommand('locator.count')['value'];
+        $response = $this->sendCommand('locator.count');
+        $value = $response['value'] ?? 0;
+
+        return is_int($value) ? $value : 0;
     }
 
+    /**
+     * @return array<LocatorInterface>
+     */
     public function all(): array
     {
         $count = $this->count();
@@ -292,6 +423,11 @@ final class Locator implements LocatorInterface
         return new FrameLocator($this->transport, $this->pageId, $newFrameSelector);
     }
 
+    /**
+     * @param array<string, mixed> $params
+     *
+     * @return array<string, mixed>
+     */
     private function sendCommand(string $action, array $params = []): array
     {
         $payload = array_merge($params, [
@@ -307,20 +443,35 @@ final class Locator implements LocatorInterface
         $response = $this->transport->send($payload);
 
         if (isset($response['error'])) {
-            throw new PlaywrightException($response['error']);
+            $error = $response['error'];
+            $errorMessage = is_string($error) ? $error : 'Unknown locator error';
+            throw new PlaywrightException($errorMessage);
         }
 
         return $response;
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     private function waitForActionable(array $options = []): void
     {
-        $timeout = $options['timeout'] ?? 30000; // 30 seconds default
+        $timeout = $this->extractTimeout($options); // 30 seconds default
         $this->waitForCondition(
             fn () => $this->isVisible() && $this->isEnabled(),
             $timeout,
             'Element not actionable'
         );
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    private function extractTimeout(array $options, int $default = 30000): int
+    {
+        $timeout = $options['timeout'] ?? $default;
+
+        return is_int($timeout) && $timeout > 0 ? $timeout : $default;
     }
 
     private function waitForCondition(callable $condition, int $timeoutMs, string $message): void
@@ -343,9 +494,12 @@ final class Locator implements LocatorInterface
         throw new TimeoutException(sprintf('%s (timeout: %dms)', $message, $timeoutMs));
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function waitForAttached(array $options = []): void
     {
-        $timeout = $options['timeout'] ?? 30000;
+        $timeout = $this->extractTimeout($options);
         $this->waitForCondition(
             fn () => $this->isAttached(),
             $timeout,
@@ -353,9 +507,12 @@ final class Locator implements LocatorInterface
         );
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function waitForDetached(array $options = []): void
     {
-        $timeout = $options['timeout'] ?? 30000;
+        $timeout = $this->extractTimeout($options);
         $this->waitForCondition(
             fn () => !$this->isAttached(),
             $timeout,
@@ -363,9 +520,12 @@ final class Locator implements LocatorInterface
         );
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function waitForVisible(array $options = []): void
     {
-        $timeout = $options['timeout'] ?? 30000;
+        $timeout = $this->extractTimeout($options);
         $this->waitForCondition(
             fn () => $this->isVisible(),
             $timeout,
@@ -373,9 +533,12 @@ final class Locator implements LocatorInterface
         );
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function waitForHidden(array $options = []): void
     {
-        $timeout = $options['timeout'] ?? 30000;
+        $timeout = $this->extractTimeout($options);
         $this->waitForCondition(
             fn () => $this->isHidden(),
             $timeout,
@@ -383,9 +546,12 @@ final class Locator implements LocatorInterface
         );
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function waitForEnabled(array $options = []): void
     {
-        $timeout = $options['timeout'] ?? 30000;
+        $timeout = $this->extractTimeout($options);
         $this->waitForCondition(
             fn () => $this->isEnabled(),
             $timeout,
@@ -393,9 +559,12 @@ final class Locator implements LocatorInterface
         );
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function waitForText(string $text, array $options = []): void
     {
-        $timeout = $options['timeout'] ?? 30000;
+        $timeout = $this->extractTimeout($options);
         $this->waitForCondition(
             fn () => str_contains($this->textContent() ?? '', $text),
             $timeout,

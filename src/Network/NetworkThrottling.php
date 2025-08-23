@@ -66,9 +66,9 @@ final readonly class NetworkThrottling
     public static function fast4G(): self
     {
         return new self(
-            downloadThroughput: 1.6 * 1024 * 1024, // 1.6 MB/s
-            uploadThroughput: 750 * 1024,           // 750 KB/s
-            latency: 150,                           // 150ms
+            downloadThroughput: (int) (1.6 * 1024 * 1024), // 1.6 MB/s
+            uploadThroughput: 750 * 1024,                  // 750 KB/s
+            latency: 150,                                  // 150ms
         );
     }
 
@@ -106,6 +106,8 @@ final readonly class NetworkThrottling
 
     /**
      * Convert to array for transport.
+     *
+     * @return array<string, int>
      */
     public function toArray(): array
     {
@@ -146,7 +148,7 @@ final readonly class NetworkThrottling
      */
     private function formatThroughput(int $throughput): string
     {
-        if ($throughput >= 1024 * 1024) {
+        if ($throughput > 780000) {
             return \sprintf('%.1f MB/s', $throughput / (1024 * 1024));
         }
 

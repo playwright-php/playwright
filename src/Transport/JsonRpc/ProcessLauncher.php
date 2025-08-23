@@ -37,6 +37,10 @@ final class ProcessLauncher implements ProcessLauncherInterface
         $this->stderrBuf = new RingBuffer($stderrLinesToKeep);
     }
 
+    /**
+     * @param array<string>         $command
+     * @param array<string, string> $env
+     */
     public function start(array $command, ?string $cwd = null, array $env = [], ?float $timeout = null): Process
     {
         if (empty($command)) {
@@ -133,10 +137,6 @@ final class ProcessLauncher implements ProcessLauncherInterface
 
         try {
             $process->stop($gracePeriodSeconds);
-            if ($process->isRunning()) {
-                $this->log('Graceful termination failed, using SIGKILL', ['pid' => $process->getPid()]);
-                $process->signal(SIGKILL);
-            }
         } catch (\Throwable $e) {
             $this->log('Error during process termination', ['pid' => $process->getPid(), 'error' => $e->getMessage()]);
         }
@@ -170,6 +170,9 @@ final class ProcessLauncher implements ProcessLauncherInterface
         return $this->lastInputStream;
     }
 
+    /**
+     * @param array<string, mixed> $context
+     */
     private function log(string $message, array $context = []): void
     {
         $this->logger->debug('[ProcessLauncher] '.$message, $context);

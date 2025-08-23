@@ -2,7 +2,6 @@
 /bin/pnpm-lock.yaml
 /bin/package.lock
 /bin/yarn.lock
-/coverage/
 /node_modules/
 /screenshots/
 /vendor/
@@ -10,6 +9,7 @@
 /todo/
 /.php-cs-fixer.cache
 /composer.lock
+/coverage.xml
 /package-lock.json
 /playwright-server.log
 /phpstan.neon

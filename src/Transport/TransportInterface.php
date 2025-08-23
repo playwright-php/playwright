@@ -19,8 +19,16 @@ interface TransportInterface
 
     public function disconnect(): void;
 
+    /**
+     * @param array<string, mixed> $message
+     *
+     * @return array<string, mixed>
+     */
     public function send(array $message): array;
 
+    /**
+     * @param array<string, mixed> $message
+     */
     public function sendAsync(array $message): void;
 
     public function isConnected(): bool;

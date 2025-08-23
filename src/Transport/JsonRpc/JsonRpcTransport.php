@@ -10,12 +10,14 @@ declare(strict_types=1);
 
 namespace PlaywrightPHP\Transport\JsonRpc;
 
+use PlaywrightPHP\Event\EventDispatcherInterface;
 use PlaywrightPHP\Exception\NetworkException;
 use PlaywrightPHP\Node\NodeBinaryResolver;
 use PlaywrightPHP\Transport\ServerManager;
 use PlaywrightPHP\Transport\TransportInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
+use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
 
 /**
@@ -31,13 +33,23 @@ final class JsonRpcTransport implements TransportInterface
     private ?JsonRpcClient $client = null;
     private bool $connected = false;
     private LoggerInterface $logger;
+    /** @var array<string, EventDispatcherInterface> */
+    private array $eventDispatchers = [];
 
+    /**
+     * @param array<string, mixed> $config
+     */
     public function __construct(
         private readonly ProcessLauncherInterface $processLauncher,
         private readonly array $config = [],
         ?LoggerInterface $logger = null,
     ) {
         $this->logger = $logger ?? new NullLogger();
+    }
+
+    public function addEventDispatcher(string $id, EventDispatcherInterface $dispatcher): void
+    {
+        $this->eventDispatchers[$id] = $dispatcher;
     }
 
     public function connect(): void
@@ -53,12 +65,33 @@ final class JsonRpcTransport implements TransportInterface
                 $command = [$nodePath, (new ServerManager())->getServerScriptPath()];
             } else {
                 $command = $this->config['command'];
+                if (!is_array($command)) {
+                    throw new NetworkException('Invalid command configuration: must be array');
+                }
+                $command = $this->validateCommand(array_values($command));
             }
+
+            $cwd = $this->config['cwd'] ?? null;
+            if (null !== $cwd && !is_string($cwd)) {
+                throw new NetworkException('Invalid cwd configuration: must be string or null');
+            }
+
+            $env = $this->config['env'] ?? [];
+            if (!is_array($env)) {
+                throw new NetworkException('Invalid env configuration: must be array');
+            }
+            $env = $this->validateEnvironment($env);
+
+            $timeout = $this->config['timeout'] ?? null;
+            if (null !== $timeout && !is_float($timeout) && !is_int($timeout)) {
+                throw new NetworkException('Invalid timeout configuration: must be float, int or null');
+            }
+
             $this->process = $this->processLauncher->start(
                 $command,
-                $this->config['cwd'] ?? null,
-                $this->config['env'] ?? [],
-                $this->config['timeout'] ?? null
+                $cwd,
+                $env,
+                is_int($timeout) ? (float) $timeout : $timeout
             );
 
             $this->client = new ProcessJsonRpcClient(
@@ -67,10 +100,16 @@ final class JsonRpcTransport implements TransportInterface
                 logger: $this->logger
             );
 
+            // Set up event handler to dispatch events
+            $this->client->setEventHandler(function (array $event): void {
+                $this->handleEvent($event);
+            });
+            $this->logger->debug('Event handler set up for JSON-RPC client');
+
             $this->connected = true;
 
             $this->logger->info('JSON-RPC transport connected', [
-                'pid' => $this->process->getPid(),
+                'pid' => $this->process?->getPid(),
             ]);
         } catch (\Throwable $e) {
             throw new NetworkException('Failed to connect JSON-RPC transport: '.$e->getMessage(), 0, $e);
@@ -98,6 +137,11 @@ final class JsonRpcTransport implements TransportInterface
         $this->logger->info('JSON-RPC transport disconnected');
     }
 
+    /**
+     * @param array<string, mixed> $message
+     *
+     * @return array<string, mixed>
+     */
     public function send(array $message): array
     {
         $this->ensureConnected();
@@ -107,7 +151,17 @@ final class JsonRpcTransport implements TransportInterface
             // The LSP framing handles the transport protocol, but the message content
             // remains compatible with the existing Node.js server
             $timeout = $this->config['timeout'] ?? null;
-            $timeoutMs = $timeout ? $timeout * 1000 : null;
+            $timeoutMs = null;
+            if (null !== $timeout) {
+                if (!is_numeric($timeout)) {
+                    throw new NetworkException('Invalid timeout: must be numeric');
+                }
+                $timeoutMs = (int) ($timeout * 1000);
+            }
+
+            if (null === $this->client) {
+                throw new NetworkException('JSON-RPC client not available');
+            }
 
             return $this->client->sendRaw($message, $timeoutMs);
         } catch (\Throwable $e) {
@@ -119,6 +173,9 @@ final class JsonRpcTransport implements TransportInterface
         }
     }
 
+    /**
+     * @param array<string, mixed> $message
+     */
     public function sendAsync(array $message): void
     {
         if (!$this->isConnected()) {
@@ -130,9 +187,19 @@ final class JsonRpcTransport implements TransportInterface
         }
 
         try {
-            $method = $message['action'] ?? 'unknown';
-            $params = $this->extractParams($message);
-            $this->sendFireAndForget($method, $params);
+            // For async operations like route.fulfill, we need to send without waiting for response
+            // Use the same approach as ProcessTransport - write directly and don't wait
+            if (!isset($message['requestId'])) {
+                $message['requestId'] = uniqid('req_async_', true);
+            }
+
+            $this->logger->debug('Sending async message', [
+                'action' => $message['action'] ?? 'unknown',
+                'requestId' => $message['requestId'],
+            ]);
+
+            // Send as raw message like ProcessTransport does
+            $this->sendAsyncMessage($message);
         } catch (\Throwable $e) {
             $this->logger->warning('JSON-RPC sendAsync failed', [
                 'error' => $e->getMessage(),
@@ -156,23 +223,20 @@ final class JsonRpcTransport implements TransportInterface
         }
     }
 
-    private function extractParams(array $message): array
+    /**
+     * @param array<string, mixed> $message
+     */
+    private function sendAsyncMessage(array $message): void
     {
-        $params = $message;
-        unset($params['action']);
+        // Send the message without waiting for a response, similar to ProcessTransport
+        $json = json_encode($message, JSON_THROW_ON_ERROR);
+        $framedMessage = LspFraming::encode($json);
 
-        return $params;
-    }
-
-    private function sendFireAndForget(string $method, array $params): void
-    {
-        try {
-            $this->client->send($method, $params, 100.0);
-        } catch (\Throwable $e) {
-            $this->logger->debug('Fire-and-forget operation completed or timed out', [
-                'method' => $method,
-                'error' => $e->getMessage(),
-            ]);
+        $inputStream = $this->processLauncher->getInputStream();
+        if ($inputStream instanceof InputStream) {
+            $inputStream->write($framedMessage);
+        } else {
+            throw new NetworkException('No input stream available for async message');
         }
     }
 
@@ -181,11 +245,106 @@ final class JsonRpcTransport implements TransportInterface
         if (!$this->isConnected()) {
             throw new NetworkException('JSON-RPC transport not connected');
         }
+        if (null === $this->process) {
+            throw new NetworkException('Process not available');
+        }
         $this->processLauncher->ensureRunning($this->process, 'JSON-RPC operation');
+    }
+
+    /**
+     * @param array<string, mixed> $event
+     */
+    private function handleEvent(array $event): void
+    {
+        $this->logger->debug('JsonRpcTransport received event', [
+            'event' => $event['event'] ?? 'unknown',
+            'objectId' => $event['objectId'] ?? 'missing',
+        ]);
+
+        if (!isset($event['objectId'])) {
+            $this->logger->warning('Event missing objectId', ['event' => $event]);
+
+            return;
+        }
+
+        $objectId = $event['objectId'];
+        if (isset($this->eventDispatchers[$objectId])) {
+            $this->logger->debug('Dispatching event to registered handler', [
+                'objectId' => $objectId,
+                'event' => $event['event'] ?? 'unknown',
+            ]);
+            $eventName = $event['event'] ?? null;
+            $eventParams = $event['params'] ?? [];
+            if (!is_string($eventName)) {
+                $this->logger->warning('Invalid event name', ['event' => $event]);
+
+                return;
+            }
+            if (!is_array($eventParams)) {
+                $this->logger->warning('Invalid event params', ['event' => $event]);
+
+                return;
+            }
+            $this->eventDispatchers[$objectId]->dispatchEvent($eventName, $this->validateEventParams($eventParams));
+        } else {
+            $this->logger->debug('No event dispatcher registered for objectId', [
+                'objectId' => $objectId,
+                'availableDispatchers' => array_keys($this->eventDispatchers),
+            ]);
+        }
     }
 
     public function __destruct()
     {
         $this->disconnect();
+    }
+
+    /**
+     * @param list<mixed> $command
+     *
+     * @return list<string>
+     */
+    private function validateCommand(array $command): array
+    {
+        $stringCommand = [];
+        foreach ($command as $part) {
+            if (!is_string($part)) {
+                throw new NetworkException('Invalid command configuration: command must be an array of strings.');
+            }
+            $stringCommand[] = $part;
+        }
+
+        /* @phpstan-var list<string> $stringCommand */
+        return $stringCommand;
+    }
+
+    /**
+     * @param array<mixed, mixed> $env
+     *
+     * @return array<string, string>
+     */
+    private function validateEnvironment(array $env): array
+    {
+        $stringEnv = [];
+        foreach ($env as $key => $value) {
+            if (is_string($value) || is_int($value)) {
+                $stringEnv[(string) $key] = (string) $value;
+            }
+        }
+
+        /* @phpstan-var array<string, string> $stringEnv */
+        return $stringEnv;
+    }
+
+    /**
+     * @param array<mixed, mixed> $params
+     *
+     * @return array<string, mixed>
+     */
+    private function validateEventParams(array $params): array
+    {
+        // Basic validation - could be more specific based on event type
+        /* @phpstan-var array<string, mixed> $params */
+        return $params;
     }
 }

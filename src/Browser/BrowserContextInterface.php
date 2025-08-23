@@ -59,6 +59,8 @@ interface BrowserContextInterface
 
     /**
      * Get storage state as array (legacy method).
+     *
+     * @return array<string, mixed>
      */
     public function storageState(?string $path = null): array;
 
@@ -88,6 +90,9 @@ interface BrowserContextInterface
 
     public function getEnv(string $name): ?string;
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function startTracing(PageInterface $page, array $options = []): void;
 
     public function stopTracing(PageInterface $page, string $path): void;
