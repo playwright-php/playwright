@@ -164,16 +164,47 @@ final readonly class StorageState
      */
     private static function validateCookies(array $cookies): array
     {
-        // Basic validation - in production you might want more strict validation
+        $result = [];
         foreach ($cookies as $cookie) {
             if (!is_array($cookie)) {
                 throw new \InvalidArgumentException('Invalid cookie data structure');
             }
-            // Add specific field validation if needed
+
+            $name = $cookie['name'] ?? null;
+            $value = $cookie['value'] ?? null;
+            $domain = $cookie['domain'] ?? null;
+            $path = $cookie['path'] ?? null;
+            $expires = $cookie['expires'] ?? null;
+            $httpOnly = $cookie['httpOnly'] ?? null;
+            $secure = $cookie['secure'] ?? null;
+            $sameSite = $cookie['sameSite'] ?? null;
+
+            if (!is_string($name)
+                || !is_string($value)
+                || !is_string($domain)
+                || !is_string($path)
+                || !is_int($expires)
+                || !is_bool($httpOnly)
+                || !is_bool($secure)
+                || !is_string($sameSite)
+                || !in_array($sameSite, ['Lax', 'None', 'Strict'], true)
+            ) {
+                throw new \InvalidArgumentException('Invalid cookie fields');
+            }
+
+            $result[] = [
+                'name' => $name,
+                'value' => $value,
+                'domain' => $domain,
+                'path' => $path,
+                'expires' => $expires,
+                'httpOnly' => $httpOnly,
+                'secure' => $secure,
+                'sameSite' => $sameSite,
+            ];
         }
 
-        /* @var array<array{name: string, value: string, domain: string, path: string, expires: int, httpOnly: bool, secure: bool, sameSite: 'Lax'|'None'|'Strict'}> $cookies */
-        return $cookies;
+        return $result;
     }
 
     /**
@@ -183,14 +214,38 @@ final readonly class StorageState
      */
     private static function validateOrigins(array $origins): array
     {
-        // Basic validation - in production you might want more strict validation
+        $result = [];
         foreach ($origins as $origin) {
             if (!is_array($origin)) {
                 throw new \InvalidArgumentException('Invalid origin data structure');
             }
+
+            $originStr = $origin['origin'] ?? null;
+            if (!is_string($originStr)) {
+                throw new \InvalidArgumentException('Invalid origin field');
+            }
+
+            $localStorageItems = [];
+            if (isset($origin['localStorage'])) {
+                if (!is_array($origin['localStorage'])) {
+                    throw new \InvalidArgumentException('Invalid localStorage type');
+                }
+                foreach ($origin['localStorage'] as $item) {
+                    if (!is_array($item) || !is_string($item['name'] ?? null) || !is_string($item['value'] ?? null)) {
+                        throw new \InvalidArgumentException('Invalid localStorage item');
+                    }
+                    $localStorageItems[] = ['name' => $item['name'], 'value' => $item['value']];
+                }
+            }
+
+            $originEntry = ['origin' => $originStr];
+            if ([] !== $localStorageItems) {
+                $originEntry['localStorage'] = $localStorageItems;
+            }
+
+            $result[] = $originEntry;
         }
 
-        /* @var array<array{origin: string, localStorage?: array<array{name: string, value: string}>}> $origins */
-        return $origins;
+        return $result;
     }
 }

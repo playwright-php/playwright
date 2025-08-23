@@ -82,9 +82,16 @@ final class Request implements RequestInterface
             return null;
         }
 
-        // PHPStan hint: after validation, this is array<string, mixed>
-        /* @var array<string, mixed> $decoded */
-        return $decoded;
+        $result = [];
+        foreach ($decoded as $key => $value) {
+            if (!is_string($key)) {
+                // Not an object-like structure; treat as unsupported JSON for this helper
+                return null;
+            }
+            $result[$key] = $value;
+        }
+
+        return $result;
     }
 
     public function resourceType(): string

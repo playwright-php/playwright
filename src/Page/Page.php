@@ -387,16 +387,47 @@ final class Page implements PageInterface, EventDispatcherInterface
             return [];
         }
 
-        // Validate cookie structure
+        // Validate cookie structure strictly and rebuild to satisfy typing
         $validatedCookies = [];
         foreach ($cookies as $cookie) {
-            if (is_array($cookie)) {
-                // Basic validation - add more specific checks if needed
-                $validatedCookies[] = $cookie;
+            if (!is_array($cookie)) {
+                continue;
             }
+
+            $name = $cookie['name'] ?? null;
+            $value = $cookie['value'] ?? null;
+            $domain = $cookie['domain'] ?? null;
+            $path = $cookie['path'] ?? null;
+            $expires = $cookie['expires'] ?? null;
+            $httpOnly = $cookie['httpOnly'] ?? null;
+            $secure = $cookie['secure'] ?? null;
+            $sameSite = $cookie['sameSite'] ?? null;
+
+            if (!is_string($name)
+                || !is_string($value)
+                || !is_string($domain)
+                || !is_string($path)
+                || !is_int($expires)
+                || !is_bool($httpOnly)
+                || !is_bool($secure)
+                || !is_string($sameSite)
+                || !in_array($sameSite, ['Lax', 'None', 'Strict'], true)
+            ) {
+                continue;
+            }
+
+            $validatedCookies[] = [
+                'name' => $name,
+                'value' => $value,
+                'domain' => $domain,
+                'path' => $path,
+                'expires' => $expires,
+                'httpOnly' => $httpOnly,
+                'secure' => $secure,
+                'sameSite' => $sameSite,
+            ];
         }
 
-        /** @var array<array{name: string, value: string, domain: string, path: string, expires: int, httpOnly: bool, secure: bool, sameSite: 'Lax'|'None'|'Strict'}> $validatedCookies */
         return $validatedCookies;
     }
 
@@ -483,7 +514,7 @@ final class Page implements PageInterface, EventDispatcherInterface
             throw new \RuntimeException('Invalid viewportSize response from transport');
         }
 
-        /** @var array{width: int, height: int} $viewport */
+        /* @var array{width: int, height: int} $viewport */
         return ['width' => $viewport['width'], 'height' => $viewport['height']];
     }
 
@@ -661,9 +692,15 @@ final class Page implements PageInterface, EventDispatcherInterface
         if (!is_array($data)) {
             throw new \RuntimeException('Invalid request data from transport');
         }
+        $result = [];
+        foreach ($data as $key => $value) {
+            if (!is_string($key)) {
+                throw new \RuntimeException('Invalid request data from transport: non-string key');
+            }
+            $result[$key] = $value;
+        }
 
-        /** @var array<string, mixed> $data */
-        return $data;
+        return $result;
     }
 
     /**
@@ -676,8 +713,14 @@ final class Page implements PageInterface, EventDispatcherInterface
         if (!is_array($data)) {
             throw new \RuntimeException('Invalid response data from transport');
         }
+        $result = [];
+        foreach ($data as $key => $value) {
+            if (!is_string($key)) {
+                throw new \RuntimeException('Invalid response data from transport: non-string key');
+            }
+            $result[$key] = $value;
+        }
 
-        /** @var array<string, mixed> $data */
-        return $data;
+        return $result;
     }
 }

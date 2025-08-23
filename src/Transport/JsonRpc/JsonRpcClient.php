@@ -82,8 +82,15 @@ class JsonRpcClient implements JsonRpcClientInterface
                     throw new NetworkException('Invalid error format in JSON-RPC response');
                 }
 
-                /* @phpstan-var array<string, mixed> $error */
-                throw ErrorMapper::toException($error, $method, $params, $timeoutMs);
+                $typedError = [];
+                foreach ($error as $key => $value) {
+                    if (!is_string($key)) {
+                        throw new NetworkException('Invalid error format in JSON-RPC response: non-string key');
+                    }
+                    $typedError[$key] = $value;
+                }
+
+                throw ErrorMapper::toException($typedError, $method, $params, $timeoutMs);
             }
 
             if (null !== $deadline && $this->getCurrentTimeMs() > $deadline) {

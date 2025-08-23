@@ -121,8 +121,16 @@ final class Response implements ResponseInterface
             }
             // Ensure we always have an array with proper typing
             if (is_array($decoded)) {
-                /* @var array<string, mixed> $decoded */
-                $this->jsonCache = $decoded;
+                $result = [];
+                foreach ($decoded as $key => $value) {
+                    if (!is_string($key)) {
+                        // Normalize to empty map if not object-like
+                        $result = [];
+                        break;
+                    }
+                    $result[$key] = $value;
+                }
+                $this->jsonCache = $result;
             } else {
                 $this->jsonCache = [];
             }

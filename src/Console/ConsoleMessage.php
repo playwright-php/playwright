@@ -73,8 +73,14 @@ final class ConsoleMessage
             throw new \RuntimeException('Invalid console message location');
         }
 
-        // PHPStan hint: after validation, this is array<string, mixed>
-        /* @var array<string, mixed> $location */
-        return $location;
+        $result = [];
+        foreach ($location as $key => $value) {
+            if (!is_string($key)) {
+                throw new \RuntimeException('Invalid console message location: non-string key');
+            }
+            $result[$key] = $value;
+        }
+
+        return $result;
     }
 }

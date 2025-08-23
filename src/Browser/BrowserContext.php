@@ -426,8 +426,14 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
             throw new \RuntimeException("Invalid {$context} data in transport response");
         }
 
-        // PHPStan hint: we know this is array<string, mixed> after validation
-        /* @var array<string, mixed> $data */
-        return $data;
+        $result = [];
+        foreach ($data as $key => $value) {
+            if (!is_string($key)) {
+                throw new \RuntimeException("Invalid {$context} payload: non-string key in transport response");
+            }
+            $result[$key] = $value;
+        }
+
+        return $result;
     }
 }
