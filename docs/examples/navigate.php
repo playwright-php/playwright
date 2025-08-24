@@ -8,9 +8,8 @@ declare(strict_types=1);
  * the LICENSE file that was distributed with this source code.
  */
 
-require_once __DIR__.'/../vendor/autoload.php';
+require_once __DIR__.'/../../vendor/autoload.php';
 
-use PlaywrightPHP\Playwright;
 use PlaywrightPHP\PlaywrightFactory;
 
 $client = PlaywrightFactory::create();

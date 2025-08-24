@@ -8,19 +8,20 @@ declare(strict_types=1);
  * the LICENSE file that was distributed with this source code.
  */
 
-require_once __DIR__.'/../vendor/autoload.php';
+require_once __DIR__.'/../../vendor/autoload.php';
 
 use PlaywrightPHP\Playwright;
 
-$browser = Playwright::chromium([
-    'headless' => false,
-]);
+$browser = Playwright::chromium();
 $page = $browser->newPage();
 
 $page->goto('https://example.com');
 echo 'Url: '.$page->url()."\n";
 
 $file = $page->screenshot('./screenshot_example.png');
+echo 'Screenshot saved to: '.$file."\n";
+
+$file = $page->screenshot();
 echo 'Screenshot saved to: '.$file."\n";
 
 $page->close();

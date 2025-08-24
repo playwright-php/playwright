@@ -18,4 +18,5 @@ $page = $browser->newPage();
 $page->goto('https://example.com');
 echo 'Title: '.$page->title();
 
+$page->close();
 $browser->close();

@@ -8,7 +8,7 @@ declare(strict_types=1);
  * the LICENSE file that was distributed with this source code.
  */
 
-require __DIR__.'/../vendor/autoload.php';
+require __DIR__.'/../../vendor/autoload.php';
 
 use PlaywrightPHP\Configuration\PlaywrightConfig;
 use PlaywrightPHP\PlaywrightFactory;
