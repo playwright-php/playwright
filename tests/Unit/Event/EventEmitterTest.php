@@ -98,7 +98,6 @@ final class EventEmitterTest extends TestCase
         $listener = function () {
         };
 
-        // Should not throw
         $this->emitter->removeListener('nonexistent', $listener);
         $this->assertTrue(true);
     }
@@ -112,14 +111,12 @@ final class EventEmitterTest extends TestCase
 
         $this->emitter->on('test', $listener1);
 
-        // Should not throw
         $this->emitter->removeListener('test', $listener2);
         $this->assertTrue(true);
     }
 
     public function testEmitWithNoListeners(): void
     {
-        // Should not throw
         $this->emitter->triggerEvent('nonexistent');
         $this->assertTrue(true);
     }
@@ -136,8 +133,8 @@ final class EventEmitterTest extends TestCase
 
         $this->emitter->triggerEvent('event1');
         $this->emitter->triggerEvent('event2');
-        $this->emitter->triggerEvent('event1'); // Should not call again
-        $this->emitter->triggerEvent('event2'); // Should not call again
+        $this->emitter->triggerEvent('event1');
+        $this->emitter->triggerEvent('event2');
 
         $this->assertEquals(['event1', 'event2'], $calls);
     }

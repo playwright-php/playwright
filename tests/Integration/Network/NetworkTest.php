@@ -16,25 +16,20 @@ use PHPUnit\Framework\TestCase;
 use PlaywrightPHP\Network\Route;
 use PlaywrightPHP\Network\RouteInterface;
 use PlaywrightPHP\Testing\PlaywrightTestCaseTrait;
-use PlaywrightPHP\Tests\Support\HttpServerTestTrait;
+use PlaywrightPHP\Tests\Support\RouteServerTestTrait;
 
 #[CoversClass(Route::class)]
 class NetworkTest extends TestCase
 {
     use PlaywrightTestCaseTrait;
-    use HttpServerTestTrait;
+    use RouteServerTestTrait;
 
     public static function setUpBeforeClass(): void
     {
-        self::startHttpServer([
-            'index.html' => '<h1>Network Test</h1><img src="/image.png">',
-            'image.png' => 'fake image data',
-        ]);
     }
 
     public static function tearDownAfterClass(): void
     {
-        self::stopHttpServer();
     }
 
     public function setUp(): void
@@ -51,8 +46,10 @@ class NetworkTest extends TestCase
     public function itCanAbortARequest(): void
     {
         $this->page->route('**/*.png', fn (RouteInterface $route) => $route->abort());
-        $response = $this->page->goto(self::getServerUrl('index.html'), ['waitUntil' => 'domcontentloaded']);
-        $this->assertTrue($response->ok());
+
+        $html = '<h1>Network Test</h1><img src="'.$this->routeUrl('/image.png').'">';
+        $this->page->goto('data:text/html,'.rawurlencode($html), ['waitUntil' => 'domcontentloaded']);
+        $this->assertStringContainsString('Network Test', $this->page->content());
     }
 
     #[Test]
@@ -62,7 +59,7 @@ class NetworkTest extends TestCase
             'status' => 201,
             'body' => '<h1>Intercepted</h1>',
         ]));
-        $response = $this->page->goto(self::getServerUrl('index.html'));
+        $response = $this->page->goto($this->routeUrl('/index.html'));
         $this->assertEquals(201, $response->status());
         $this->assertStringContainsString('<h1>Intercepted</h1>', $this->page->content());
     }

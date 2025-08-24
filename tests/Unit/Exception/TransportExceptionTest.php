@@ -71,7 +71,7 @@ class TransportExceptionTest extends TestCase
     {
         $exception = new ProcessCrashedException(
             'Node process died',
-            139, // SIGSEGV
+            139,
             'Segmentation fault (core dumped)'
         );
 

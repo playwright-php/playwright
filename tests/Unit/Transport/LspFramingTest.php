@@ -42,7 +42,7 @@ final class LspFramingTest extends TestCase
 
     public function testDecodeIncompleteMessage(): void
     {
-        $buffer = "Content-Length: 38\r\n\r\n{\"jsonrpc\":\"2.0\""; // Partial content
+        $buffer = "Content-Length: 38\r\n\r\n{\"jsonrpc\":\"2.0\"";
 
         $result = LspFraming::decode($buffer);
 
@@ -68,7 +68,7 @@ final class LspFramingTest extends TestCase
 
     public function testDecodePartialHeaders(): void
     {
-        $buffer = 'Content-Len'; // Incomplete headers
+        $buffer = 'Content-Len';
 
         $result = LspFraming::decode($buffer);
 
@@ -79,7 +79,7 @@ final class LspFramingTest extends TestCase
     public function testHasCompleteMessage(): void
     {
         $completeBuffer = "Content-Length: 8\r\n\r\n{\"id\":1}";
-        $incompleteBuffer = "Content-Length: 20\r\n\r\n{\"id\":1}"; // Content too short
+        $incompleteBuffer = "Content-Length: 20\r\n\r\n{\"id\":1}";
 
         $this->assertTrue(LspFraming::hasCompleteMessage($completeBuffer));
         $this->assertFalse(LspFraming::hasCompleteMessage($incompleteBuffer));
@@ -88,8 +88,8 @@ final class LspFramingTest extends TestCase
     public function testGetExpectedLength(): void
     {
         $buffer = "Content-Length: 10\r\n\r\nincomplete";
-        $headerLength = 18; // "Content-Length: 10"
-        $separatorLength = 4; // "\r\n\r\n"
+        $headerLength = 18;
+        $separatorLength = 4;
         $contentLength = 10;
         $expected = $headerLength + $separatorLength + $contentLength;
 

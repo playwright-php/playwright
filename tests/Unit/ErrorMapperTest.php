@@ -125,7 +125,7 @@ class ErrorMapperTest extends TestCase
     #[Test]
     public function itHandlesMissingFields(): void
     {
-        $error = []; // Empty error
+        $error = [];
 
         $exception = ErrorMapper::toException($error, null, null, null);
 
@@ -168,7 +168,7 @@ class ErrorMapperTest extends TestCase
         $error = [
             'name' => 'Error',
             'message' => 'Test',
-            'code' => '404', // String numeric
+            'code' => '404',
         ];
 
         $exception = ErrorMapper::toException($error, null, null, null);

@@ -42,7 +42,6 @@ class JsonRpcClientTest extends TestCase
         $this->assertEquals('ok', $result['status']);
         $this->assertEquals('test.method', $result['method']);
 
-        // Should have logged the request
         $this->assertGreaterThan(0, count($logger->records));
     }
 
@@ -76,10 +75,8 @@ class JsonRpcClientTest extends TestCase
         $clock = Clock::get();
         $client = new JsonRpcClient($clock);
 
-        // Initially no pending requests
         $this->assertEmpty($client->getPendingRequests());
 
-        // Cancel all pending (should be safe even if none)
         $client->cancelPendingRequests();
         $this->assertEmpty($client->getPendingRequests());
     }
@@ -124,7 +121,6 @@ class JsonRpcClientTest extends TestCase
         $client->send('method2');
         $client->send('method3');
 
-        // Check that different IDs were used (visible in logs)
         $this->assertGreaterThanOrEqual(3, count($logger->records));
     }
 
@@ -134,7 +130,6 @@ class JsonRpcClientTest extends TestCase
         $clock = Clock::get();
         $client = new JsonRpcClient($clock);
 
-        // Zero timeout should work (no deadline)
         $result = $client->send('test.method', null, 0.0);
 
         $this->assertIsArray($result);
@@ -146,7 +141,6 @@ class JsonRpcClientTest extends TestCase
         $clock = Clock::get();
         $client = new JsonRpcClient($clock);
 
-        // Negative timeout should work (no deadline)
         $result = $client->send('test.method', null, -1.0);
 
         $this->assertIsArray($result);

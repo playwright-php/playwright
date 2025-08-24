@@ -34,12 +34,12 @@ final class ServerFinder
         }
 
         $possiblePaths = [
-            // Current project
+            
             $cwd.'/node_modules/playwright',
-            // Parent directories (monorepo)
+            
             dirname($cwd).'/node_modules/playwright',
             dirname($cwd, 2).'/node_modules/playwright',
-            // Custom user path
+            
             $this->getUserConfiguredPath(),
         ];
 

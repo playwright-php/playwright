@@ -45,7 +45,7 @@
     },
     "minimum-stability": "stable",
     "prefer-stable": true,
-  "autoload": {
+    "autoload": {
         "psr-4": {
             "PlaywrightPHP\\": "src/"
         },
@@ -58,9 +58,6 @@
             "PlaywrightPHP\\Tests\\": "tests/"
         }
     },
-    "bin": [
-        "bin/playwright"
-    ],
     "config": {
         "allow-plugins": {
             "phpstan/extension-installer": true
@@ -74,16 +71,11 @@
     },
     "scripts": {
         "post-install-cmd": "bin/install-server",
-        "analyse": "vendor/bin/phpstan analyse",
-        "check": [
-            "@cs-check",
-            "@analyse",
-            "@test"
-        ],
-        "cs-check": "vendor/bin/php-cs-fixer fix --dry-run --diff",
-        "cs-fix": "vendor/bin/php-cs-fixer fix",
         "install-browsers": "bin/install-server -v && npm run install-browsers --prefix bin",
         "install-browsers-with-deps": "bin/install-server -v && npm run install-browsers-with-deps --prefix bin",
+        "cs-check": "vendor/bin/php-cs-fixer fix --dry-run --diff",
+        "cs-fix": "vendor/bin/php-cs-fixer fix",
+        "sa": "vendor/bin/phpstan analyse --memory-limit=1G",
         "test": "vendor/bin/phpunit",
         "test-coverage": "vendor/bin/phpunit --coverage-xml coverage",
         "test:integration": "vendor/bin/phpunit --testsuite integration",

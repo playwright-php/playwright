@@ -42,7 +42,6 @@ final class Playwright
      */
     public static function safari(array $options = []): BrowserContextInterface
     {
-        // Safari maps to WebKit
         return self::launch('webkit', $options);
     }
 
@@ -80,7 +79,7 @@ final class Playwright
         $browser = $builder->launch();
         $contextOptions = $options['context'] ?? [];
 
-        // Ensure contextOptions is properly typed
+        
         if (!is_array($contextOptions)) {
             $contextOptions = [];
         }
@@ -88,7 +87,7 @@ final class Playwright
         /** @phpstan-var array<string, mixed> $contextOptions */
         $context = empty($contextOptions) ? $browser->context() : $browser->newContext($contextOptions);
 
-        // Keep client alive and ensure graceful shutdown
+        
         self::$clients[] = $client;
         self::registerShutdown();
 

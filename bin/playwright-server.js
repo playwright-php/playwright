@@ -12,7 +12,7 @@ class DebugLogger {
     this.enabled = DEBUG;
     this.level = DEBUG_LEVEL.toLowerCase();
     
-    // Define log levels with priority
+    
     this.levels = {
       'error': 0,
       'warn': 1,
@@ -48,7 +48,7 @@ class DebugLogger {
     try {
       fs.appendFileSync(this.logPath, logMessage);
     } catch (error) {
-      // Fail silently
+      
     }
   }
 
@@ -173,7 +173,7 @@ class PlaywrightServer {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
 
-      // Enhanced error logging for debugging
+      
       if (DEBUG) {
         debugLogger.error('DETAILED ERROR', {
           command: command.action,
@@ -183,7 +183,7 @@ class PlaywrightServer {
         });
       }
 
-      // Always log to debug file for investigation
+      
       debugLogger.error('Command execution failed', {
         command: command.action,
         error: message,
@@ -246,7 +246,7 @@ class PlaywrightServer {
     const context = this.contexts.get(command.contextId)?.context;
     if (!context) throw new Error(`Context not found: ${command.contextId}`);
 
-    // Ensure addInitScript is awaited before newPage
+    
     if (!context._initScriptPromise) context._initScriptPromise = Promise.resolve();
 
     switch (method) {
@@ -254,6 +254,40 @@ class PlaywrightServer {
         if (command.script) {
           await context.addInitScript(command.script);
         }
+        return {success: true};
+      case 'setOffline':
+        await context.setOffline(!!command.offline);
+        return {success: true};
+      case 'setGeolocation':
+        if (command.geolocation) {
+          await context.setGeolocation(command.geolocation);
+        }
+        return {success: true};
+      case 'addCookies':
+        if (Array.isArray(command.cookies)) {
+          await context.addCookies(command.cookies);
+        }
+        return {success: true};
+      case 'clearCookies':
+        await context.clearCookies();
+        return {success: true};
+      case 'grantPermissions':
+        if (Array.isArray(command.permissions)) {
+          if (command.origin) {
+            await context.grantPermissions(command.permissions, { origin: command.origin });
+          } else {
+            await context.grantPermissions(command.permissions);
+          }
+        }
+        return {success: true};
+      case 'clearPermissions':
+        await context.clearPermissions();
+        return {success: true};
+      case 'startTracing':
+        await context.tracing.start(command.options || {});
+        return {success: true};
+      case 'stopTracing':
+        await context.tracing.stop({ path: command.path });
         return {success: true};
       case 'newPage':
         const page = await context.newPage(command.options);
@@ -265,12 +299,12 @@ class PlaywrightServer {
       case 'storageState':
         return {storageState: await context.storageState(command.options)};
       case 'clipboardText':
-        // Get the active page from the context to read clipboard
+        
         const pages = context.pages();
         if (pages.length === 0) {
           throw new Error('No pages available in context to read clipboard');
         }
-        const activePage = pages[0]; // Use first available page
+        const activePage = pages[0]; 
         return {value: await activePage.evaluate(() => navigator.clipboard.readText())};
       default:
         throw new Error(`Unknown context action: ${method}`);
@@ -348,7 +382,7 @@ class PlaywrightServer {
         await page.route(command.url, async (route) => {
           const routeId = `route_${++this.routeCounter}`;
           this.routes.set(routeId, route);
-          // Enrich request data with headers and postData
+          
           const req = route.request();
           let postData = null;
           try {
@@ -458,7 +492,7 @@ class PlaywrightServer {
             return {value: null};
           }
 
-          // Alternative approach: use page.evaluate with querySelector
+          
           const alternativeResult = await page.evaluate(({selector, expression, arg}) => {
             const element = document.querySelector(selector);
             if (!element) {
@@ -478,7 +512,7 @@ class PlaywrightServer {
             return {value: alternativeResult.result === undefined ? null : alternativeResult.result};
           }
 
-          // Fall back to original locator approach
+          
           const result = await locator.first().evaluate(command.expression, command.arg);
           return {value: result === undefined ? null : result};
         } catch (error) {
@@ -581,7 +615,7 @@ class PlaywrightServer {
         try {
           process.env.PWDEBUG = String(command.options.env.PWDEBUG);
         } catch (e) {
-          // Non-fatal: continue without inspector
+          
         }
       }
 
@@ -604,7 +638,7 @@ class PlaywrightServer {
       const browserId = `browser_${++this.browserCounter}`;
       this.browsers.set(browserId, browser);
 
-      // Create new context instead of using existing one
+      
       const context = await browser.newContext();
       const contextId = `context_${++this.contextCounter}`;
       this.contexts.set(contextId, {context, browserId, id: contextId});
@@ -653,7 +687,7 @@ class PlaywrightServer {
       try {
         await browser.close();
       } catch (e) {
-        // Browser might already be closed
+        
       }
     }
     if (logStream) {

@@ -163,7 +163,6 @@ final class JsonRpcTransportTest extends TestCase
             logger: $this->logger
         );
 
-        // Should log warning but not throw
         $transport->sendAsync(['action' => 'test']);
 
         $this->assertTrue($this->logger->hasWarningRecords());
@@ -176,10 +175,9 @@ final class JsonRpcTransportTest extends TestCase
             logger: $this->logger
         );
 
-        // Should not throw even when not connected
         $transport->processEvents();
 
-        $this->assertTrue(true); // Test passes if we get here
+        $this->assertTrue(true);
     }
 
     public function testDestructorDisconnects(): void
@@ -188,7 +186,6 @@ final class JsonRpcTransportTest extends TestCase
         $mockProcess->method('isRunning')->willReturn(true);
         $mockProcess->method('getPid')->willReturn(12345);
 
-        // Use proper PHPUnit expectations instead of callbacks
         $mockProcess->expects($this->once())
             ->method('stop');
 
@@ -202,7 +199,6 @@ final class JsonRpcTransportTest extends TestCase
             ->method('getInputStream')
             ->willReturn($mockInputStream);
 
-        // Capture transport instance so we can control when it's destroyed
         $transport = new JsonRpcTransport(
             processLauncher: $this->processLauncher,
             logger: $this->logger
@@ -210,13 +206,10 @@ final class JsonRpcTransportTest extends TestCase
 
         $transport->connect();
 
-        // Check that we're connected before destroying
         $this->assertTrue($transport->isConnected());
 
-        // Explicitly trigger the destructor
         $transport->__destruct();
 
-        // Verify transport is no longer connected
         $this->assertFalse($transport->isConnected());
     }
 }

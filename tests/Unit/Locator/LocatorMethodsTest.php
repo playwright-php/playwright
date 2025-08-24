@@ -210,7 +210,6 @@ final class LocatorMethodsTest extends TestCase
             $result = $this->locator->$method();
             $this->assertEquals($expectedValue, $result, "Method $method failed");
 
-            // Reset mock for next iteration
             $this->transport = $this->createMock(TransportInterface::class);
             $this->locator = new Locator($this->transport, 'page1', '.element');
         }

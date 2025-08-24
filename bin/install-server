@@ -144,7 +144,7 @@ final class PlaywrightServerInstaller
         $this->output->writeln("Using $packageManager for installation", OutputInterface::VERBOSITY_VERBOSE);
 
         $process = new Process($command, $this->serverDir);
-        $process->setTimeout(300); // 5 minutes timeout
+        $process->setTimeout(300);
 
         if ($this->verbose) {
             $process->run(function ($type, $buffer) {
@@ -234,11 +234,6 @@ final class PlaywrightServerInstaller
         };
     }
 
-    private function makeServerExecutable(): void
-    {
-        $this->output->writeln('✓ Server script present');
-    }
-
     private function verifyInstallation(): void
     {
         $this->output->writeln('Verifying installation...', OutputInterface::VERBOSITY_VERBOSE);
@@ -259,7 +254,6 @@ final class PlaywrightServerInstaller
     }
 }
 
-// Handle CLI arguments
 $help = \in_array('-h', $_SERVER['argv'] ?? [], true)
         || \in_array('--help', $_SERVER['argv'] ?? [], true);
 

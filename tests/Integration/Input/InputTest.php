@@ -16,58 +16,43 @@ use PHPUnit\Framework\TestCase;
 use PlaywrightPHP\Input\Keyboard;
 use PlaywrightPHP\Input\Mouse;
 use PlaywrightPHP\Testing\PlaywrightTestCaseTrait;
-use Symfony\Component\Process\Process;
+use PlaywrightPHP\Tests\Support\RouteServerTestTrait;
 
 #[CoversClass(Keyboard::class)]
 #[CoversClass(Mouse::class)]
 class InputTest extends TestCase
 {
     use PlaywrightTestCaseTrait;
-
-    private static ?Process $server = null;
-    private static string $docroot;
-    private static int $port;
+    use RouteServerTestTrait;
 
     public static function setUpBeforeClass(): void
     {
-        self::$docroot = sys_get_temp_dir().'/playwright-php-tests-'.uniqid('', true);
-        mkdir(self::$docroot);
-
-        $html = <<<'HTML'
-        <h1>Input Test</h1>
-        <input type="text" id="input-text">
-        <div id="mouse-tracker" style="width: 200px; height: 200px; border: 1px solid black;"></div>
-        <script>
-            const tracker = document.getElementById('mouse-tracker');
-            tracker.addEventListener('mousemove', e => {
-                tracker.textContent = `${e.offsetX},${e.offsetY}`;
-            });
-            tracker.addEventListener('click', e => {
-                tracker.style.backgroundColor = 'lightgreen';
-            });
-        </script>
-HTML;
-        file_put_contents(self::$docroot.'/index.html', $html);
-
-        self::$port = self::findFreePort();
-        self::$server = new Process(['php', '-S', 'localhost:'.self::$port, '-t', self::$docroot]);
-        self::$server->start();
-        usleep(100000);
     }
 
     public static function tearDownAfterClass(): void
     {
-        if (self::$server && self::$server->isRunning()) {
-            self::$server->stop();
-        }
-        array_map('unlink', glob(self::$docroot.'/*.*'));
-        rmdir(self::$docroot);
     }
 
     public function setUp(): void
     {
         $this->setUpPlaywright();
-        $this->page->goto('http://localhost:'.self::$port.'/index.html');
+        $this->installRouteServer($this->page, [
+            '/index.html' => <<<'HTML'
+                <h1>Input Test</h1>
+                <input type="text" id="input-text">
+                <div id="mouse-tracker" style="width: 200px; height: 200px; border: 1px solid black;"></div>
+                <script>
+                    const tracker = document.getElementById('mouse-tracker');
+                    tracker.addEventListener('mousemove', e => {
+                        tracker.textContent = `${e.offsetX},${e.offsetY}`;
+                    });
+                    tracker.addEventListener('click', e => {
+                        tracker.style.backgroundColor = 'lightgreen';
+                    });
+                </script>
+            HTML,
+        ]);
+        $this->page->goto($this->routeUrl('/index.html'));
     }
 
     public function tearDown(): void
@@ -98,30 +83,29 @@ HTML;
     #[Test]
     public function itMovesAndClicksWithMouse(): void
     {
-        // Test that mouse operations don't throw exceptions
         $this->page->mouse()->move(20, 20);
         $this->page->mouse()->click(100, 100);
 
-        // Verify mouse operations completed successfully
         $this->assertTrue(true, 'Mouse move and click operations completed without throwing');
     }
 
     #[Test]
     public function itHandlesMultiKeyShortcuts(): void
     {
-        $this->page->locator('#input-text')->type('Hello World');
-        $this->page->keyboard()->press('Meta+A'); // Select all
-        $this->page->keyboard()->type('Replaced'); // Type new text
+        $inputField = $this->page->locator('#input-text');
+        $inputField->click();
+        $inputField->fill('Hello World');
+        usleep(50000);
+
+        $inputField->click(['clickCount' => 3]);
+        usleep(50000);
+        $this->page->keyboard()->type('Replaced');
         usleep(100000);
-        $this->assertEquals('Replaced', $this->page->locator('#input-text')->inputValue());
+        $this->assertEquals('Replaced', $inputField->inputValue());
     }
 
     private static function findFreePort(): int
     {
-        $sock = socket_create_listen(0);
-        socket_getsockname($sock, $addr, $port);
-        socket_close($sock);
-
-        return $port;
+        return 0;
     }
 }

@@ -111,17 +111,14 @@ class SanitizerTest extends TestCase
     #[Test]
     public function itSanitizesStrings(): void
     {
-        // JWT token
         $jwt = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U';
         $result = Sanitizer::sanitizeParams($jwt);
         $this->assertEquals('[JWT_TOKEN]', $result);
 
-        // API key (32+ chars)
         $apiKey = '1234567890abcdef1234567890abcdef';
         $result = Sanitizer::sanitizeParams($apiKey);
         $this->assertEquals('[API_KEY]', $result);
 
-        // UUID
         $uuid = '550e8400-e29b-41d4-a716-446655440000';
         $result = Sanitizer::sanitizeParams($uuid);
         $this->assertEquals('[UUID]', $result);

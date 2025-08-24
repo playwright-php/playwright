@@ -32,6 +32,12 @@ trait PlaywrightTestCaseTrait
     protected BrowserContextInterface $context;
     protected PageInterface $page;
 
+    /** Shared lifecycle across tests in a class */
+    protected static ?PlaywrightClient $sharedPlaywright = null;
+    protected static ?BrowserInterface $sharedBrowser = null;
+    private bool $usingShared = true;
+    private bool $traceThisTest = false;
+
     protected function setUpPlaywright(?LoggerInterface $logger = null, ?PlaywrightConfig $customConfig = null): void
     {
         if (isset($_SERVER['PLAYWRIGHT_PHP_TEST_LOGGER_URL'])) {
@@ -75,14 +81,55 @@ trait PlaywrightTestCaseTrait
             $config = new PlaywrightConfig(nodePath: $node);
         }
 
-        $this->playwright = PlaywrightFactory::create($config, $logger);
-        $this->browser = $this->playwright->chromium()->launch();
+        
+        if (null !== $customConfig) {
+            $this->usingShared = false;
+            $this->playwright = PlaywrightFactory::create($config, $logger);
+            $this->browser = $this->playwright->chromium()->launch();
+        } else {
+            
+            if (null === self::$sharedPlaywright) {
+                self::$sharedPlaywright = PlaywrightFactory::create($config, $logger);
+            }
+            if (null === self::$sharedBrowser || !self::$sharedBrowser->isConnected()) {
+                self::$sharedBrowser = self::$sharedPlaywright->chromium()->launch();
+            }
+            
+            static $shutdownRegistered = false;
+            if (!$shutdownRegistered) {
+                $shutdownRegistered = true;
+                register_shutdown_function(function (): void {
+                    if (self::$sharedBrowser) {
+                        try {
+                            self::$sharedBrowser->close();
+                        } catch (\Throwable) {
+                        }
+                        self::$sharedBrowser = null;
+                    }
+                    if (self::$sharedPlaywright) {
+                        try {
+                            self::$sharedPlaywright->close();
+                        } catch (\Throwable) {
+                        }
+                        self::$sharedPlaywright = null;
+                    }
+                });
+            }
+            $this->playwright = self::$sharedPlaywright;
+            $this->browser = self::$sharedBrowser;
+        }
         $this->context = $this->browser->newContext();
         $this->page = $this->context->newPage();
-        $this->context->startTracing($this->page, [
-            'screenshots' => true,
-            'snapshots' => true,
-        ]);
+
+        
+        $envTrace = $_SERVER['PW_TRACE'] ?? getenv('PW_TRACE');
+        $this->traceThisTest = (is_string($envTrace) && '' !== $envTrace && '0' !== $envTrace);
+        if ($this->traceThisTest) {
+            $this->context->startTracing($this->page, [
+                'screenshots' => true,
+                'snapshots' => true,
+            ]);
+        }
     }
 
     protected function tearDownPlaywright(): void
@@ -104,17 +151,55 @@ trait PlaywrightTestCaseTrait
                 }
             }
             $this->page->screenshot($failuresDir.'/'.$testName.'.png');
-            $this->context->stopTracing($this->page, $failuresDir.'/'.$testName.'.zip');
+            if ($this->traceThisTest) {
+                $this->context->stopTracing($this->page, $failuresDir.'/'.$testName.'.zip');
+            }
         }
 
-        $this->browser->close();
-        $this->playwright->close();
+        
+        try {
+            $this->context->close();
+        } catch (\Throwable) {
+        }
+
+        
+        if (!$this->usingShared) {
+            try {
+                $this->browser->close();
+            } catch (\Throwable) {
+            }
+            try {
+                $this->playwright->close();
+            } catch (\Throwable) {
+            }
+        }
+    }
+
+    /**
+     * Optionally call this in tearDownAfterClass from tests to close shared resources.
+     */
+    protected static function closeSharedPlaywright(): void
+    {
+        if (self::$sharedBrowser) {
+            try {
+                self::$sharedBrowser->close();
+            } catch (\Throwable) {
+            }
+            self::$sharedBrowser = null;
+        }
+        if (self::$sharedPlaywright) {
+            try {
+                self::$sharedPlaywright->close();
+            } catch (\Throwable) {
+            }
+            self::$sharedPlaywright = null;
+        }
     }
 
     protected function assertElementExists(string $selector): void
     {
-        // This is a simplified assertion. A real implementation
-        // would query the page for the element.
+        
+        
         $content = $this->page->content() ?? '';
         $this->assertStringContainsString($selector, $content, "Element {$selector} not found.");
     }

@@ -82,12 +82,10 @@ final class JsonRpcClientInterfaceTest extends TestCase
         $client = $this->client;
         assert($client instanceof TestableJsonRpcClientWithInterface);
 
-        // First: JSON-RPC with id
         $client->setMockResponse(['jsonrpc' => '2.0', 'id' => 1, 'result' => ['type' => 'jsonrpc']]);
         $result1 = $client->send('test.jsonrpc');
         $this->assertEquals(['type' => 'jsonrpc'], $result1);
 
-        // Second: Raw with requestId
         $client->setMockResponse(['requestId' => 2, 'type' => 'raw']);
         $result2 = $client->sendRaw(['action' => 'test']);
         $this->assertEquals(['requestId' => 2, 'type' => 'raw'], $result2);
@@ -95,7 +93,6 @@ final class JsonRpcClientInterfaceTest extends TestCase
         $requests = $client->getSentRequests();
         $this->assertCount(2, $requests);
 
-        // Verify different ID fields used
         $this->assertArrayHasKey('id', $requests[0]);
         $this->assertArrayNotHasKey('requestId', $requests[0]);
         $this->assertArrayHasKey('requestId', $requests[1]);

@@ -16,50 +16,35 @@ use PHPUnit\Framework\TestCase;
 use PlaywrightPHP\Console\ConsoleMessage;
 use PlaywrightPHP\Testing\PlaywrightTestCaseTrait;
 use PlaywrightPHP\Tests\Mocks\TestLogger;
-use Symfony\Component\Process\Process;
+use PlaywrightPHP\Tests\Support\RouteServerTestTrait;
 
 #[CoversClass(ConsoleMessage::class)]
 class CleanConsoleTest extends TestCase
 {
     use PlaywrightTestCaseTrait;
-
-    private static ?Process $server = null;
-    private static string $docroot;
-    private static int $port;
+    use RouteServerTestTrait;
 
     public static function setUpBeforeClass(): void
     {
-        self::$docroot = sys_get_temp_dir().'/playwright-php-tests-'.uniqid('', true);
-        mkdir(self::$docroot);
-
-        $html = <<<'HTML'
-        <h1>Console Test</h1>
-        <script>
-            console.log('Hello from console');
-            console.warn('This is a warning');
-            console.error('This is an error');
-        </script>
-HTML;
-        file_put_contents(self::$docroot.'/index.html', $html);
-
-        self::$port = self::findFreePort();
-        self::$server = new Process(['php', '-S', 'localhost:'.self::$port, '-t', self::$docroot]);
-        self::$server->start();
-        usleep(100000);
     }
 
     public static function tearDownAfterClass(): void
     {
-        if (self::$server && self::$server->isRunning()) {
-            self::$server->stop();
-        }
-        array_map('unlink', glob(self::$docroot.'/*.*'));
-        rmdir(self::$docroot);
     }
 
     public function setUp(): void
     {
         $this->setUpPlaywright(new TestLogger());
+        $this->installRouteServer($this->page, [
+            '/index.html' => <<<'HTML'
+                <h1>Console Test</h1>
+                <script>
+                    console.log('Hello from console');
+                    console.warn('This is a warning');
+                    console.error('This is an error');
+                </script>
+            HTML,
+        ]);
     }
 
     public function tearDown(): void
@@ -72,23 +57,16 @@ HTML;
     {
         $messages = [];
 
-        // Test that console event handler can be registered without throwing
         $this->page->events()->onConsole(fn (ConsoleMessage $msg) => $messages[] = $msg);
         $this->assertTrue(true, 'Console event handler registered successfully');
 
-        // Navigate to a simple page
-        $this->page->goto('data:text/html,<h1>Test</h1>');
+        $this->page->goto($this->routeUrl('/index.html'));
 
-        // Test that basic page functionality works
         $this->assertInstanceOf('PlaywrightPHP\Page\Page', $this->page);
     }
 
     private static function findFreePort(): int
     {
-        $sock = socket_create_listen(0);
-        socket_getsockname($sock, $addr, $port);
-        socket_close($sock);
-
-        return $port;
+        return 0;
     }
 }

@@ -15,7 +15,7 @@ namespace PlaywrightPHP\Testing;
  */
 interface ExpectInterface
 {
-    // Locator assertions
+    
     public function toBeVisible(): void;
 
     public function toBeHidden(): void;
@@ -42,12 +42,12 @@ interface ExpectInterface
 
     public function toBeFocused(): void;
 
-    // Page assertions
+    
     public function toHaveTitle(string $title): void;
 
     public function toHaveURL(string $url): void;
 
-    // Modifiers
+    
     public function not(): self;
 
     public function withTimeout(int $timeoutMs): self;

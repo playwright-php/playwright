@@ -95,8 +95,7 @@ final class ResponseTest extends TestCase
             ->willReturn(['binary' => $encodedBody]);
 
         $this->assertSame($bodyContent, $response->body());
-        // Call again to ensure transport is not called again due to caching
-        $this->assertSame($bodyContent, $response->body());
+        $this->assertSame($bodyContent, $response->body(), 'Response has not been cached');
     }
 
     public function testTextIsAnAliasForBody(): void
@@ -111,8 +110,7 @@ final class ResponseTest extends TestCase
             ->willReturn(['binary' => $encodedBody]);
 
         $this->assertSame($bodyContent, $response->text());
-        // Call again to ensure it's cached
-        $this->assertSame($bodyContent, $response->text());
+        $this->assertSame($bodyContent, $response->text(), 'Response has not been cached');
     }
 
     public function testJsonDecodesAndCachesResult(): void
@@ -128,8 +126,7 @@ final class ResponseTest extends TestCase
             ->willReturn(['binary' => $encodedBody]);
 
         $this->assertSame($jsonArray, $response->json());
-        // Call again to ensure it's cached
-        $this->assertSame($jsonArray, $response->json());
+        $this->assertSame($jsonArray, $response->json(), 'Response has not been cached');
     }
 
     public function testJsonThrowsExceptionOnInvalidJson(): void
@@ -138,7 +135,7 @@ final class ResponseTest extends TestCase
         $this->expectExceptionMessage('Invalid JSON: Syntax error');
 
         $response = $this->createResponse();
-        $invalidJsonString = '{"foo": "bar",}'; // trailing comma is invalid
+        $invalidJsonString = '{"foo": "bar",}';
         $encodedBody = base64_encode($invalidJsonString);
 
         $this->transport

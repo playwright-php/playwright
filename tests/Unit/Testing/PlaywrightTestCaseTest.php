@@ -27,7 +27,6 @@ final class PlaywrightTestCaseTest extends TestCase
     {
         $reflection = new \ReflectionClass(PlaywrightTestCase::class);
 
-        // Verify trait methods are available
         $this->assertTrue($reflection->hasMethod('setUpPlaywright'));
         $this->assertTrue($reflection->hasMethod('tearDownPlaywright'));
         $this->assertTrue($reflection->hasMethod('expect'));
@@ -38,7 +37,6 @@ final class PlaywrightTestCaseTest extends TestCase
     {
         $reflection = new \ReflectionClass(PlaywrightTestCase::class);
 
-        // Verify trait properties are accessible
         $this->assertTrue($reflection->hasProperty('playwright'));
         $this->assertTrue($reflection->hasProperty('browser'));
         $this->assertTrue($reflection->hasProperty('context'));
@@ -49,11 +47,11 @@ final class PlaywrightTestCaseTest extends TestCase
     {
         $reflection = new \ReflectionClass(PlaywrightTestCase::class);
 
-        // Verify setUp and tearDown methods exist and call trait methods
         $this->assertTrue($reflection->hasMethod('setUp'));
         $this->assertTrue($reflection->hasMethod('tearDown'));
 
         $setUpMethod = $reflection->getMethod('setUp');
+
         $this->assertTrue($setUpMethod->hasReturnType());
         $this->assertEquals('void', $setUpMethod->getReturnType()->getName());
     }

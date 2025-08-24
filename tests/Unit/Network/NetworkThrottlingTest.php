@@ -223,7 +223,6 @@ final class NetworkThrottlingTest extends TestCase
         $this->assertEquals(512, $throttling->uploadThroughput);
         $this->assertEquals(100, $throttling->latency);
 
-        // Properties cannot be modified as the class is readonly
         $reflection = new \ReflectionClass($throttling);
         $this->assertTrue($reflection->isReadOnly());
     }
@@ -234,7 +233,6 @@ final class NetworkThrottlingTest extends TestCase
         $throttling1 = NetworkThrottling::slow3G();
         $throttling2 = NetworkThrottling::slow3G();
 
-        // Different instances but same values
         $this->assertNotSame($throttling1, $throttling2);
         $this->assertEquals($throttling1->downloadThroughput, $throttling2->downloadThroughput);
         $this->assertEquals($throttling1->uploadThroughput, $throttling2->uploadThroughput);
@@ -258,8 +256,8 @@ final class NetworkThrottlingTest extends TestCase
     #[Test]
     public function itHandlesLargeThroughputValues(): void
     {
-        $largeDownload = 100 * 1024 * 1024; // 100 MB/s
-        $largeUpload = 50 * 1024 * 1024;   // 50 MB/s
+        $largeDownload = 100 * 1024 * 1024;
+        $largeUpload = 50 * 1024 * 1024;
         $throttling = NetworkThrottling::custom($largeDownload, $largeUpload, 1);
 
         $this->assertEquals($largeDownload, $throttling->downloadThroughput);

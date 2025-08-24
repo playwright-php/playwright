@@ -41,7 +41,7 @@ class ScreenshotHelperTest extends TestCase
             ['http://api.service.com/v1/users?id=123', 'api-service-com-v1-users-id-123'],
             ['https://sub.domain.co.uk/path/file.html', 'sub-domain-co-uk-path-file-html'],
             ['invalid-chars!@#$%^&*()', 'invalid-chars'],
-            ['', 'screenshot'], // fallback
+            ['', 'screenshot'],
         ];
 
         foreach ($testCases as [$input, $expected]) {
@@ -64,17 +64,13 @@ class ScreenshotHelperTest extends TestCase
         $url = 'https://github.com/user/repo';
         $filename = ScreenshotHelper::generateFilename($url, $this->testDir);
 
-        // Check filename pattern: YYYYMMDD_HHMMSS_mmm_github-com-user-repo.png
         $basename = basename($filename);
         $this->assertMatchesRegularExpression(
             '/^\d{8}_\d{6}_\d{3}_github-com-user-repo\.png$/',
             $basename
         );
 
-        // Check directory exists
         $this->assertDirectoryExists($this->testDir);
-
-        // Check full path
         $this->assertEquals($this->testDir.'/'.$basename, $filename);
     }
 
@@ -102,7 +98,7 @@ class ScreenshotHelperTest extends TestCase
     public function testEnsureDirectoryExistsIdempotent(): void
     {
         ScreenshotHelper::ensureDirectoryExists($this->testDir);
-        ScreenshotHelper::ensureDirectoryExists($this->testDir); // Should not throw
+        ScreenshotHelper::ensureDirectoryExists($this->testDir);
 
         $this->assertDirectoryExists($this->testDir);
     }
@@ -123,33 +119,30 @@ class ScreenshotHelperTest extends TestCase
 
     public function testGetDirectoryInfoWithFiles(): void
     {
-        // Create test PNG files
-        file_put_contents($this->testDir.'/old.png', 'fake png data 1'); // 14 bytes
+        file_put_contents($this->testDir.'/old.png', 'fake png data 1');
         sleep(1);
-        file_put_contents($this->testDir.'/new.png', 'fake png data 2 longer'); // 23 bytes
+        file_put_contents($this->testDir.'/new.png', 'fake png data 2 longer');
         file_put_contents($this->testDir.'/not-png.txt', 'should be ignored');
 
         $info = ScreenshotHelper::getDirectoryInfo($this->testDir);
 
         $this->assertEquals(2, $info['count']);
-        $this->assertEquals(37, $info['totalSize']); // 14 + 23 bytes
+        $this->assertEquals(37, $info['totalSize']);
         $this->assertEquals('old.png', $info['oldestFile']);
         $this->assertEquals('new.png', $info['newestFile']);
     }
 
     public function testCleanupOldScreenshots(): void
     {
-        // Create old and new files
         $oldFile = $this->testDir.'/old.png';
         $newFile = $this->testDir.'/new.png';
 
         file_put_contents($oldFile, 'old');
         file_put_contents($newFile, 'new');
 
-        // Make old file actually old
-        touch($oldFile, time() - 7200); // 2 hours ago
+        touch($oldFile, time() - 7200);
 
-        $cleaned = ScreenshotHelper::cleanupOldScreenshots($this->testDir, 3600); // 1 hour max age
+        $cleaned = ScreenshotHelper::cleanupOldScreenshots($this->testDir, 3600);
 
         $this->assertEquals(1, $cleaned);
         $this->assertFileDoesNotExist($oldFile);
@@ -158,26 +151,24 @@ class ScreenshotHelperTest extends TestCase
 
     public function testCleanupOldScreenshotsByCount(): void
     {
-        // Create multiple files
         for ($i = 1; $i <= 5; ++$i) {
             $file = $this->testDir."/file{$i}.png";
             file_put_contents($file, "data $i");
-            touch($file, time() - $i); // Different ages
-            usleep(1000); // Ensure different timestamps
+            touch($file, time() - $i);
+            usleep(1000);
         }
 
-        $cleaned = ScreenshotHelper::cleanupOldScreenshots($this->testDir, 86400, 3); // Keep only 3 files
+        $cleaned = ScreenshotHelper::cleanupOldScreenshots($this->testDir, 86400, 3);
 
-        $this->assertEquals(2, $cleaned); // Should remove 2 oldest files
+        $this->assertEquals(2, $cleaned);
 
         $remaining = glob($this->testDir.'/*.png');
         $this->assertCount(3, $remaining);
 
-        // Check that newest files remain
-        $this->assertFileExists($this->testDir.'/file1.png'); // Newest
+        $this->assertFileExists($this->testDir.'/file1.png');
         $this->assertFileExists($this->testDir.'/file2.png');
         $this->assertFileExists($this->testDir.'/file3.png');
-        $this->assertFileDoesNotExist($this->testDir.'/file4.png'); // Oldest
+        $this->assertFileDoesNotExist($this->testDir.'/file4.png');
         $this->assertFileDoesNotExist($this->testDir.'/file5.png');
     }
 
@@ -205,14 +196,12 @@ class ScreenshotHelperTest extends TestCase
     {
         $url = 'https://example.com';
 
-        // Generate multiple filenames quickly
         $filenames = [];
         for ($i = 0; $i < 5; ++$i) {
             $filenames[] = basename(ScreenshotHelper::generateFilename($url, $this->testDir));
-            usleep(1000); // Small delay to ensure different milliseconds
+            usleep(1000);
         }
 
-        // All filenames should be unique
         $uniqueFilenames = array_unique($filenames);
         $this->assertCount(5, $uniqueFilenames, 'Generated filenames should be unique');
     }

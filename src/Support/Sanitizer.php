@@ -91,7 +91,7 @@ final class Sanitizer
      */
     private static function sanitizeObject(object $object): object
     {
-        // Convert to array, sanitize, then convert back
+        
         $json = json_encode($object);
         if (false === $json) {
             throw new \RuntimeException('Failed to encode object to JSON');
@@ -110,24 +110,24 @@ final class Sanitizer
      */
     private static function sanitizeString(string $string): string
     {
-        // Mask common patterns like tokens, keys, etc.
+        
         $patterns = [
-            // JWT tokens (base64.base64.base64)
+            
             '/\b[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/' => '[JWT_TOKEN]',
 
-            // API keys (long alphanumeric strings)
+            
             '/\b[a-z0-9]{32,}\b/i' => '[API_KEY]',
 
-            // UUIDs
+            
             '/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/i' => '[UUID]',
 
-            // Common password patterns in URLs
+            
             '/:([^:@]+)@/' => ':[REDACTED]@',
 
-            // Basic auth in headers
+            
             '/Basic [A-Za-z0-9+\/]+=*/' => 'Basic [REDACTED]',
 
-            // Bearer tokens
+            
             '/Bearer [A-Za-z0-9_\-\.]+/' => 'Bearer [REDACTED]',
         ];
 
@@ -169,13 +169,13 @@ final class Sanitizer
             return $url;
         }
 
-        // Remove user info (username:password)
+        
         if (isset($parsed['user']) || isset($parsed['pass'])) {
             $parsed['user'] = '[REDACTED]';
             unset($parsed['pass']);
         }
 
-        // Rebuild URL
+        
         $scheme = isset($parsed['scheme']) ? $parsed['scheme'].'://' : '';
         $host = $parsed['host'] ?? '';
         $port = isset($parsed['port']) ? ':'.$parsed['port'] : '';

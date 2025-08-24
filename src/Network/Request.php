@@ -50,7 +50,7 @@ final class Request implements RequestInterface
             return [];
         }
 
-        // Convert to proper string-to-string mapping
+        
         $stringHeaders = [];
         foreach ($headers as $key => $value) {
             if (is_string($key) && (is_string($value) || is_numeric($value))) {
@@ -85,7 +85,7 @@ final class Request implements RequestInterface
         $result = [];
         foreach ($decoded as $key => $value) {
             if (!is_string($key)) {
-                // Not an object-like structure; treat as unsupported JSON for this helper
+                
                 return null;
             }
             $result[$key] = $value;

@@ -58,20 +58,16 @@ final class JsonRpcClientTest extends TestCase
     {
         $client = new TestableJsonRpcClient($this->clock, $this->logger);
 
-        // Mock a delayed response
         $client->setResponseDelay(100);
         $client->setMockResponse(['jsonrpc' => '2.0', 'id' => 1, 'result' => ['status' => 'ok']]);
 
-        // Start the request but don't wait for completion
         $pendingBefore = $client->getPendingRequests();
         $this->assertEmpty($pendingBefore);
 
-        // In a real scenario, we'd start this asynchronously, but for testing we check after setup
         $startTime = $this->clock->now()->format('Uu') / 1000;
 
         $result = $client->send('test_method');
 
-        // After completion, pending requests should be cleared
         $pendingAfter = $client->getPendingRequests();
         $this->assertEmpty($pendingAfter);
 
@@ -80,9 +76,8 @@ final class JsonRpcClientTest extends TestCase
 
     public function testSendHandlesTimeout(): void
     {
-        $client = new TestableJsonRpcClient($this->clock, $this->logger, 100.0); // 100ms timeout
+        $client = new TestableJsonRpcClient($this->clock, $this->logger, 100.0);
 
-        // Mock no response (simulates timeout)
         $client->setMockResponse(null);
 
         $this->expectException(TimeoutException::class);
@@ -275,7 +270,6 @@ final class JsonRpcClientTest extends TestCase
 
         $result = $client->sendRaw(['action' => 'launch']);
 
-        // Should return the response directly without processing
         $this->assertEquals($mockResponse, $result);
     }
 }
@@ -313,7 +307,6 @@ class TestableJsonRpcClient extends JsonRpcClient
         }
 
         if (null === $this->mockResponse) {
-            // For timeout tests, throw a timeout exception directly
             if (null !== $deadline) {
                 throw new TimeoutException('Mock timeout exceeded deadline', 100.0);
             }
@@ -323,7 +316,6 @@ class TestableJsonRpcClient extends JsonRpcClient
         return $this->mockResponse;
     }
 
-    // Make protected method accessible for testing
     public function getCurrentTimeMs(): float
     {
         return parent::getCurrentTimeMs();

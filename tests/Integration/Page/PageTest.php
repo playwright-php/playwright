@@ -15,46 +15,32 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use PlaywrightPHP\Page\Page;
 use PlaywrightPHP\Testing\PlaywrightTestCaseTrait;
-use Symfony\Component\Process\Process;
+use PlaywrightPHP\Tests\Support\RouteServerTestTrait;
 
 #[CoversClass(Page::class)]
 class PageTest extends TestCase
 {
     use PlaywrightTestCaseTrait;
-
-    private static ?Process $server = null;
-    private static string $docroot;
-    private static int $port;
+    use RouteServerTestTrait;
 
     public static function setUpBeforeClass(): void
     {
-        self::$docroot = sys_get_temp_dir().'/playwright-php-tests-'.uniqid('', true);
-        mkdir(self::$docroot);
-
-        file_put_contents(self::$docroot.'/index.html', '<h1>Hello World</h1><a href="/page2.html">link</a>');
-        file_put_contents(self::$docroot.'/page2.html', '<h2>Page 2</h2>');
-        file_put_contents(self::$docroot.'/script.js', 'window.myVar = 123;');
-        file_put_contents(self::$docroot.'/style.css', 'h1 { color: red; }');
-
-        self::$port = self::findFreePort();
-        self::$server = new Process(['php', '-S', 'localhost:'.self::$port, '-t', self::$docroot]);
-        self::$server->start();
-        usleep(100000); // Give server time to start
     }
 
     public static function tearDownAfterClass(): void
     {
-        if (self::$server && self::$server->isRunning()) {
-            self::$server->stop();
-        }
-        array_map('unlink', glob(self::$docroot.'/*.*'));
-        rmdir(self::$docroot);
     }
 
     public function setUp(): void
     {
         $this->setUpPlaywright();
-        $this->page->goto('http://localhost:'.self::$port.'/index.html');
+        $this->installRouteServer($this->page, [
+            '/index.html' => '<!DOCTYPE html><html><head><title>Test Page</title></head><body><h1>Hello World</h1><a href="/page2.html">link</a><button id="test-btn" onclick="console.log(\'test\');">Test Button</button><input type="file" id="file-input" /><form id="test-form"><input type="text" name="username" placeholder="Username" /><button type="submit">Submit</button></form><script src="/script.js"></script></body></html>',
+            '/page2.html' => '<h2>Page 2</h2>',
+            '/script.js' => 'window.myVar = 123; window.testFunction = function(arg) { return "result:" + arg; };',
+            '/style.css' => 'h1 { color: red; }',
+        ]);
+        $this->page->goto($this->routeUrl('/index.html'));
     }
 
     public function tearDown(): void
@@ -65,7 +51,7 @@ class PageTest extends TestCase
     #[Test]
     public function itGetsThePageUrl(): void
     {
-        $this->assertEquals('http://localhost:'.self::$port.'/index.html', $this->page->url());
+        $this->assertEquals($this->routeUrl('/index.html'), $this->page->url());
     }
 
     #[Test]
@@ -94,13 +80,10 @@ class PageTest extends TestCase
     #[Test]
     public function itReloadsThePage(): void
     {
-        // Get initial URL
         $initialUrl = $this->page->url();
 
-        // Reload the page
         $this->page->reload();
 
-        // Verify page reloaded successfully (URL should remain the same)
         $this->assertEquals($initialUrl, $this->page->url());
     }
 
@@ -120,14 +103,11 @@ class PageTest extends TestCase
         $this->assertIsString($path);
         $this->assertNotEmpty($path);
 
-        // Verify the file was created
         $this->assertFileExists($path);
 
-        // Verify it's a PNG file
         $fileContent = file_get_contents($path);
         $this->assertStringStartsWith(base64_decode('iVBORw0KGgo='), $fileContent);
 
-        // Clean up
         unlink($path);
     }
 
@@ -141,14 +121,12 @@ class PageTest extends TestCase
     #[Test]
     public function itAddsAStyleTag(): void
     {
-        $this->page->addStyleTag(['url' => 'http://localhost:'.self::$port.'/style.css']);
-        $this->page->waitForSelector('h1'); // Wait for the element to be available
+        $this->page->addStyleTag(['url' => $this->routeUrl('/style.css')]);
+        $this->page->waitForSelector('h1');
 
-        // Check if element exists first
         $count = $this->page->locator('h1')->count();
         $this->assertGreaterThan(0, $count, 'H1 element should exist');
 
-        // Test simpler locator methods first
         $text = $this->page->locator('h1')->textContent();
         $this->assertEquals('Hello World', $text);
 
@@ -167,10 +145,7 @@ class PageTest extends TestCase
     #[Test]
     public function itWaitsForAResponse(): void
     {
-        $response = $this->page->waitForResponse(
-            '**/page2.html',
-            ['action' => "document.querySelector('a').click()"]
-        );
+        $response = $this->page->waitForResponse('**/page2.html', ['action' => "document.querySelector('a').click()"]);
 
         $this->assertInstanceOf(\PlaywrightPHP\Network\ResponseInterface::class, $response);
         $this->assertStringContainsString('/page2.html', $response->url());
@@ -179,10 +154,6 @@ class PageTest extends TestCase
 
     private static function findFreePort(): int
     {
-        $sock = socket_create_listen(0);
-        socket_getsockname($sock, $addr, $port);
-        socket_close($sock);
-
-        return $port;
+        return 0;
     }
 }

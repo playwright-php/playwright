@@ -54,7 +54,6 @@ final class SelectorChainTest extends TestCase
         $chain = new SelectorChain('.base');
         $chain->append('');
 
-        // Current implementation doesn't ignore empty selectors
         $this->assertEquals('.base >> ', (string) $chain);
     }
 
@@ -76,7 +75,7 @@ final class SelectorChainTest extends TestCase
 
         $result = $chain->append('.item')->append('.link');
 
-        $this->assertSame($chain, $result); // Should return same instance for chaining
+        $this->assertSame($chain, $result);
         $this->assertEquals('.container >> .item >> .link', (string) $chain);
     }
 

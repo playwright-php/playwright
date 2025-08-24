@@ -16,25 +16,20 @@ use PHPUnit\Framework\TestCase;
 use PlaywrightPHP\Browser\BrowserContext;
 use PlaywrightPHP\Page\PageInterface;
 use PlaywrightPHP\Testing\PlaywrightTestCaseTrait;
-use PlaywrightPHP\Tests\Support\HttpServerTestTrait;
+use PlaywrightPHP\Tests\Support\RouteServerTestTrait;
 
 #[CoversClass(BrowserContext::class)]
 class BrowserContextTest extends TestCase
 {
     use PlaywrightTestCaseTrait;
-    use HttpServerTestTrait;
+    use RouteServerTestTrait;
 
     public static function setUpBeforeClass(): void
     {
-        self::startHttpServer([
-            'index.html' => '<h1>Hello</h1>',
-            'geolocation.html' => '<button onclick="getLocation()">Get Location</button><script>function getLocation() { navigator.geolocation.getCurrentPosition(p => document.body.innerHTML += p.coords.latitude + "," + p.coords.longitude, err => document.body.innerHTML += "Error: " + err.message); }</script>',
-        ]);
     }
 
     public static function tearDownAfterClass(): void
     {
-        self::stopHttpServer();
     }
 
     public function setUp(): void
@@ -65,7 +60,6 @@ class BrowserContextTest extends TestCase
         $page = $this->context->newPage();
         $page->goto('data:text/html,<h1>Test Page</h1>');
 
-        // Add cookies with a simpler approach
         $this->context->addCookies([
             [
                 'name' => 'test-cookie',
@@ -75,10 +69,8 @@ class BrowserContextTest extends TestCase
             ],
         ]);
 
-        // Test that addCookies doesn't throw (basic functionality test)
         $this->assertTrue(true, 'addCookies executed without throwing');
 
-        // Clear cookies to test that functionality
         $this->context->clearCookies();
         $this->assertTrue(true, 'clearCookies executed without throwing');
 
@@ -88,14 +80,12 @@ class BrowserContextTest extends TestCase
     #[Test]
     public function itAddsInitScript(): void
     {
-        // Test that addInitScript doesn't throw (basic functionality test)
         $this->context->addInitScript('window.myVar = 42;');
         $this->assertTrue(true, 'addInitScript executed without throwing');
 
         $page = $this->context->newPage();
         $page->goto('data:text/html,<h1>Test Page</h1>');
 
-        // Just test that the page was created and navigated
         $this->assertInstanceOf('PlaywrightPHP\Page\Page', $page);
 
         $page->close();
@@ -113,7 +103,10 @@ class BrowserContextTest extends TestCase
     public function itGetsStorageState(): void
     {
         $page = $this->context->newPage();
-        $page->goto(self::getServerUrl('index.html'));
+        $this->installRouteServer($page, [
+            '/index.html' => '<h1>Hello</h1>',
+        ]);
+        $page->goto($this->routeUrl('/index.html'));
         $page->evaluate('localStorage.setItem("foo", "bar")');
 
         $storageState = $this->context->storageState();
@@ -121,7 +114,7 @@ class BrowserContextTest extends TestCase
         $this->assertArrayHasKey('cookies', $storageState);
         $this->assertArrayHasKey('origins', $storageState);
         $this->assertCount(1, $storageState['origins']);
-        $this->assertEquals(rtrim(self::getServerUrl(), '/'), $storageState['origins'][0]['origin']);
+        $this->assertEquals(rtrim($this->routeUrl('/'), '/'), $storageState['origins'][0]['origin']);
         $this->assertEquals('bar', $storageState['origins'][0]['localStorage'][0]['value']);
 
         $page->close();
@@ -133,19 +126,19 @@ class BrowserContextTest extends TestCase
         $this->context->grantPermissions(['geolocation']);
         $this->context->setGeolocation(59.95, 30.31667);
         $page = $this->context->newPage();
-        $page->goto(self::getServerUrl('geolocation.html'));
+        $this->installRouteServer($page, [
+            '/geolocation.html' => '<button onclick="getLocation()">Get Location</button><script>function getLocation() { navigator.geolocation.getCurrentPosition(p => document.body.innerHTML += p.coords.latitude + "," + p.coords.longitude, err => document.body.innerHTML += "Error: " + err.message); }</script>',
+        ]);
+        $page->goto($this->routeUrl('/geolocation.html'));
 
         $page->click('button');
 
-        // Give geolocation API time to respond
         usleep(500000);
 
-        // Check if either coordinates or error message is present
         $content = $page->content();
         $hasCoordinates = str_contains($content, '59.95,30.31667');
         $hasError = str_contains($content, 'Error:');
 
-        // At least one should be present - either success or error
         $this->assertTrue($hasCoordinates || $hasError, 'Geolocation API should respond with either coordinates or error message');
 
         $page->close();
@@ -158,7 +151,7 @@ class BrowserContextTest extends TestCase
         $this->context->setOffline(true);
 
         try {
-            $page->goto(self::getServerUrl());
+            $page->goto('http://example.com/');
             $this->fail('Should have thrown an exception for offline mode.');
         } catch (\Exception $e) {
             $this->assertTrue(
@@ -170,7 +163,10 @@ class BrowserContextTest extends TestCase
         }
 
         $this->context->setOffline(false);
-        $page->goto(self::getServerUrl());
+        $this->installRouteServer($page, [
+            '/index.html' => '<h1>Hello</h1>',
+        ]);
+        $page->goto($this->routeUrl('/index.html'));
         $this->assertStringContainsString('Hello', $page->content());
         $page->close();
     }

@@ -74,14 +74,11 @@ class MockPlaywrightServer
         $params = $request['params'] ?? [];
         $id = $request['id'] ?? $this->nextId++;
 
-        // Log the request
         $this->requests[] = ['method' => $method, 'params' => $params];
 
-        // Return mock response
         if (isset($this->responses[$method])) {
             $response = $this->responses[$method];
 
-            // If response is callable, call it with params
             if (is_callable($response)) {
                 $result = $response($params);
             } else {
@@ -95,7 +92,6 @@ class MockPlaywrightServer
             ];
         }
 
-        // Default response for unknown methods
         return [
             'jsonrpc' => '2.0',
             'id' => $id,
@@ -154,7 +150,6 @@ class MockPlaywrightServer
      */
     private function setupDefaultResponses(): void
     {
-        // Browser management
         $this->responses['Browser.newContext'] = [
             'contextId' => 'context_1',
         ];
@@ -167,7 +162,6 @@ class MockPlaywrightServer
             'version' => '1.40.0',
         ];
 
-        // Page operations
         $this->responses['Page.goto'] = [
             'loaderId' => 'loader_1',
             'url' => 'https://example.com',
@@ -185,7 +179,6 @@ class MockPlaywrightServer
             'screenshot' => base64_encode('mock_image_data'),
         ];
 
-        // Element operations
         $this->responses['Page.locator'] = [
             'locatorId' => 'locator_1',
         ];
@@ -206,7 +199,6 @@ class MockPlaywrightServer
             'count' => 1,
         ];
 
-        // Network operations
         $this->responses['Page.route'] = [
             'routeId' => 'route_1',
         ];
@@ -215,7 +207,6 @@ class MockPlaywrightServer
             'status' => 'fulfilled',
         ];
 
-        // Input operations
         $this->responses['Page.keyboard'] = [
             'keyboardId' => 'keyboard_1',
         ];
@@ -240,7 +231,6 @@ class MockPlaywrightServer
     {
         $server = new self();
 
-        // Add browser-specific responses
         $server->setResponse('Browser.launch', [
             'browserId' => 'browser_1',
             'type' => 'chromium',
@@ -264,7 +254,6 @@ class MockPlaywrightServer
     {
         $server = self::forBrowserTesting();
 
-        // Add page-specific responses
         $server->setResponse('Page.setViewportSize', [
             'status' => 'resized',
         ]);

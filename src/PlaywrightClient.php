@@ -33,6 +33,51 @@ class PlaywrightClient
     ) {
     }
 
+    public function chromium(): BrowserBuilder
+    {
+        $this->connect();
+        $this->logger->debug('Creating Chromium browser builder');
+
+        return $this->createBrowserBuilder('chromium');
+    }
+
+    public function firefox(): BrowserBuilder
+    {
+        $this->connect();
+        $this->logger->debug('Creating Firefox browser builder');
+
+        return $this->createBrowserBuilder('firefox');
+    }
+
+    public function webkit(): BrowserBuilder
+    {
+        $this->connect();
+        $this->logger->debug('Creating WebKit browser builder');
+
+        return $this->createBrowserBuilder('webkit');
+    }
+    
+    public function close(): void
+    {
+        if (!$this->isConnected) {
+            return;
+        }
+
+        $this->logger->debug('Closing Playwright client connection');
+
+        try {
+            $this->transport->disconnect();
+            $this->isConnected = false;
+            $this->logger->info('Successfully closed Playwright client connection');
+        } catch (\Throwable $e) {
+            $this->logger->warning('Error while closing Playwright client connection', [
+                'error' => $e->getMessage(),
+                'exception' => $e,
+            ]);
+            $this->isConnected = false;
+        }
+    }
+    
     private function connect(): void
     {
         if ($this->isConnected) {
@@ -66,36 +111,10 @@ class PlaywrightClient
         }
     }
 
-    public function chromium(): BrowserBuilder
-    {
-        $this->connect();
-        $this->logger->debug('Creating Chromium browser builder');
-
-        return $this->createBrowserBuilder('chromium');
-    }
-
-    public function firefox(): BrowserBuilder
-    {
-        $this->connect();
-        $this->logger->debug('Creating Firefox browser builder');
-
-        return $this->createBrowserBuilder('firefox');
-    }
-
-    public function webkit(): BrowserBuilder
-    {
-        $this->connect();
-        $this->logger->debug('Creating WebKit browser builder');
-
-        return $this->createBrowserBuilder('webkit');
-    }
-
     private function createBrowserBuilder(string $browserType): BrowserBuilder
     {
-        // ✅ Pass config to BrowserBuilder
         $builder = new BrowserBuilder($browserType, $this->transport, $this->logger, $this->config);
 
-        // Apply configuration defaults
         $builder->withHeadless($this->config->headless);
 
         if ($this->config->slowMoMs > 0) {
@@ -107,28 +126,6 @@ class PlaywrightClient
         }
 
         return $builder;
-    }
-
-    public function close(): void
-    {
-        if (!$this->isConnected) {
-            return;
-        }
-
-        $this->logger->debug('Closing Playwright client connection');
-
-        try {
-            $this->transport->disconnect();
-            $this->isConnected = false;
-            $this->logger->info('Successfully closed Playwright client connection');
-        } catch (\Throwable $e) {
-            $this->logger->warning('Error while closing Playwright client connection', [
-                'error' => $e->getMessage(),
-                'exception' => $e,
-            ]);
-            // Still mark as disconnected even if there was an error
-            $this->isConnected = false;
-        }
     }
 
     public function __destruct()

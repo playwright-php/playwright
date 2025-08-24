@@ -67,8 +67,6 @@ class BrowserTest extends TestCase
         $context2 = $this->browser->newContext();
         $this->assertCount($initialCount + 2, $this->browser->contexts());
 
-        // Note: This doesn't test context removal on close,
-        // as that requires an event system not yet implemented.
         $context1->close();
         $context2->close();
     }

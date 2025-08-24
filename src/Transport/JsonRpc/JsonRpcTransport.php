@@ -100,7 +100,7 @@ final class JsonRpcTransport implements TransportInterface
                 logger: $this->logger
             );
 
-            // Set up event handler to dispatch events
+            
             $this->client->setEventHandler(function (array $event): void {
                 $this->handleEvent($event);
             });
@@ -147,9 +147,9 @@ final class JsonRpcTransport implements TransportInterface
         $this->ensureConnected();
 
         try {
-            // Send the message in the original format, not JSON-RPC format
-            // The LSP framing handles the transport protocol, but the message content
-            // remains compatible with the existing Node.js server
+            
+            
+            
             $timeout = $this->config['timeout'] ?? null;
             $timeoutMs = null;
             if (null !== $timeout) {
@@ -187,8 +187,8 @@ final class JsonRpcTransport implements TransportInterface
         }
 
         try {
-            // For async operations like route.fulfill, we need to send without waiting for response
-            // Use the same approach as ProcessTransport - write directly and don't wait
+            
+            
             if (!isset($message['requestId'])) {
                 $message['requestId'] = uniqid('req_async_', true);
             }
@@ -198,7 +198,7 @@ final class JsonRpcTransport implements TransportInterface
                 'requestId' => $message['requestId'],
             ]);
 
-            // Send as raw message like ProcessTransport does
+            
             $this->sendAsyncMessage($message);
         } catch (\Throwable $e) {
             $this->logger->warning('JSON-RPC sendAsync failed', [
@@ -228,7 +228,7 @@ final class JsonRpcTransport implements TransportInterface
      */
     private function sendAsyncMessage(array $message): void
     {
-        // Send the message without waiting for a response, similar to ProcessTransport
+        
         $json = json_encode($message, JSON_THROW_ON_ERROR);
         $framedMessage = LspFraming::encode($json);
 
@@ -343,7 +343,7 @@ final class JsonRpcTransport implements TransportInterface
      */
     private function validateEventParams(array $params): array
     {
-        // Basic validation - could be more specific based on event type
+        
         /* @phpstan-var array<string, mixed> $params */
         return $params;
     }

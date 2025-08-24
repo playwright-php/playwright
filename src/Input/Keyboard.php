@@ -44,7 +44,7 @@ final class Keyboard implements KeyboardInterface
             'options' => $options,
         ]);
 
-        // Process any pending events after key press
+        
         $this->transport->processEvents();
     }
 

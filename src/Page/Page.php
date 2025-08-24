@@ -170,13 +170,13 @@ final class Page implements PageInterface, EventDispatcherInterface
      */
     public function screenshot(?string $path = null, array $options = []): string
     {
-        // Determine the final path: explicit parameter > options > auto-generated
+        
         $finalPath = $path ?? $options['path'] ?? ScreenshotHelper::generateFilename(
             $this->url(),
             $this->getScreenshotDirectory()
         );
 
-        // Ensure we have a string path
+        
         if (!is_string($finalPath)) {
             throw new \RuntimeException('Invalid screenshot path generated');
         }
@@ -213,18 +213,18 @@ final class Page implements PageInterface, EventDispatcherInterface
         $currentUrl = $this->url();
         $screenshotDir = $this->getScreenshotDirectory();
 
-        // Generate filename with custom suffix
+        
         $now = microtime(true);
         $datetime = date('Ymd_His', (int) $now);
         $milliseconds = sprintf('%03d', ($now - floor($now)) * 1000);
 
-        $urlSlug = ScreenshotHelper::slugifyUrl($currentUrl, 20); // Shorter for custom suffix
+        $urlSlug = ScreenshotHelper::slugifyUrl($currentUrl, 20); 
         $suffixSlug = $suffix ? '-'.ScreenshotHelper::slugifyUrl($suffix, 20) : '';
 
         $filename = sprintf('%s_%s_%s%s.png', $datetime, $milliseconds, $urlSlug, $suffixSlug);
         $path = $screenshotDir.DIRECTORY_SEPARATOR.$filename;
 
-        // Ensure directory exists
+        
         ScreenshotHelper::ensureDirectoryExists($screenshotDir);
 
         $options['path'] = $path;
@@ -242,7 +242,7 @@ final class Page implements PageInterface, EventDispatcherInterface
             return $this->config->getScreenshotDirectory();
         }
 
-        // Fallback if no config provided
+        
         return rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.'playwright';
     }
 
@@ -283,7 +283,7 @@ final class Page implements PageInterface, EventDispatcherInterface
     {
         $this->locator($selector)->click($options);
 
-        // Process any pending events after click (may trigger navigation)
+        
         $this->transport->processEvents();
 
         return $this;
@@ -326,7 +326,16 @@ final class Page implements PageInterface, EventDispatcherInterface
         if (isset($response['error'])) {
             $error = $response['error'];
             if (!is_array($error)) {
-                throw new PlaywrightException('Invalid error response from transport');
+                
+                $message = is_string($error) ? $error : 'Unknown error';
+                $this->logger->error('Playwright server error (non-structured)', ['error' => $error]);
+                if (str_contains($message, 'Timeout')) {
+                    throw new TimeoutException($message);
+                }
+                if (str_contains($message, 'net::') || str_contains($message, 'NetworkError')) {
+                    throw new NetworkException($message);
+                }
+                throw new PlaywrightException($message);
             }
 
             $message = $error['message'] ?? 'Unknown error';
@@ -334,10 +343,10 @@ final class Page implements PageInterface, EventDispatcherInterface
                 $message = 'Unknown error';
             }
 
-            // Log the error for debugging
+            
             $this->logger->error('Playwright server error', ['error' => $error]);
 
-            // Handle specific Playwright errors
+            
             if (str_contains($message, 'Target page, context or browser has been closed')) {
                 throw new PlaywrightException('Browser context has been closed');
             }
@@ -387,7 +396,7 @@ final class Page implements PageInterface, EventDispatcherInterface
             return [];
         }
 
-        // Validate cookie structure strictly and rebuild to satisfy typing
+        
         $validatedCookies = [];
         foreach ($cookies as $cookie) {
             if (!is_array($cookie)) {
@@ -542,7 +551,7 @@ final class Page implements PageInterface, EventDispatcherInterface
     {
         $this->sendCommand('waitForURL', ['url' => $url, 'options' => $options]);
 
-        // Process any pending events after navigation completes
+        
         $this->transport->processEvents();
 
         return $this;
@@ -617,7 +626,7 @@ final class Page implements PageInterface, EventDispatcherInterface
     {
         $this->logger->debug('Setting input files', ['selector' => $selector, 'files' => $files]);
 
-        // Validate that all files exist
+        
         foreach ($files as $file) {
             if (!\file_exists($file)) {
                 throw new PlaywrightException(\sprintf('File not found: %s', $file));

@@ -66,8 +66,6 @@ final class RequestTest extends TestCase
         unset($data['postData']);
         $request = new Request($data);
 
-        // This test will pass with the suggested code change,
-        // but would produce a warning with the original implementation.
         $this->assertNull($request->postData());
     }
 

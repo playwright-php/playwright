@@ -17,6 +17,7 @@ use PlaywrightPHP\Exception\ProcessCrashedException;
 use PlaywrightPHP\Exception\ProcessLaunchException;
 use PlaywrightPHP\Tests\Mocks\TestLogger;
 use PlaywrightPHP\Transport\JsonRpc\ProcessLauncher;
+use Symfony\Component\Process\Exception\ProcessTimedOutException;
 
 #[CoversClass(ProcessLauncher::class)]
 class ProcessLauncherTest extends TestCase
@@ -43,12 +44,10 @@ class ProcessLauncherTest extends TestCase
     {
         $launcher = new ProcessLauncher();
 
-        // Use a simple command that should work on most systems
         $process = $launcher->start(['echo', 'hello']);
 
         $this->assertTrue($process->isRunning() || $process->isSuccessful());
 
-        // Wait for it to finish
         $process->wait();
         $this->assertTrue($process->isSuccessful());
         $this->assertEquals(0, $process->getExitCode());
@@ -81,7 +80,6 @@ class ProcessLauncherTest extends TestCase
     {
         $launcher = new ProcessLauncher();
 
-        // Command that writes to stderr
         $process = $launcher->start(['php', '-r', 'file_put_contents("php://stderr", "test error");']);
         $process->wait();
 
@@ -109,7 +107,6 @@ class ProcessLauncherTest extends TestCase
     {
         $launcher = new ProcessLauncher();
 
-        // Generate some stderr
         $process = $launcher->start(['php', '-r', 'file_put_contents("php://stderr", "test");']);
         $process->wait();
 
@@ -124,11 +121,8 @@ class ProcessLauncherTest extends TestCase
     public function itCanEnsureProcessIsRunning(): void
     {
         $launcher = new ProcessLauncher();
-
-        // Long running process
         $process = $launcher->start(['sleep', '1']);
 
-        // Should not throw
         $launcher->ensureRunning($process, 'test_phase');
 
         $this->assertTrue($process->isRunning());
@@ -141,9 +135,8 @@ class ProcessLauncherTest extends TestCase
     {
         $launcher = new ProcessLauncher();
 
-        // Short process that finishes quickly
         $process = $launcher->start(['echo', 'done']);
-        $process->wait(); // Make sure it's finished
+        $process->wait();
 
         $this->expectException(ProcessCrashedException::class);
         $this->expectExceptionMessage('Node process not running during test_phase');
@@ -155,15 +148,12 @@ class ProcessLauncherTest extends TestCase
     public function itCanTerminateProcess(): void
     {
         $launcher = new ProcessLauncher();
-
-        // Long running process
         $process = $launcher->start(['sleep', '10']);
 
         $this->assertTrue($process->isRunning());
 
-        $launcher->terminate($process, 0.1); // Short grace period
+        $launcher->terminate($process, 0.1);
 
-        // Give it a moment to terminate
         usleep(200_000);
         $this->assertFalse($process->isRunning());
     }
@@ -172,11 +162,9 @@ class ProcessLauncherTest extends TestCase
     public function itHandlesAlreadyTerminatedProcess(): void
     {
         $launcher = new ProcessLauncher();
-
         $process = $launcher->start(['echo', 'done']);
         $process->wait();
 
-        // Should not throw
         $launcher->terminate($process);
 
         $this->assertFalse($process->isRunning());
@@ -186,7 +174,6 @@ class ProcessLauncherTest extends TestCase
     public function itCanWaitForSuccessfulExit(): void
     {
         $launcher = new ProcessLauncher();
-
         $process = $launcher->start(['echo', 'success']);
 
         $exitCode = $launcher->waitForExit($process, 5.0);
@@ -198,7 +185,6 @@ class ProcessLauncherTest extends TestCase
     public function itThrowsOnNonZeroExit(): void
     {
         $launcher = new ProcessLauncher();
-
         $process = $launcher->start(['php', '-r', 'exit(42);']);
 
         $this->expectException(ProcessCrashedException::class);
@@ -238,7 +224,7 @@ class ProcessLauncherTest extends TestCase
             $this->assertArrayHasKey('env', $context);
             $this->assertEquals(['nonexistent_command'], $context['command']);
             $this->assertEquals('/tmp', $context['cwd']);
-            $this->assertEquals(['TEST_VAR'], $context['env']); // Only keys for security
+            $this->assertEquals(['TEST_VAR'], $context['env']);
         }
     }
 
@@ -295,18 +281,16 @@ class ProcessLauncherTest extends TestCase
     {
         $launcher = new ProcessLauncher();
 
-        $process = $launcher->start(['sleep', '5'], null, [], 0.1); // Very short timeout
+        $process = $launcher->start(['sleep', '5'], null, [], 0.1);
 
         try {
-            // The process should timeout and throw an exception
             $process->wait();
-        } catch (\Symfony\Component\Process\Exception\ProcessTimedOutException $e) {
+        } catch (ProcessTimedOutException $e) {
             $this->assertStringContainsString('exceeded the timeout', $e->getMessage());
 
             return;
         }
 
-        // If we reach here, the test should still pass if the process was killed by timeout
         $this->assertFalse($process->isSuccessful());
     }
 }

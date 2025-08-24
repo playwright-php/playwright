@@ -40,7 +40,6 @@ final class ProcessJsonRpcClientTest extends TestCase
         $this->mockProcessLauncher = $this->createMock(ProcessLauncherInterface::class);
         $this->mockInputStream = $this->createMock(InputStream::class);
 
-        // Setup basic mocks
         $this->mockProcess->method('isRunning')->willReturn(true);
         $this->mockProcess->method('getPid')->willReturn(12345);
         $this->mockProcessLauncher->method('getInputStream')->willReturn($this->mockInputStream);

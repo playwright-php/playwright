@@ -90,7 +90,7 @@ final class Expect implements ExpectInterface
 
     public function toContainText(string $text): void
     {
-        // Alias of toHaveText (both check substring containment)
+        
         $this->toHaveText($text);
     }
 
@@ -312,25 +312,25 @@ final class Expect implements ExpectInterface
                 $actualResult = $condition();
 
                 if ($actualResult === $expectedResult) {
-                    // Assertion passed
-                    // Increment PHPUnit's assertion count so consumers don't need addToAssertionCount
+                    
+                    
                     Assert::assertEquals($expectedResult, $actualResult);
 
                     return;
                 }
 
-                // Store the current state for final error message
+                
                 $lastException = new AssertionFailedError($message);
             } catch (\Throwable $e) {
-                // Store exception but continue retrying
+                
                 $lastException = $e;
             }
 
-            // Sleep before next attempt
+            
             \usleep($this->pollIntervalMs * 1000);
         }
 
-        // Timeout reached, throw the last exception or create timeout exception
+        
         $finalMessage = $message;
         if (null !== $failureMessageProvider) {
             try {
@@ -339,7 +339,7 @@ final class Expect implements ExpectInterface
                     $finalMessage = $computed;
                 }
             } catch (\Throwable) {
-                // ignore message computation errors
+                
             }
         }
 
@@ -348,11 +348,11 @@ final class Expect implements ExpectInterface
         }
 
         if ($lastException) {
-            // For other exceptions, wrap them in AssertionFailedError so PHPUnit treats them properly
+            
             throw new AssertionFailedError(\sprintf('Assertion timed out after %dms: %s. Last error: %s', $this->timeoutMs, $finalMessage, $lastException->getMessage()), 0, $lastException);
         }
 
-        // If no specific condition was met within timeout, throw assertion failure
+        
         throw new AssertionFailedError(\sprintf('Assertion timed out after %dms: %s', $this->timeoutMs, $finalMessage));
     }
 

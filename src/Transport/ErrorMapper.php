@@ -40,7 +40,7 @@ final class ErrorMapper
         $code = self::getInt($error, 'code') ?? 0;
         $stack = self::getString($error, 'stack') ?? self::getString($error, 'remoteStack');
 
-        // Specific mappings first
+        
         if ('TimeoutError' === $name || (408 === $code /* HTTP timeout-like */)) {
             return new TimeoutException(
                 $message,
@@ -71,7 +71,7 @@ final class ErrorMapper
             );
         }
 
-        // Default: generic protocol error with rich context
+        
         return new ProtocolErrorException(
             $message,
             $code,

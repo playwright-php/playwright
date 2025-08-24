@@ -36,7 +36,7 @@ final class Mouse implements MouseInterface
             'options' => $options,
         ]);
 
-        // Process any pending events after mouse click
+        
         $this->transport->processEvents();
     }
 

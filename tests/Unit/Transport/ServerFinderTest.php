@@ -22,7 +22,6 @@ final class ServerFinderTest extends TestCase
     {
         $finder = new ServerFinder();
 
-        // Can return either a path string or null depending on environment
         $result = $finder->findPlaywright();
 
         $this->assertTrue(is_string($result) || null === $result);
@@ -30,11 +29,9 @@ final class ServerFinderTest extends TestCase
 
     public function testFindServerWorksWhenPlaywrightFound(): void
     {
-        // Create a mock NodeBinaryResolver that works
         $nodeResolver = $this->createMock(NodeBinaryResolverInterface::class);
         $nodeResolver->method('resolve')->willReturn('/usr/bin/node');
 
-        // Simulate a found Playwright installation via env var pointing to a temp dir
         $tmpDir = sys_get_temp_dir().'/pwphp_'.bin2hex(random_bytes(4));
         $tmpCwd = sys_get_temp_dir().'/pwphp_cwd_'.bin2hex(random_bytes(4));
         $originalPath = getenv('PLAYWRIGHT_PATH');
@@ -44,17 +41,14 @@ final class ServerFinderTest extends TestCase
             if (!is_dir($tmpDir)) {
                 mkdir($tmpDir, 0777, true);
             }
-            // Change to a temp working directory outside the repo to avoid picking up local node_modules
             if (!is_dir($tmpCwd)) {
                 mkdir($tmpCwd, 0777, true);
             }
             chdir($tmpCwd);
             putenv('PLAYWRIGHT_PATH='.$tmpDir);
 
-            // Create finder with mocked node resolver
             $finder = new ServerFinder($nodeResolver);
 
-            // If playwright is found, this should return server config
             $result = $finder->findServer();
 
             $this->assertIsArray($result);
@@ -63,17 +57,14 @@ final class ServerFinderTest extends TestCase
             $this->assertArrayHasKey('env', $result);
             $this->assertSame(realpath($tmpDir), $result['env']['PLAYWRIGHT_PATH'] ?? null);
         } finally {
-            // Restore env var
             if (false === $originalPath) {
                 putenv('PLAYWRIGHT_PATH');
             } else {
                 putenv('PLAYWRIGHT_PATH='.$originalPath);
             }
-            // Restore cwd
             if (is_string($originalCwd)) {
                 chdir($originalCwd);
             }
-            // Cleanup temp dir
             if (is_dir($tmpDir)) {
                 @rmdir($tmpDir);
             }
@@ -85,7 +76,6 @@ final class ServerFinderTest extends TestCase
 
     public function testGetUserConfiguredPathFromEnv(): void
     {
-        // Test environment variable reading
         $originalPath = getenv('PLAYWRIGHT_PATH');
 
         try {
@@ -94,10 +84,8 @@ final class ServerFinderTest extends TestCase
             $finder = new ServerFinder();
             $result = $finder->findPlaywright();
 
-            // If the path doesn't exist, it will return null, but we're testing the env reading
-            $this->assertTrue(true); // Test passes if no exceptions thrown
+            $this->assertTrue(true);
         } finally {
-            // Restore original env
             if (false === $originalPath) {
                 putenv('PLAYWRIGHT_PATH');
             } else {

@@ -21,14 +21,14 @@ use Psr\Log\NullLogger;
  * **The recommended way to create PlaywrightClient instances.**
  *
  * ```php
- * // Basic usage
+ * 
  * $playwright = PlaywrightFactory::create();
  *
- * // With custom configuration
+ * 
  * $config = new PlaywrightConfig(headless: false, screenshotDir: '/screenshots');
  * $playwright = PlaywrightFactory::create($config, $logger);
  *
- * // Environment-based configuration
+ * 
  * $config = PlaywrightConfigBuilder::fromEnv()->build();
  * $playwright = PlaywrightFactory::create($config);
  * ```

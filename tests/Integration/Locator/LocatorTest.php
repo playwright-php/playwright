@@ -15,58 +15,43 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use PlaywrightPHP\Locator\Locator;
 use PlaywrightPHP\Testing\PlaywrightTestCaseTrait;
-use Symfony\Component\Process\Process;
+use PlaywrightPHP\Tests\Support\RouteServerTestTrait;
 
 #[CoversClass(Locator::class)]
 class LocatorTest extends TestCase
 {
     use PlaywrightTestCaseTrait;
-
-    private static ?Process $server = null;
-    private static string $docroot;
-    private static int $port;
+    use RouteServerTestTrait;
 
     public static function setUpBeforeClass(): void
     {
-        self::$docroot = sys_get_temp_dir().'/playwright-php-tests-'.uniqid('', true);
-        mkdir(self::$docroot);
-
-        $html = <<<'HTML'
-        <h1>Locator Test</h1>
-        <input type="text" id="input-text" value="initial value">
-        <input type="checkbox" id="input-checkbox">
-        <button id="button-1">Button 1</button>
-        <button id="button-2" disabled>Button 2</button>
-        <div id="div-1" style="width: 50px; height: 50px; background-color: blue;"></div>
-        <div id="div-2" style="display: none;">Hidden Div</div>
-        <select id="select-1">
-            <option value="opt1">Option 1</option>
-            <option value="opt2">Option 2</option>
-        </select>
-        <p>First paragraph.</p>
-        <p>Second paragraph.</p>
-HTML;
-        file_put_contents(self::$docroot.'/index.html', $html);
-
-        self::$port = self::findFreePort();
-        self::$server = new Process(['php', '-S', 'localhost:'.self::$port, '-t', self::$docroot]);
-        self::$server->start();
-        usleep(100000);
     }
 
     public static function tearDownAfterClass(): void
     {
-        if (self::$server && self::$server->isRunning()) {
-            self::$server->stop();
-        }
-        array_map('unlink', glob(self::$docroot.'/*.*'));
-        rmdir(self::$docroot);
     }
 
     public function setUp(): void
     {
         $this->setUpPlaywright();
-        $this->page->goto('http://localhost:'.self::$port.'/index.html');
+        $this->installRouteServer($this->page, [
+            '/index.html' => <<<'HTML'
+                <h1>Locator Test</h1>
+                <input type="text" id="input-text" value="initial value">
+                <input type="checkbox" id="input-checkbox">
+                <button id="button-1">Button 1</button>
+                <button id="button-2" disabled>Button 2</button>
+                <div id="div-1" style="width: 50px; height: 50px; background-color: blue;"></div>
+                <div id="div-2" style="display: none;">Hidden Div</div>
+                <select id="select-1">
+                    <option value="opt1">Option 1</option>
+                    <option value="opt2">Option 2</option>
+                </select>
+                <p>First paragraph.</p>
+                <p>Second paragraph.</p>
+            HTML,
+        ]);
+        $this->page->goto($this->routeUrl('/index.html'));
     }
 
     public function tearDown(): void
@@ -167,9 +152,9 @@ HTML;
     public function itHoversOverAnElement(): void
     {
         $locator = $this->page->locator('#div-1');
-        // Test that hover method executes without throwing
+
         $locator->hover();
-        // Verify that the element is visible after hover
+
         $this->assertTrue($locator->isVisible());
     }
 
@@ -179,16 +164,12 @@ HTML;
         $binary = $this->page->locator('#div-1')->screenshot();
         $this->assertIsString($binary);
         $this->assertNotEmpty($binary);
-        // Check for PNG header
+
         $this->assertStringStartsWith(base64_decode('iVBORw0KGgo='), base64_decode($binary));
     }
 
     private static function findFreePort(): int
     {
-        $sock = socket_create_listen(0);
-        socket_getsockname($sock, $addr, $port);
-        socket_close($sock);
-
-        return $port;
+        return 0;
     }
 }

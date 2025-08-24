@@ -34,7 +34,6 @@ class NodeBinaryResolverTest extends TestCase
     {
         $resolver = new NodeBinaryResolver();
 
-        // This should work on most systems where node is available
         $nodePath = $resolver->resolve();
 
         $this->assertIsString($nodePath);
@@ -57,7 +56,6 @@ class NodeBinaryResolverTest extends TestCase
     #[Test]
     public function itAcceptsNodePath(): void
     {
-        // Use the system node for this test
         $systemResolver = new NodeBinaryResolver();
         $systemNodePath = $systemResolver->resolve();
 
@@ -81,13 +79,12 @@ class NodeBinaryResolverTest extends TestCase
     #[Test]
     public function itThrowsExceptionForNonexistentPath(): void
     {
-        // Use strict mode to only check explicit path
         $resolver = new NodeBinaryResolver(
             '/nonexistent/path/to/node',
             '18.0.0',
             null,
             [],
-            true // strict mode
+            true
         );
 
         $this->expectException(NodeBinaryNotFoundException::class);
@@ -98,7 +95,6 @@ class NodeBinaryResolverTest extends TestCase
     #[Test]
     public function itValidatesMinimumVersion(): void
     {
-        // Use current system node path but require a very high version
         $systemResolver = new NodeBinaryResolver();
         $systemNodePath = $systemResolver->resolve();
 
@@ -116,7 +112,6 @@ class NodeBinaryResolverTest extends TestCase
 
         $resolver->resolve();
 
-        // Check that some debug messages were logged
         $this->assertGreaterThan(0, count($logger->records));
 
         $messages = array_column($logger->records, 'message');
@@ -131,23 +126,21 @@ class NodeBinaryResolverTest extends TestCase
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Unexpected Node version output');
 
-        // This will fail because /bin/echo doesn't output a version
         $resolver->getVersion('/bin/echo');
     }
 
     #[Test]
     public function itSupportsAdditionalSearchPaths(): void
     {
-        // Use the system node for this test
         $systemResolver = new NodeBinaryResolver();
         $systemNodePath = $systemResolver->resolve();
         $nodeDir = dirname($systemNodePath);
 
         $resolver = new NodeBinaryResolver(
-            null, // no explicit path
+            null,
             '18.0.0',
             null,
-            [$nodeDir] // add the directory as search path
+            [$nodeDir]
         );
 
         $resolvedPath = $resolver->resolve();

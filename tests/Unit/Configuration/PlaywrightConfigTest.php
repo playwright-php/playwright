@@ -160,7 +160,7 @@ class PlaywrightConfigTest extends TestCase
 
         $this->assertEquals('/usr/local/bin/node', $config->nodePath);
         $this->assertEquals('20.0.0', $config->minNodeVersion);
-        $this->assertEquals('/usr/local/bin/node', $config->nodePath); // Legacy compatibility
+        $this->assertEquals('/usr/local/bin/node', $config->nodePath);
     }
 
     #[Test]
@@ -173,7 +173,7 @@ class PlaywrightConfigTest extends TestCase
 
         $this->assertEquals(45000, $config->timeoutMs);
         $this->assertEquals(1000, $config->slowMoMs);
-        $this->assertEquals(1000, $config->slowMoMs); // Verify slowMoMs again
+        $this->assertEquals(1000, $config->slowMoMs);
     }
 
     #[Test]
@@ -199,7 +199,6 @@ class PlaywrightConfigTest extends TestCase
     #[Test]
     public function itHandlesLegacyParametersCorrectly(): void
     {
-        // Test that legacy parameters still work
         $config = new PlaywrightConfig(
             nodePath: '/legacy/node',
             timeoutMs: 60000,

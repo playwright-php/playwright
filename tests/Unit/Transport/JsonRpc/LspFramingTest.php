@@ -52,10 +52,10 @@ final class LspFramingTest extends TestCase
     public function testDecodingIncompleteMessage(): void
     {
         $testCases = [
-            'Content-Length: 25', // Header only
-            "Content-Length: 25\r\n", // Incomplete header separator
-            "Content-Length: 25\r\n\r\n{\"jsonrpc\":", // Partial payload
-            "Content-Length: 25\r\n\r\n{\"jsonrpc\":\"2.0\"", // Incomplete payload
+            'Content-Length: 25',
+            "Content-Length: 25\r\n",
+            "Content-Length: 25\r\n\r\n{\"jsonrpc\":",
+            "Content-Length: 25\r\n\r\n{\"jsonrpc\":\"2.0\"",
         ];
 
         foreach ($testCases as $incomplete) {
@@ -129,7 +129,7 @@ final class LspFramingTest extends TestCase
     public function testGetExpectedLength(): void
     {
         $headerComplete = "Content-Length: 25\r\n\r\n";
-        self::assertSame(47, LspFraming::getExpectedLength($headerComplete)); // 22 (header) + 25 (content)
+        self::assertSame(47, LspFraming::getExpectedLength($headerComplete));
 
         $headerIncomplete = 'Content-Length: 25';
         self::assertNull(LspFraming::getExpectedLength($headerIncomplete));
@@ -150,7 +150,7 @@ final class LspFramingTest extends TestCase
 
     public function testLargePayload(): void
     {
-        $largeContent = str_repeat('x', 1000000); // 1MB
+        $largeContent = str_repeat('x', 1000000);
         $encoded = LspFraming::encode($largeContent);
         $decoded = LspFraming::decode($encoded);
 
@@ -173,9 +173,9 @@ final class LspFramingTest extends TestCase
     public function testEdgeCaseHeaders(): void
     {
         $testCases = [
-            "content-length: 5\r\n\r\nhello", // lowercase
-            "Content-Length:5\r\n\r\nhello", // no space after colon
-            "Content-Length: 5 \r\n\r\nhello", // trailing space
+            "content-length: 5\r\n\r\nhello",
+            "Content-Length:5\r\n\r\nhello",
+            "Content-Length: 5 \r\n\r\nhello",
         ];
 
         foreach ($testCases as $input) {

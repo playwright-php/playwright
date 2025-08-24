@@ -263,7 +263,7 @@ final class Locator implements LocatorInterface
      */
     public function setInputFiles(string|array $files, array $options = []): void
     {
-        // Normalize files to array
+        
         $fileArray = \is_array($files) ? $files : [$files];
 
         $this->logger->debug('Setting input files on locator', [
@@ -271,7 +271,7 @@ final class Locator implements LocatorInterface
             'files' => $fileArray,
         ]);
 
-        // Validate that all files exist
+        
         foreach ($fileArray as $file) {
             if (!\file_exists($file)) {
                 $this->logger->error('File not found for input upload', ['file' => $file]);
@@ -344,7 +344,7 @@ final class Locator implements LocatorInterface
     {
         $this->sendCommand('locator.hover', ['options' => $options]);
 
-        // Process any pending events after hover
+        
         $this->transport->processEvents();
     }
 
@@ -456,7 +456,7 @@ final class Locator implements LocatorInterface
      */
     private function waitForActionable(array $options = []): void
     {
-        $timeout = $this->extractTimeout($options); // 30 seconds default
+        $timeout = $this->extractTimeout($options); 
         $this->waitForCondition(
             fn () => $this->isVisible() && $this->isEnabled(),
             $timeout,
@@ -485,10 +485,10 @@ final class Locator implements LocatorInterface
                     return;
                 }
             } catch (PlaywrightException $e) {
-                // Ignore exceptions during condition checks, keep retrying
+                
             }
 
-            usleep(100000); // 100ms
+            usleep(100000); 
         }
 
         throw new TimeoutException(sprintf('%s (timeout: %dms)', $message, $timeoutMs));

@@ -15,53 +15,38 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use PlaywrightPHP\Testing\Expect;
 use PlaywrightPHP\Testing\PlaywrightTestCaseTrait;
-use Symfony\Component\Process\Process;
+use PlaywrightPHP\Tests\Support\RouteServerTestTrait;
 
 #[CoversClass(Expect::class)]
 class ExpectTest extends TestCase
 {
     use PlaywrightTestCaseTrait;
-
-    private static ?Process $server = null;
-    private static string $docroot;
-    private static int $port;
+    use RouteServerTestTrait;
 
     public static function setUpBeforeClass(): void
     {
-        self::$docroot = sys_get_temp_dir().'/playwright-php-tests-'.uniqid('', true);
-        mkdir(self::$docroot);
-
-        $html = <<<'HTML'
-        <title>Expect Test</title>
-        <h1>Expect Test</h1>
-        <input type="text" id="input-text" value="initial value">
-        <input type="checkbox" id="input-checkbox" checked>
-        <button id="button-1">Button 1</button>
-        <button id="button-2" disabled>Button 2</button>
-        <div id="div-1" style="width: 50px; height: 50px; background-color: blue; color: red;">Visible Div</div>
-        <div id="div-2" style="display: none;">Hidden Div</div>
-HTML;
-        file_put_contents(self::$docroot.'/index.html', $html);
-
-        self::$port = self::findFreePort();
-        self::$server = new Process(['php', '-S', 'localhost:'.self::$port, '-t', self::$docroot]);
-        self::$server->start();
-        usleep(100000);
     }
 
     public static function tearDownAfterClass(): void
     {
-        if (self::$server && self::$server->isRunning()) {
-            self::$server->stop();
-        }
-        array_map('unlink', glob(self::$docroot.'/*.*'));
-        rmdir(self::$docroot);
     }
 
     public function setUp(): void
     {
         $this->setUpPlaywright();
-        $this->page->goto('http://localhost:'.self::$port.'/index.html');
+        $this->installRouteServer($this->page, [
+            '/index.html' => <<<'HTML'
+                <title>Expect Test</title>
+                <h1>Expect Test</h1>
+                <input type="text" id="input-text" value="initial value">
+                <input type="checkbox" id="input-checkbox" checked>
+                <button id="button-1">Button 1</button>
+                <button id="button-2" disabled>Button 2</button>
+                <div id="div-1" style="width: 50px; height: 50px; background-color: blue; color: red;">Visible Div</div>
+                <div id="div-2" style="display: none;">Hidden Div</div>
+            HTML,
+        ]);
+        $this->page->goto($this->routeUrl('/index.html'));
     }
 
     public function tearDown(): void
@@ -78,7 +63,6 @@ HTML;
         $expect = $this->expect($this->page->locator('#div-2'));
         $expect->not()->toBeVisible();
 
-        // Direct hidden assertion
         $expect = $this->expect($this->page->locator('#div-2'));
         $expect->toBeHidden();
 
@@ -156,7 +140,6 @@ HTML;
         $expect = $this->expect($this->page->locator('#button-2'));
         $expect->not()->toBeEnabled();
 
-        // Direct disabled assertion
         $expect = $this->expect($this->page->locator('#button-2'));
         $expect->toBeDisabled();
 
@@ -176,13 +159,6 @@ HTML;
     }
 
     #[Test]
-    public function itAssertsFocusedState(): void
-    {
-        // Skip focus test until transport layer properly supports focus state
-        $this->markTestSkipped('Focus state requires proper transport implementation');
-    }
-
-    #[Test]
     public function itAssertsCssProperty(): void
     {
         $expect = $this->expect($this->page->locator('#div-1'));
@@ -198,7 +174,7 @@ HTML;
         $expectPage = $this->expect($this->page);
         $expectPage->toHaveTitle('Expect Test');
 
-        $expectedUrl = 'http://localhost:'.self::$port.'/index.html';
+        $expectedUrl = $this->routeUrl('/index.html');
         $expectUrl = $this->expect($this->page);
         $expectUrl->toHaveURL($expectedUrl);
 
@@ -211,10 +187,6 @@ HTML;
 
     private static function findFreePort(): int
     {
-        $sock = socket_create_listen(0);
-        socket_getsockname($sock, $addr, $port);
-        socket_close($sock);
-
-        return $port;
+        return 0;
     }
 }

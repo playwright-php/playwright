@@ -30,31 +30,31 @@ final class PlaywrightConfig
      * }|null $proxy
      */
     public function __construct(
-        // Node.js configuration
+        
         public readonly ?string $nodePath = null,
         public readonly string $minNodeVersion = '18.0.0',
-        // Browser configuration
+        
         public readonly BrowserType $browser = BrowserType::CHROMIUM,
         public readonly ?string $channel = null,
         public readonly bool $headless = true,
-        // Performance & timing
+        
         public readonly int $timeoutMs = 30000,
         public readonly int $slowMoMs = 0,
-        // Browser arguments & environment
+        
         public readonly array $args = [],
         public readonly array $env = [],
-        // File system paths
+        
         public readonly ?string $downloadsDir = null,
         public readonly ?string $videosDir = null,
         public readonly ?string $screenshotDir = null,
-        // Tracing configuration
+        
         public readonly bool $tracingEnabled = false,
         public readonly ?string $traceDir = null,
         public readonly bool $traceScreenshots = false,
         public readonly bool $traceSnapshots = false,
-        // Network configuration
+        
         public readonly ?array $proxy = null,
-        // Logging
+        
         public readonly ?LoggerInterface $logger = null,
     ) {
     }
@@ -70,7 +70,7 @@ final class PlaywrightConfig
             return $this->screenshotDir;
         }
 
-        // Default: system temp directory + playwright subdirectory
+        
         return rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.'playwright';
     }
 

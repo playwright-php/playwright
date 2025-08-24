@@ -35,21 +35,18 @@ final class LocatorAutoWaitTest extends TestCase
             ->willReturnCallback(function ($payload) use (&$callCount) {
                 ++$callCount;
 
-                // First call: isVisible check (returns true)
                 if (1 === $callCount) {
                     $this->assertEquals('locator.isVisible', $payload['action']);
 
                     return ['value' => true];
                 }
 
-                // Second call: isEnabled check (returns true)
                 if (2 === $callCount) {
                     $this->assertEquals('locator.isEnabled', $payload['action']);
 
                     return ['value' => true];
                 }
 
-                // Third call: the actual click command
                 if (3 === $callCount) {
                     $this->assertEquals('locator.click', $payload['action']);
 
@@ -61,7 +58,6 @@ final class LocatorAutoWaitTest extends TestCase
 
         $locator = new Locator($this->transport, 'page1', '.button');
 
-        // This should succeed after actionability checks
         $locator->click();
     }
 
@@ -77,7 +73,6 @@ final class LocatorAutoWaitTest extends TestCase
 
         $locator = new Locator($this->transport, 'page1', '.element');
 
-        // Should succeed immediately
         $locator->waitForVisible();
     }
 
@@ -109,7 +104,6 @@ final class LocatorAutoWaitTest extends TestCase
                 ++$callCount;
 
                 if ('locator.textContent' === $payload['action']) {
-                    // First call returns partial text, second returns complete text
                     return ['value' => 1 === $callCount ? 'Loading...' : 'Success: Data loaded'];
                 }
 
@@ -131,7 +125,6 @@ final class LocatorAutoWaitTest extends TestCase
                 ++$callCount;
 
                 if ('locator.isHidden' === $payload['action']) {
-                    // First call returns false (still visible), second returns true (hidden)
                     return ['value' => 2 === $callCount];
                 }
 
@@ -152,7 +145,6 @@ final class LocatorAutoWaitTest extends TestCase
             ->willReturnCallback(function ($payload) use (&$callCount) {
                 ++$callCount;
 
-                // First two calls check actionability
                 if ($callCount <= 2) {
                     if ('locator.isVisible' === $payload['action']) {
                         return ['value' => true];
@@ -162,7 +154,6 @@ final class LocatorAutoWaitTest extends TestCase
                     }
                 }
 
-                // Third call is the actual fill
                 if (3 === $callCount) {
                     $this->assertEquals('locator.fill', $payload['action']);
                     $this->assertEquals('test value', $payload['value']);

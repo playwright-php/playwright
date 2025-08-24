@@ -65,7 +65,7 @@ final class BrowserContextTest extends TestCase
     {
         $this->mockTransport
             ->method('send')
-            ->willReturn(['success' => true]); // Missing pageId
+            ->willReturn(['success' => true]);
 
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('No valid pageId returned from transport in newPage');

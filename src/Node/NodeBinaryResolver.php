@@ -140,7 +140,7 @@ final class NodeBinaryResolver implements NodeBinaryResolverInterface
         } catch (NodeVersionTooLowException $e) {
             throw $e;
         } catch (\Throwable) {
-            // ignore, we'll throw not found just below
+            
         }
 
         throw new NodeBinaryNotFoundException($pathError);
@@ -163,9 +163,9 @@ final class NodeBinaryResolver implements NodeBinaryResolverInterface
         }
 
         $out = trim($process->getOutput().$process->getErrorOutput());
-        // node prints "v18.17.1"
+        
         $out = ltrim($out, 'vV');
-        // Validate format loosely
+        
         if (!preg_match('/^\d+\.\d+\.\d+/', $out, $m)) {
             throw new \RuntimeException(sprintf('Unexpected Node version output from %s: %s', $nodeBinary, $out));
         }
@@ -218,32 +218,32 @@ final class NodeBinaryResolver implements NodeBinaryResolverInterface
         $asdfDir = (string) getenv('ASDF_DIR') ?: ('' !== $home ? $home.DIRECTORY_SEPARATOR.'.asdf' : '');
 
         if ($this->isWindows()) {
-            // Typical Windows installs
+            
             if ('' !== $programFiles) {
                 $paths[] = $programFiles.'\\nodejs\\node.exe';
             }
             if ('' !== $localAppData) {
-                // Newer Node installer default
+                
                 $paths[] = $localAppData.'\\Programs\\nodejs\\node.exe';
             }
-            // Chocolatey shim
+            
             $paths[] = 'C:\\ProgramData\\chocolatey\\bin\\node.exe';
 
-            // nvm-windows
+            
             if ('' !== $nvmHome) {
                 $paths = array_merge($paths, $this->globNewest($nvmHome.'\\v*\\node.exe'));
             }
         } else {
-            // Homebrew (Apple Silicon and Intel)
+            
             $paths[] = '/opt/homebrew/bin/node';
             $paths[] = '/usr/local/bin/node';
 
-            // nvm (best effort)
+            
             if ('' !== $home) {
                 $paths = array_merge($paths, $this->globNewest($home.'/.nvm/versions/node/*/bin/node'));
             }
 
-            // asdf shim
+            
             if ('' !== $asdfDir) {
                 $paths[] = $asdfDir.'/shims/node';
             }
@@ -267,11 +267,11 @@ final class NodeBinaryResolver implements NodeBinaryResolverInterface
         }
 
         usort($matches, static function (string $a, string $b): int {
-            // Extract version numbers from paths (e.g., ".../v20.11.1/...")
+            
             $va = self::extractVersionFromPath($a);
             $vb = self::extractVersionFromPath($b);
             if (null === $va && null === $vb) {
-                return strcmp($b, $a); // stable reverse lexicographic
+                return strcmp($b, $a); 
             }
             if (null === $va) {
                 return 1;
@@ -280,7 +280,7 @@ final class NodeBinaryResolver implements NodeBinaryResolverInterface
                 return -1;
             }
 
-            return version_compare($vb, $va); // newest first
+            return version_compare($vb, $va); 
         });
 
         return $matches;

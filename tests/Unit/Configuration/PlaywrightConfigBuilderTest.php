@@ -118,7 +118,7 @@ class PlaywrightConfigBuilderTest extends TestCase
         $config = PlaywrightConfigBuilder::create()
             ->withArgs(['--arg1', '--arg2'])
             ->addArg('--arg3')
-            ->addArg('--arg1') // Duplicate should be removed
+            ->addArg('--arg1')
             ->build();
 
         $this->assertEquals(['--arg1', '--arg2', '--arg3'], $config->args);
@@ -130,7 +130,7 @@ class PlaywrightConfigBuilderTest extends TestCase
         $config = PlaywrightConfigBuilder::create()
             ->withEnv(['VAR1' => 'value1', 'VAR2' => 'value2'])
             ->addEnv('VAR3', 'value3')
-            ->addEnv('VAR1', 'new_value1') // Should overwrite
+            ->addEnv('VAR1', 'new_value1')
             ->build();
 
         $expected = ['VAR1' => 'new_value1', 'VAR2' => 'value2', 'VAR3' => 'value3'];
@@ -155,7 +155,7 @@ class PlaywrightConfigBuilderTest extends TestCase
     {
         $config = PlaywrightConfigBuilder::create()
             ->withTracing(true, '/tmp/traces')
-            ->withTracing(false) // Should disable
+            ->withTracing(false)
             ->build();
 
         $this->assertFalse($config->tracingEnabled);
@@ -183,7 +183,7 @@ class PlaywrightConfigBuilderTest extends TestCase
     {
         $config = PlaywrightConfigBuilder::create()
             ->withProxy('http://proxy.example.com:8080')
-            ->withProxy(null) // Should clear
+            ->withProxy(null)
             ->build();
 
         $this->assertNull($config->proxy);
@@ -218,12 +218,8 @@ class PlaywrightConfigBuilderTest extends TestCase
     #[Test]
     public function itHandlesValidationInBuild(): void
     {
-        // The validation is actually done in withTimeoutMs/withSlowMoMs methods
-        // by using max(0, value), so negative values are automatically corrected
-        // Let's test that the build method handles edge cases properly
-
         $config = PlaywrightConfigBuilder::create()
-            ->withTimeoutMs(-100) // Should be corrected to 0
+            ->withTimeoutMs(-100)
             ->build();
 
         $this->assertEquals(0, $config->timeoutMs);
@@ -232,7 +228,6 @@ class PlaywrightConfigBuilderTest extends TestCase
     #[Test]
     public function itCreatesFromEnvironmentVariables(): void
     {
-        // Set environment variables
         putenv('PLAYWRIGHT_NODE_PATH=/env/node');
         putenv('PLAYWRIGHT_NODE_MIN_VERSION=19.0.0');
         putenv('PW_BROWSER=firefox');
@@ -293,10 +288,9 @@ class PlaywrightConfigBuilderTest extends TestCase
 
         $config = PlaywrightConfigBuilder::fromEnv()->build();
 
-        // Should keep defaults
         $this->assertEquals(BrowserType::CHROMIUM, $config->browser);
         $this->assertEquals(30000, $config->timeoutMs);
-        $this->assertFalse($config->headless); // 'maybe' is not truthy
+        $this->assertFalse($config->headless);
     }
 
     #[Test]
@@ -317,10 +311,9 @@ class PlaywrightConfigBuilderTest extends TestCase
             $this->assertFalse($config->headless, "Value '$value' should be falsy");
         }
 
-        // Test empty string separately - it should be ignored (keep default)
         putenv('PW_HEADLESS=');
         $config = PlaywrightConfigBuilder::fromEnv()->build();
-        $this->assertTrue($config->headless); // Should keep default (true)
+        $this->assertTrue($config->headless);
     }
 
     #[Test]
@@ -346,12 +339,12 @@ class PlaywrightConfigBuilderTest extends TestCase
         putenv('PW_HEADLESS=true');
 
         $config = PlaywrightConfigBuilder::fromEnv()
-            ->withBrowser(BrowserType::WEBKIT) // Should override env
-            ->withTimeoutMs(45000) // Should add to env config
+            ->withBrowser(BrowserType::WEBKIT)
+            ->withTimeoutMs(45000)
             ->build();
 
-        $this->assertEquals(BrowserType::WEBKIT, $config->browser); // Overridden
-        $this->assertTrue($config->headless); // From env
-        $this->assertEquals(45000, $config->timeoutMs); // From fluent
+        $this->assertEquals(BrowserType::WEBKIT, $config->browser);
+        $this->assertTrue($config->headless);
+        $this->assertEquals(45000, $config->timeoutMs);
     }
 }

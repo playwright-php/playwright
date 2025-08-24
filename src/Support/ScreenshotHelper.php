@@ -25,18 +25,18 @@ final class ScreenshotHelper
      */
     public static function generateFilename(string $url, string $directory): string
     {
-        // Get current datetime with milliseconds
+        
         $now = microtime(true);
         $datetime = date('Ymd_His', (int) $now);
         $milliseconds = sprintf('%03d', ($now - floor($now)) * 1000);
 
-        // Slugify the URL (limit to 40 chars)
+        
         $urlSlug = self::slugifyUrl($url, 40);
 
-        // Combine into filename
+        
         $filename = sprintf('%s_%s_%s.png', $datetime, $milliseconds, $urlSlug);
 
-        // Ensure directory exists
+        
         self::ensureDirectoryExists($directory);
 
         return $directory.DIRECTORY_SEPARATOR.$filename;
@@ -52,10 +52,10 @@ final class ScreenshotHelper
      */
     public static function slugifyUrl(string $url, int $maxLength = 40): string
     {
-        // Remove protocol
+        
         $slug = preg_replace('/^https?:\/\//', '', $url);
 
-        // Remove www.
+        
         if (is_string($slug)) {
             $slug = preg_replace('/^www\./', '', $slug);
         }
@@ -63,26 +63,26 @@ final class ScreenshotHelper
             $slug = 'invalid-url';
         }
 
-        // Replace non-alphanumeric characters with hyphens
+        
         $slug = preg_replace('/[^a-zA-Z0-9]+/', '-', $slug);
         if (null === $slug) {
             $slug = 'invalid-url';
         }
 
-        // Remove leading/trailing hyphens
+        
         $slug = trim($slug, '-');
 
-        // Convert to lowercase
+        
         $slug = strtolower($slug);
 
-        // Truncate to max length
+        
         if (strlen($slug) > $maxLength) {
             $slug = substr($slug, 0, $maxLength);
-            // Remove trailing hyphen if truncation created one
+            
             $slug = rtrim($slug, '-');
         }
 
-        // Ensure we have something (fallback)
+        
         if (empty($slug)) {
             $slug = 'screenshot';
         }
@@ -125,7 +125,7 @@ final class ScreenshotHelper
         $currentTime = time();
         $cleanedCount = 0;
 
-        // Get all PNG files with their modification times
+        
         foreach (new \DirectoryIterator($directory) as $fileInfo) {
             if ($fileInfo->isDot() || 'png' !== $fileInfo->getExtension()) {
                 continue;
@@ -134,7 +134,7 @@ final class ScreenshotHelper
             $filePath = $fileInfo->getPathname();
             $modTime = $fileInfo->getMTime();
 
-            // Delete files older than maxAge
+            
             if (($currentTime - $modTime) > $maxAge) {
                 if (unlink($filePath)) {
                     ++$cleanedCount;
@@ -148,9 +148,9 @@ final class ScreenshotHelper
             ];
         }
 
-        // If we still have too many files, delete the oldest ones
+        
         if (count($files) > $maxFiles) {
-            // Sort by modification time (oldest first)
+            
             usort($files, fn ($a, $b) => $a['mtime'] <=> $b['mtime']);
 
             $filesToDelete = array_slice($files, 0, count($files) - $maxFiles);
@@ -209,7 +209,7 @@ final class ScreenshotHelper
             }
         }
 
-        // Remove internal time tracking from result
+        
         unset($info['oldestTime'], $info['newestTime']);
 
         return $info;

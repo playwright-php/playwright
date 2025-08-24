@@ -37,17 +37,13 @@ final class JsonRpcClientUnitTest extends TestCase
         $logger = new TestLogger();
         $client = new TestJsonRpcClient($clock, $logger);
 
-        // Add some pending requests via mock
         $client->addPendingRequest('req1', function () {});
         $client->addPendingRequest('req2', function () {});
 
-        // Verify they exist
         $this->assertCount(2, $client->getPendingRequests());
 
-        // Cancel all
         $client->cancelPendingRequests();
 
-        // Should be empty
         $this->assertEmpty($client->getPendingRequests());
     }
 
@@ -59,7 +55,7 @@ final class JsonRpcClientUnitTest extends TestCase
 
         $this->expectException(TimeoutException::class);
 
-        $client->send('test.method', null, 0.1); // 100ms timeout
+        $client->send('test.method', null, 0.1);
     }
 
     public function testSendSuccess(): void
@@ -116,7 +112,6 @@ class TimeoutJsonRpcClient extends JsonRpcClient
 {
     protected function sendAndReceive(array $request, ?float $deadline): array
     {
-        // Simulate timeout
         throw new TimeoutException('Request timed out');
     }
 }

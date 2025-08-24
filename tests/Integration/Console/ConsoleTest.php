@@ -15,45 +15,20 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use PlaywrightPHP\Console\ConsoleMessage;
 use PlaywrightPHP\Testing\PlaywrightTestCaseTrait;
-use Symfony\Component\Process\Process;
+use PlaywrightPHP\Tests\Support\RouteServerTestTrait;
 
 #[CoversClass(ConsoleMessage::class)]
 class ConsoleTest extends TestCase
 {
     use PlaywrightTestCaseTrait;
-
-    private static ?Process $server = null;
-    private static string $docroot;
-    private static int $port;
+    use RouteServerTestTrait;
 
     public static function setUpBeforeClass(): void
     {
-        self::$docroot = sys_get_temp_dir().'/playwright-php-tests-'.uniqid('', true);
-        mkdir(self::$docroot);
-
-        $html = <<<'HTML'
-        <h1>Console Test</h1>
-        <script>
-            console.log('Hello from console');
-            console.warn('This is a warning');
-            console.error('This is an error');
-        </script>
-HTML;
-        file_put_contents(self::$docroot.'/index.html', $html);
-
-        self::$port = self::findFreePort();
-        self::$server = new Process(['php', '-S', 'localhost:'.self::$port, '-t', self::$docroot]);
-        self::$server->start();
-        usleep(100000);
     }
 
     public static function tearDownAfterClass(): void
     {
-        if (self::$server && self::$server->isRunning()) {
-            self::$server->stop();
-        }
-        array_map('unlink', glob(self::$docroot.'/*.*'));
-        rmdir(self::$docroot);
     }
 
     public function setUp(): void
@@ -61,6 +36,17 @@ HTML;
         $this->setUpPlaywright();
         $this->context = $this->browser->newContext();
         $this->page = $this->context->newPage();
+
+        $this->installRouteServer($this->page, [
+            '/index.html' => <<<'HTML'
+                <h1>Console Test</h1>
+                <script>
+                    console.log('Hello from console');
+                    console.warn('This is a warning');
+                    console.error('This is an error');
+                </script>
+            HTML,
+        ]);
     }
 
     public function tearDown(): void
@@ -73,16 +59,13 @@ HTML;
     public function itCapturesConsoleMessages(): void
     {
         $messages = [];
-        // Test that console event handler can be registered without throwing
+
         $this->page->events()->onConsole(fn (ConsoleMessage $msg) => $messages[] = $msg);
 
-        // Navigate to a simple page that generates a console message
-        $this->page->goto('data:text/html,<script>console.log("test");</script>');
-        usleep(500000); // Wait for potential console messages
+        $this->page->goto($this->routeUrl('/index.html'));
+        usleep(500000);
 
-        // Test that the event handler was registered successfully and page navigation worked
         $this->assertTrue(true, 'Console event handler registered and page loaded successfully');
-        // Note: Console message capture timing is environment-dependent, so we focus on basic functionality
     }
 
     private static function findFreePort(): int

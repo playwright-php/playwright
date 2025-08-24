@@ -42,9 +42,9 @@ final readonly class NetworkThrottling
     public static function slow3G(): self
     {
         return new self(
-            downloadThroughput: 50 * 1024, // 50 KB/s
-            uploadThroughput: 50 * 1024,   // 50 KB/s
-            latency: 2000,                 // 2s
+            downloadThroughput: 50 * 1024, 
+            uploadThroughput: 50 * 1024,   
+            latency: 2000,                 
         );
     }
 
@@ -54,9 +54,9 @@ final readonly class NetworkThrottling
     public static function fast3G(): self
     {
         return new self(
-            downloadThroughput: 150 * 1024, // 150 KB/s
-            uploadThroughput: 75 * 1024,    // 75 KB/s
-            latency: 562,                   // 562ms
+            downloadThroughput: 150 * 1024, 
+            uploadThroughput: 75 * 1024,    
+            latency: 562,                   
         );
     }
 
@@ -66,9 +66,9 @@ final readonly class NetworkThrottling
     public static function fast4G(): self
     {
         return new self(
-            downloadThroughput: (int) (1.6 * 1024 * 1024), // 1.6 MB/s
-            uploadThroughput: 750 * 1024,                  // 750 KB/s
-            latency: 150,                                  // 150ms
+            downloadThroughput: (int) (1.6 * 1024 * 1024), 
+            uploadThroughput: 750 * 1024,                  
+            latency: 150,                                  
         );
     }
 
@@ -78,9 +78,9 @@ final readonly class NetworkThrottling
     public static function dsl(): self
     {
         return new self(
-            downloadThroughput: 2 * 1024 * 1024, // 2 MB/s
-            uploadThroughput: 1 * 1024 * 1024,   // 1 MB/s
-            latency: 5,                          // 5ms
+            downloadThroughput: 2 * 1024 * 1024, 
+            uploadThroughput: 1 * 1024 * 1024,   
+            latency: 5,                          
         );
     }
 
@@ -90,9 +90,9 @@ final readonly class NetworkThrottling
     public static function wifi(): self
     {
         return new self(
-            downloadThroughput: 30 * 1024 * 1024, // 30 MB/s
-            uploadThroughput: 15 * 1024 * 1024,   // 15 MB/s
-            latency: 2,                           // 2ms
+            downloadThroughput: 30 * 1024 * 1024, 
+            uploadThroughput: 15 * 1024 * 1024,   
+            latency: 2,                           
         );
     }
 

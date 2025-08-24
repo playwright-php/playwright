@@ -79,8 +79,8 @@ class RingBufferTest extends TestCase
         $buffer->push('line 1');
         $buffer->push('line 2');
         $buffer->push('line 3');
-        $buffer->push('line 4'); // Should push out 'line 1'
-        $buffer->push('line 5'); // Should push out 'line 2'
+        $buffer->push('line 4');
+        $buffer->push('line 5');
 
         $this->assertEquals(3, $buffer->count());
         $this->assertEquals(['line 3', 'line 4', 'line 5'], $buffer->toArray());
