@@ -50,7 +50,6 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
             defaultTimeoutMs: $defaultTimeoutMs
         );
 
-        
         $this->inputStream = $this->processLauncher->getInputStream();
         if (!$this->inputStream instanceof InputStream) {
             throw new NetworkException('ProcessLauncher must have an InputStream for JSON-RPC communication');
@@ -66,7 +65,6 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
     {
         $this->ensureProcessRunning();
 
-        
         $requestId = $request['id'] ?? $request['requestId'] ?? null;
         if (null === $requestId) {
             throw new NetworkException('Request must have either id or requestId');
@@ -101,8 +99,8 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
      */
     private function waitForResponse(int $requestId, ?float $deadline): array
     {
-        $pollInterval = 1000; 
-        $maxInterval = 10000; 
+        $pollInterval = 1000;
+        $maxInterval = 10000;
 
         while (true) {
             if (null !== $deadline && $this->getCurrentTimeMs() > $deadline) {
@@ -158,7 +156,6 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
         try {
             $data = json_decode($messageContent, true, 512, JSON_THROW_ON_ERROR);
             if (!is_array($data)) {
-                
                 if ('READY' === $messageContent) {
                     $this->logger->debug('Process signaled ready');
 
@@ -169,7 +166,6 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
                 return;
             }
 
-            
             if (isset($data['type']) && 'ready' === $data['type']) {
                 $this->logger->debug('Process signaled ready', ['message' => $data['message'] ?? 'READY']);
 
@@ -198,7 +194,6 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
                 }
             }
         } catch (\JsonException $e) {
-            
             if ('READY' === $messageContent) {
                 $this->logger->debug('Process signaled ready');
 

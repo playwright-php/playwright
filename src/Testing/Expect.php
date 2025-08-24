@@ -90,7 +90,6 @@ final class Expect implements ExpectInterface
 
     public function toContainText(string $text): void
     {
-        
         $this->toHaveText($text);
     }
 
@@ -312,25 +311,19 @@ final class Expect implements ExpectInterface
                 $actualResult = $condition();
 
                 if ($actualResult === $expectedResult) {
-                    
-                    
                     Assert::assertEquals($expectedResult, $actualResult);
 
                     return;
                 }
 
-                
                 $lastException = new AssertionFailedError($message);
             } catch (\Throwable $e) {
-                
                 $lastException = $e;
             }
 
-            
             \usleep($this->pollIntervalMs * 1000);
         }
 
-        
         $finalMessage = $message;
         if (null !== $failureMessageProvider) {
             try {
@@ -339,7 +332,6 @@ final class Expect implements ExpectInterface
                     $finalMessage = $computed;
                 }
             } catch (\Throwable) {
-                
             }
         }
 
@@ -348,11 +340,9 @@ final class Expect implements ExpectInterface
         }
 
         if ($lastException) {
-            
             throw new AssertionFailedError(\sprintf('Assertion timed out after %dms: %s. Last error: %s', $this->timeoutMs, $finalMessage, $lastException->getMessage()), 0, $lastException);
         }
 
-        
         throw new AssertionFailedError(\sprintf('Assertion timed out after %dms: %s', $this->timeoutMs, $finalMessage));
     }
 

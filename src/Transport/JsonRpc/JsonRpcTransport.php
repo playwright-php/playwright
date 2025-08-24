@@ -100,7 +100,6 @@ final class JsonRpcTransport implements TransportInterface
                 logger: $this->logger
             );
 
-            
             $this->client->setEventHandler(function (array $event): void {
                 $this->handleEvent($event);
             });
@@ -147,9 +146,6 @@ final class JsonRpcTransport implements TransportInterface
         $this->ensureConnected();
 
         try {
-            
-            
-            
             $timeout = $this->config['timeout'] ?? null;
             $timeoutMs = null;
             if (null !== $timeout) {
@@ -187,8 +183,6 @@ final class JsonRpcTransport implements TransportInterface
         }
 
         try {
-            
-            
             if (!isset($message['requestId'])) {
                 $message['requestId'] = uniqid('req_async_', true);
             }
@@ -198,7 +192,6 @@ final class JsonRpcTransport implements TransportInterface
                 'requestId' => $message['requestId'],
             ]);
 
-            
             $this->sendAsyncMessage($message);
         } catch (\Throwable $e) {
             $this->logger->warning('JSON-RPC sendAsync failed', [
@@ -228,7 +221,6 @@ final class JsonRpcTransport implements TransportInterface
      */
     private function sendAsyncMessage(array $message): void
     {
-        
         $json = json_encode($message, JSON_THROW_ON_ERROR);
         $framedMessage = LspFraming::encode($json);
 
@@ -343,7 +335,6 @@ final class JsonRpcTransport implements TransportInterface
      */
     private function validateEventParams(array $params): array
     {
-        
         /* @phpstan-var array<string, mixed> $params */
         return $params;
     }

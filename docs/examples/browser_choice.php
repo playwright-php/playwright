@@ -15,8 +15,8 @@ use PlaywrightPHP\PlaywrightFactory;
 
 $playwright = PlaywrightFactory::create();
 $browsers = [
-    'chromium' => $playwright->chromium(...), 
-    'firefox' => $playwright->firefox(...), 
+    'chromium' => $playwright->chromium(...),
+    'firefox' => $playwright->firefox(...),
     'webkit' => $playwright->webkit(...),
 ];
 
@@ -27,7 +27,7 @@ foreach ($browsers as $type => $browserBuilder) {
     $page = $browser->newPage();
     $page->goto('https://www.whatismybrowser.com/');
     $page->locator('text=Your Browser is:')->waitFor();
-    echo sprintf('Browser: %s %s | URL: %s',$type, $browser->version(), $page->url())."\n";
+    echo sprintf('Browser: %s %s | URL: %s', $type, $browser->version(), $page->url())."\n";
 
     $page->close();
     $browser->close();

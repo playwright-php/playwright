@@ -53,8 +53,6 @@ final class ConsoleMessage
      */
     public function args(): array
     {
-        
-        
         $args = $this->data['args'];
         if (!is_array($args)) {
             throw new \RuntimeException('Invalid console message args');

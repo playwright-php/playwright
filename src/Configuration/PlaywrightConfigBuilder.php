@@ -68,7 +68,6 @@ final class PlaywrightConfigBuilder
             return (false === $v || '' === $v) ? null : $v;
         };
 
-        
         if ($node = $get('PLAYWRIGHT_NODE_PATH')) {
             $b->withNodePath($node);
         }
@@ -76,7 +75,6 @@ final class PlaywrightConfigBuilder
             $b->withMinNodeVersion($min);
         }
 
-        
         if ($browser = $get('PW_BROWSER')) {
             $browser = strtolower($browser);
             $map = [
@@ -102,12 +100,10 @@ final class PlaywrightConfigBuilder
             $b->withSlowMoMs((int) $slow);
         }
 
-        
         if (($trace = $get('PW_TRACING')) !== null) {
             $b->withTracing(self::strToBool($trace), $get('PW_TRACE_DIR') ?: null);
         }
 
-        
         if ($dl = $get('PW_DOWNLOADS_DIR')) {
             $b->withDownloadsDir($dl);
         }
@@ -115,7 +111,6 @@ final class PlaywrightConfigBuilder
             $b->withVideosDir($vd);
         }
 
-        
         if ($proxy = $get('PW_PROXY_SERVER')) {
             $b->withProxy(
                 server: $proxy,
@@ -263,7 +258,6 @@ final class PlaywrightConfigBuilder
 
     public function build(): PlaywrightConfig
     {
-        
         if ($this->timeoutMs < 0) {
             throw new \InvalidArgumentException('timeoutMs must be >= 0');
         }

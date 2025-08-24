@@ -30,31 +30,30 @@ final class PlaywrightConfig
      * }|null $proxy
      */
     public function __construct(
-        
         public readonly ?string $nodePath = null,
         public readonly string $minNodeVersion = '18.0.0',
-        
+
         public readonly BrowserType $browser = BrowserType::CHROMIUM,
         public readonly ?string $channel = null,
         public readonly bool $headless = true,
-        
+
         public readonly int $timeoutMs = 30000,
         public readonly int $slowMoMs = 0,
-        
+
         public readonly array $args = [],
         public readonly array $env = [],
-        
+
         public readonly ?string $downloadsDir = null,
         public readonly ?string $videosDir = null,
         public readonly ?string $screenshotDir = null,
-        
+
         public readonly bool $tracingEnabled = false,
         public readonly ?string $traceDir = null,
         public readonly bool $traceScreenshots = false,
         public readonly bool $traceSnapshots = false,
-        
+
         public readonly ?array $proxy = null,
-        
+
         public readonly ?LoggerInterface $logger = null,
     ) {
     }
@@ -70,7 +69,6 @@ final class PlaywrightConfig
             return $this->screenshotDir;
         }
 
-        
         return rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.'playwright';
     }
 

@@ -140,7 +140,6 @@ final class NodeBinaryResolver implements NodeBinaryResolverInterface
         } catch (NodeVersionTooLowException $e) {
             throw $e;
         } catch (\Throwable) {
-            
         }
 
         throw new NodeBinaryNotFoundException($pathError);
@@ -163,9 +162,9 @@ final class NodeBinaryResolver implements NodeBinaryResolverInterface
         }
 
         $out = trim($process->getOutput().$process->getErrorOutput());
-        
+
         $out = ltrim($out, 'vV');
-        
+
         if (!preg_match('/^\d+\.\d+\.\d+/', $out, $m)) {
             throw new \RuntimeException(sprintf('Unexpected Node version output from %s: %s', $nodeBinary, $out));
         }
@@ -218,32 +217,26 @@ final class NodeBinaryResolver implements NodeBinaryResolverInterface
         $asdfDir = (string) getenv('ASDF_DIR') ?: ('' !== $home ? $home.DIRECTORY_SEPARATOR.'.asdf' : '');
 
         if ($this->isWindows()) {
-            
             if ('' !== $programFiles) {
                 $paths[] = $programFiles.'\\nodejs\\node.exe';
             }
             if ('' !== $localAppData) {
-                
                 $paths[] = $localAppData.'\\Programs\\nodejs\\node.exe';
             }
-            
+
             $paths[] = 'C:\\ProgramData\\chocolatey\\bin\\node.exe';
 
-            
             if ('' !== $nvmHome) {
                 $paths = array_merge($paths, $this->globNewest($nvmHome.'\\v*\\node.exe'));
             }
         } else {
-            
             $paths[] = '/opt/homebrew/bin/node';
             $paths[] = '/usr/local/bin/node';
 
-            
             if ('' !== $home) {
                 $paths = array_merge($paths, $this->globNewest($home.'/.nvm/versions/node/*/bin/node'));
             }
 
-            
             if ('' !== $asdfDir) {
                 $paths[] = $asdfDir.'/shims/node';
             }
@@ -267,11 +260,10 @@ final class NodeBinaryResolver implements NodeBinaryResolverInterface
         }
 
         usort($matches, static function (string $a, string $b): int {
-            
             $va = self::extractVersionFromPath($a);
             $vb = self::extractVersionFromPath($b);
             if (null === $va && null === $vb) {
-                return strcmp($b, $a); 
+                return strcmp($b, $a);
             }
             if (null === $va) {
                 return 1;
@@ -280,7 +272,7 @@ final class NodeBinaryResolver implements NodeBinaryResolverInterface
                 return -1;
             }
 
-            return version_compare($vb, $va); 
+            return version_compare($vb, $va);
         });
 
         return $matches;

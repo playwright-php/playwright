@@ -56,7 +56,7 @@ class PlaywrightClient
 
         return $this->createBrowserBuilder('webkit');
     }
-    
+
     public function close(): void
     {
         if (!$this->isConnected) {
@@ -77,7 +77,7 @@ class PlaywrightClient
             $this->isConnected = false;
         }
     }
-    
+
     private function connect(): void
     {
         if ($this->isConnected) {

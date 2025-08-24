@@ -91,7 +91,6 @@ final class Sanitizer
      */
     private static function sanitizeObject(object $object): object
     {
-        
         $json = json_encode($object);
         if (false === $json) {
             throw new \RuntimeException('Failed to encode object to JSON');
@@ -110,24 +109,17 @@ final class Sanitizer
      */
     private static function sanitizeString(string $string): string
     {
-        
         $patterns = [
-            
             '/\b[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/' => '[JWT_TOKEN]',
 
-            
             '/\b[a-z0-9]{32,}\b/i' => '[API_KEY]',
 
-            
             '/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/i' => '[UUID]',
 
-            
             '/:([^:@]+)@/' => ':[REDACTED]@',
 
-            
             '/Basic [A-Za-z0-9+\/]+=*/' => 'Basic [REDACTED]',
 
-            
             '/Bearer [A-Za-z0-9_\-\.]+/' => 'Bearer [REDACTED]',
         ];
 
@@ -169,13 +161,11 @@ final class Sanitizer
             return $url;
         }
 
-        
         if (isset($parsed['user']) || isset($parsed['pass'])) {
             $parsed['user'] = '[REDACTED]';
             unset($parsed['pass']);
         }
 
-        
         $scheme = isset($parsed['scheme']) ? $parsed['scheme'].'://' : '';
         $host = $parsed['host'] ?? '';
         $port = isset($parsed['port']) ? ':'.$parsed['port'] : '';

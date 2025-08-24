@@ -36,7 +36,6 @@ final class Mouse implements MouseInterface
             'options' => $options,
         ]);
 
-        
         $this->transport->processEvents();
     }
 

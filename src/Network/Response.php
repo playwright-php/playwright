@@ -73,7 +73,6 @@ final class Response implements ResponseInterface
             return [];
         }
 
-        
         $stringHeaders = [];
         foreach ($headers as $key => $value) {
             if (is_string($key) && (is_string($value) || is_numeric($value))) {
@@ -119,12 +118,11 @@ final class Response implements ResponseInterface
             if (JSON_ERROR_NONE !== json_last_error()) {
                 throw new \JsonException('Invalid JSON: '.json_last_error_msg());
             }
-            
+
             if (is_array($decoded)) {
                 $result = [];
                 foreach ($decoded as $key => $value) {
                     if (!is_string($key)) {
-                        
                         $result = [];
                         break;
                     }

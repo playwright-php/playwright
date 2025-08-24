@@ -1,5 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
+/*
+ * This file is part of the playwright-php/playwright package.
+ * For the full copyright and license information, please view
+ * the LICENSE file that was distributed with this source code.
+ */
+
 namespace PlaywrightPHP\Tests\Unit\Page;
 
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -15,16 +23,16 @@ use PlaywrightPHP\Transport\TransportInterface;
 class PageTest extends TestCase
 {
     protected Page $page;
-    
+
     protected function setUp(): void
     {
         $transport = $this->createMock(TransportInterface::class);
         $context = $this->createMock(BrowserContextInterface::class);
         $pageId = 'page-id';
-        
+
         $this->page = new Page($transport, $context, $pageId);
     }
-    
+
     public function testGetKeyboard(): void
     {
         $keyboard = $this->page->keyboard();
@@ -42,8 +50,7 @@ class PageTest extends TestCase
     public function testGetEvents(): void
     {
         $events = $this->page->events();
-        
+
         $this->assertInstanceOf(PageEventHandlerInterface::class, $events);
     }
-    
 }

@@ -54,7 +54,6 @@ class JsonRpcClient implements JsonRpcClientInterface
             ? $this->getCurrentTimeMs() + $timeoutMs
             : null;
 
-        
         $this->trackRequest($id, $method);
 
         $this->logger->debug('Sending JSON-RPC request', [
@@ -122,11 +121,9 @@ class JsonRpcClient implements JsonRpcClientInterface
             ? $this->getCurrentTimeMs() + $timeoutMs
             : null;
 
-        
         $request = $message;
         $request['requestId'] = $id;
 
-        
         $actionString = is_string($message['action'] ?? null) ? $message['action'] : 'unknown';
         $this->trackRequest($id, $actionString);
 
@@ -140,7 +137,6 @@ class JsonRpcClient implements JsonRpcClientInterface
             $response = $this->sendAndReceive($request, $deadline);
             unset($this->pendingRequests[$id]);
 
-            
             return $response;
         } catch (\Throwable $e) {
             unset($this->pendingRequests[$id]);

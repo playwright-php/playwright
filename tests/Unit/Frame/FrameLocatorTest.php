@@ -1,5 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
+/*
+ * This file is part of the playwright-php/playwright package.
+ * For the full copyright and license information, please view
+ * the LICENSE file that was distributed with this source code.
+ */
+
 namespace PlaywrightPHP\Tests\Unit\Frame;
 
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -54,7 +62,7 @@ class FrameLocatorTest extends TestCase
 
     public function testFirst(): void
     {
-        $expectedSelector = $this->initialSelector . ' >> nth=0';
+        $expectedSelector = $this->initialSelector.' >> nth=0';
         $this->logger
             ->expects($this->once())
             ->method('debug')
@@ -73,7 +81,7 @@ class FrameLocatorTest extends TestCase
 
     public function testLast(): void
     {
-        $expectedSelector = $this->initialSelector . ' >> nth=-1';
+        $expectedSelector = $this->initialSelector.' >> nth=-1';
         $this->logger
             ->expects($this->once())
             ->method('debug')
@@ -112,17 +120,18 @@ class FrameLocatorTest extends TestCase
     public static function nthDataProvider(): array
     {
         $initialSelector = 'iframe[name="main"]';
+
         return [
-            'zero index' => [0, $initialSelector . ' >> nth=0'],
-            'positive index' => [5, $initialSelector . ' >> nth=5'],
-            'negative index' => [-3, $initialSelector . ' >> nth=-3'],
+            'zero index' => [0, $initialSelector.' >> nth=0'],
+            'positive index' => [5, $initialSelector.' >> nth=5'],
+            'negative index' => [-3, $initialSelector.' >> nth=-3'],
         ];
     }
 
     public function testFrameLocator(): void
     {
         $childSelector = '#child-frame';
-        $expectedSelector = $this->initialSelector . ' >> ' . $childSelector;
+        $expectedSelector = $this->initialSelector.' >> '.$childSelector;
 
         $this->logger
             ->expects($this->once())
@@ -147,7 +156,7 @@ class FrameLocatorTest extends TestCase
 
     public function testToString(): void
     {
-        $expectedString = 'FrameLocator(selector="' . $this->initialSelector . '")';
+        $expectedString = 'FrameLocator(selector="'.$this->initialSelector.'")';
         $this->assertSame($expectedString, (string) $this->frameLocator);
         $this->assertSame($expectedString, $this->frameLocator->__toString());
     }

@@ -170,13 +170,11 @@ final class Page implements PageInterface, EventDispatcherInterface
      */
     public function screenshot(?string $path = null, array $options = []): string
     {
-        
         $finalPath = $path ?? $options['path'] ?? ScreenshotHelper::generateFilename(
             $this->url(),
             $this->getScreenshotDirectory()
         );
 
-        
         if (!is_string($finalPath)) {
             throw new \RuntimeException('Invalid screenshot path generated');
         }
@@ -213,18 +211,16 @@ final class Page implements PageInterface, EventDispatcherInterface
         $currentUrl = $this->url();
         $screenshotDir = $this->getScreenshotDirectory();
 
-        
         $now = microtime(true);
         $datetime = date('Ymd_His', (int) $now);
         $milliseconds = sprintf('%03d', ($now - floor($now)) * 1000);
 
-        $urlSlug = ScreenshotHelper::slugifyUrl($currentUrl, 20); 
+        $urlSlug = ScreenshotHelper::slugifyUrl($currentUrl, 20);
         $suffixSlug = $suffix ? '-'.ScreenshotHelper::slugifyUrl($suffix, 20) : '';
 
         $filename = sprintf('%s_%s_%s%s.png', $datetime, $milliseconds, $urlSlug, $suffixSlug);
         $path = $screenshotDir.DIRECTORY_SEPARATOR.$filename;
 
-        
         ScreenshotHelper::ensureDirectoryExists($screenshotDir);
 
         $options['path'] = $path;
@@ -242,7 +238,6 @@ final class Page implements PageInterface, EventDispatcherInterface
             return $this->config->getScreenshotDirectory();
         }
 
-        
         return rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.'playwright';
     }
 
@@ -283,7 +278,6 @@ final class Page implements PageInterface, EventDispatcherInterface
     {
         $this->locator($selector)->click($options);
 
-        
         $this->transport->processEvents();
 
         return $this;
@@ -326,7 +320,6 @@ final class Page implements PageInterface, EventDispatcherInterface
         if (isset($response['error'])) {
             $error = $response['error'];
             if (!is_array($error)) {
-                
                 $message = is_string($error) ? $error : 'Unknown error';
                 $this->logger->error('Playwright server error (non-structured)', ['error' => $error]);
                 if (str_contains($message, 'Timeout')) {
@@ -343,10 +336,8 @@ final class Page implements PageInterface, EventDispatcherInterface
                 $message = 'Unknown error';
             }
 
-            
             $this->logger->error('Playwright server error', ['error' => $error]);
 
-            
             if (str_contains($message, 'Target page, context or browser has been closed')) {
                 throw new PlaywrightException('Browser context has been closed');
             }
@@ -396,7 +387,6 @@ final class Page implements PageInterface, EventDispatcherInterface
             return [];
         }
 
-        
         $validatedCookies = [];
         foreach ($cookies as $cookie) {
             if (!is_array($cookie)) {
@@ -551,7 +541,6 @@ final class Page implements PageInterface, EventDispatcherInterface
     {
         $this->sendCommand('waitForURL', ['url' => $url, 'options' => $options]);
 
-        
         $this->transport->processEvents();
 
         return $this;
@@ -626,7 +615,6 @@ final class Page implements PageInterface, EventDispatcherInterface
     {
         $this->logger->debug('Setting input files', ['selector' => $selector, 'files' => $files]);
 
-        
         foreach ($files as $file) {
             if (!\file_exists($file)) {
                 throw new PlaywrightException(\sprintf('File not found: %s', $file));

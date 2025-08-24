@@ -42,9 +42,9 @@ final readonly class NetworkThrottling
     public static function slow3G(): self
     {
         return new self(
-            downloadThroughput: 50 * 1024, 
-            uploadThroughput: 50 * 1024,   
-            latency: 2000,                 
+            downloadThroughput: 50 * 1024,
+            uploadThroughput: 50 * 1024,
+            latency: 2000,
         );
     }
 
@@ -54,9 +54,9 @@ final readonly class NetworkThrottling
     public static function fast3G(): self
     {
         return new self(
-            downloadThroughput: 150 * 1024, 
-            uploadThroughput: 75 * 1024,    
-            latency: 562,                   
+            downloadThroughput: 150 * 1024,
+            uploadThroughput: 75 * 1024,
+            latency: 562,
         );
     }
 
@@ -66,9 +66,9 @@ final readonly class NetworkThrottling
     public static function fast4G(): self
     {
         return new self(
-            downloadThroughput: (int) (1.6 * 1024 * 1024), 
-            uploadThroughput: 750 * 1024,                  
-            latency: 150,                                  
+            downloadThroughput: (int) (1.6 * 1024 * 1024),
+            uploadThroughput: 750 * 1024,
+            latency: 150,
         );
     }
 
@@ -78,9 +78,9 @@ final readonly class NetworkThrottling
     public static function dsl(): self
     {
         return new self(
-            downloadThroughput: 2 * 1024 * 1024, 
-            uploadThroughput: 1 * 1024 * 1024,   
-            latency: 5,                          
+            downloadThroughput: 2 * 1024 * 1024,
+            uploadThroughput: 1 * 1024 * 1024,
+            latency: 5,
         );
     }
 
@@ -90,9 +90,9 @@ final readonly class NetworkThrottling
     public static function wifi(): self
     {
         return new self(
-            downloadThroughput: 30 * 1024 * 1024, 
-            uploadThroughput: 15 * 1024 * 1024,   
-            latency: 2,                           
+            downloadThroughput: 30 * 1024 * 1024,
+            uploadThroughput: 15 * 1024 * 1024,
+            latency: 2,
         );
     }
 

@@ -79,7 +79,6 @@ final class Playwright
         $browser = $builder->launch();
         $contextOptions = $options['context'] ?? [];
 
-        
         if (!is_array($contextOptions)) {
             $contextOptions = [];
         }
@@ -87,7 +86,6 @@ final class Playwright
         /** @phpstan-var array<string, mixed> $contextOptions */
         $context = empty($contextOptions) ? $browser->context() : $browser->newContext($contextOptions);
 
-        
         self::$clients[] = $client;
         self::registerShutdown();
 

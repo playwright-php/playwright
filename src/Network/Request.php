@@ -50,7 +50,6 @@ final class Request implements RequestInterface
             return [];
         }
 
-        
         $stringHeaders = [];
         foreach ($headers as $key => $value) {
             if (is_string($key) && (is_string($value) || is_numeric($value))) {
@@ -85,7 +84,6 @@ final class Request implements RequestInterface
         $result = [];
         foreach ($decoded as $key => $value) {
             if (!is_string($key)) {
-                
                 return null;
             }
             $result[$key] = $value;

@@ -35,7 +35,6 @@ final class Browser implements BrowserInterface
         private readonly string $version,
         private readonly ?PlaywrightConfig $config = null,
     ) {
-        
         $this->defaultContext = new BrowserContext($this->transport, $this->defaultContextId, $this->config);
         $this->contexts[] = $this->defaultContext;
     }
@@ -63,7 +62,7 @@ final class Browser implements BrowserInterface
         if (!is_string($response['contextId'])) {
             throw new \RuntimeException('Invalid contextId returned from transport');
         }
-        
+
         $context = new BrowserContext($this->transport, $response['contextId'], $this->config);
         $this->contexts[] = $context;
 
@@ -73,7 +72,6 @@ final class Browser implements BrowserInterface
     public function newPage(array $options = []): PageInterface
     {
         if (null === $this->defaultContext) {
-            
             $this->defaultContext = new BrowserContext($this->transport, $this->defaultContextId, $this->config);
         }
 

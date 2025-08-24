@@ -81,20 +81,18 @@ trait PlaywrightTestCaseTrait
             $config = new PlaywrightConfig(nodePath: $node);
         }
 
-        
         if (null !== $customConfig) {
             $this->usingShared = false;
             $this->playwright = PlaywrightFactory::create($config, $logger);
             $this->browser = $this->playwright->chromium()->launch();
         } else {
-            
             if (null === self::$sharedPlaywright) {
                 self::$sharedPlaywright = PlaywrightFactory::create($config, $logger);
             }
             if (null === self::$sharedBrowser || !self::$sharedBrowser->isConnected()) {
                 self::$sharedBrowser = self::$sharedPlaywright->chromium()->launch();
             }
-            
+
             static $shutdownRegistered = false;
             if (!$shutdownRegistered) {
                 $shutdownRegistered = true;
@@ -121,7 +119,6 @@ trait PlaywrightTestCaseTrait
         $this->context = $this->browser->newContext();
         $this->page = $this->context->newPage();
 
-        
         $envTrace = $_SERVER['PW_TRACE'] ?? getenv('PW_TRACE');
         $this->traceThisTest = (is_string($envTrace) && '' !== $envTrace && '0' !== $envTrace);
         if ($this->traceThisTest) {
@@ -156,13 +153,11 @@ trait PlaywrightTestCaseTrait
             }
         }
 
-        
         try {
             $this->context->close();
         } catch (\Throwable) {
         }
 
-        
         if (!$this->usingShared) {
             try {
                 $this->browser->close();
@@ -198,8 +193,6 @@ trait PlaywrightTestCaseTrait
 
     protected function assertElementExists(string $selector): void
     {
-        
-        
         $content = $this->page->content() ?? '';
         $this->assertStringContainsString($selector, $content, "Element {$selector} not found.");
     }

@@ -133,7 +133,6 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
             throw new \RuntimeException('No valid pageId returned from transport in newPage');
         }
 
-        
         $page = new Page($this->transport, $this, $response['pageId'], $this->config);
         $this->pages[$response['pageId']] = $page;
 
@@ -214,7 +213,6 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
             throw new \RuntimeException('Invalid cookies response');
         }
 
-        
         /** @phpstan-var array<array<string, mixed>> $cookies */
         $cookies = $response['cookies'];
 
@@ -276,7 +274,6 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
             throw new \RuntimeException('Invalid storageState response');
         }
 
-        
         /** @phpstan-var array<string, mixed> $storageState */
         $storageState = $response['storageState'];
 

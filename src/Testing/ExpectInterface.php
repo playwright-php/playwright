@@ -15,7 +15,6 @@ namespace PlaywrightPHP\Testing;
  */
 interface ExpectInterface
 {
-    
     public function toBeVisible(): void;
 
     public function toBeHidden(): void;
@@ -42,12 +41,10 @@ interface ExpectInterface
 
     public function toBeFocused(): void;
 
-    
     public function toHaveTitle(string $title): void;
 
     public function toHaveURL(string $url): void;
 
-    
     public function not(): self;
 
     public function withTimeout(int $timeoutMs): self;

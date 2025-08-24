@@ -34,12 +34,11 @@ final class ServerFinder
         }
 
         $possiblePaths = [
-            
             $cwd.'/node_modules/playwright',
-            
+
             dirname($cwd).'/node_modules/playwright',
             dirname($cwd, 2).'/node_modules/playwright',
-            
+
             $this->getUserConfiguredPath(),
         ];
 

@@ -25,18 +25,14 @@ final class ScreenshotHelper
      */
     public static function generateFilename(string $url, string $directory): string
     {
-        
         $now = microtime(true);
         $datetime = date('Ymd_His', (int) $now);
         $milliseconds = sprintf('%03d', ($now - floor($now)) * 1000);
 
-        
         $urlSlug = self::slugifyUrl($url, 40);
 
-        
         $filename = sprintf('%s_%s_%s.png', $datetime, $milliseconds, $urlSlug);
 
-        
         self::ensureDirectoryExists($directory);
 
         return $directory.DIRECTORY_SEPARATOR.$filename;
@@ -52,10 +48,8 @@ final class ScreenshotHelper
      */
     public static function slugifyUrl(string $url, int $maxLength = 40): string
     {
-        
         $slug = preg_replace('/^https?:\/\//', '', $url);
 
-        
         if (is_string($slug)) {
             $slug = preg_replace('/^www\./', '', $slug);
         }
@@ -63,26 +57,21 @@ final class ScreenshotHelper
             $slug = 'invalid-url';
         }
 
-        
         $slug = preg_replace('/[^a-zA-Z0-9]+/', '-', $slug);
         if (null === $slug) {
             $slug = 'invalid-url';
         }
 
-        
         $slug = trim($slug, '-');
 
-        
         $slug = strtolower($slug);
 
-        
         if (strlen($slug) > $maxLength) {
             $slug = substr($slug, 0, $maxLength);
-            
+
             $slug = rtrim($slug, '-');
         }
 
-        
         if (empty($slug)) {
             $slug = 'screenshot';
         }
@@ -125,7 +114,6 @@ final class ScreenshotHelper
         $currentTime = time();
         $cleanedCount = 0;
 
-        
         foreach (new \DirectoryIterator($directory) as $fileInfo) {
             if ($fileInfo->isDot() || 'png' !== $fileInfo->getExtension()) {
                 continue;
@@ -134,7 +122,6 @@ final class ScreenshotHelper
             $filePath = $fileInfo->getPathname();
             $modTime = $fileInfo->getMTime();
 
-            
             if (($currentTime - $modTime) > $maxAge) {
                 if (unlink($filePath)) {
                     ++$cleanedCount;
@@ -148,9 +135,7 @@ final class ScreenshotHelper
             ];
         }
 
-        
         if (count($files) > $maxFiles) {
-            
             usort($files, fn ($a, $b) => $a['mtime'] <=> $b['mtime']);
 
             $filesToDelete = array_slice($files, 0, count($files) - $maxFiles);
@@ -209,7 +194,6 @@ final class ScreenshotHelper
             }
         }
 
-        
         unset($info['oldestTime'], $info['newestTime']);
 
         return $info;
