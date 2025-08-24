@@ -2,6 +2,7 @@
 
 namespace PlaywrightPHP\Tests\Unit\Frame;
 
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -28,6 +29,7 @@ use Psr\Log\LoggerInterface;
  *     public function getSelector(): string { return $this->selector; }
  * }
  */
+#[CoversClass(FrameLocator::class)]
 class FrameLocatorTest extends TestCase
 {
     private MockObject|TransportInterface $transport;
