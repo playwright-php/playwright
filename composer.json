@@ -70,9 +70,9 @@
         }
     },
     "scripts": {
-        "post-install-cmd": "bin/install-server",
-        "install-browsers": "bin/install-server -v && npm run install-browsers --prefix bin",
-        "install-browsers-with-deps": "bin/install-server -v && npm run install-browsers-with-deps --prefix bin",
+        "post-install-cmd": "bin/playwright-install",
+        "install-browsers": "bin/playwright-install -v && npm run install-browsers --prefix bin",
+        "install-browsers-with-deps": "bin/playwright-install -v && npm run install-browsers-with-deps --prefix bin",
         "cs-check": "vendor/bin/php-cs-fixer fix --dry-run --diff",
         "cs-fix": "vendor/bin/php-cs-fixer fix",
         "sa": "vendor/bin/phpstan analyze --memory-limit=-1",
@@ -80,5 +80,8 @@
         "test-coverage": "vendor/bin/phpunit --coverage-xml coverage",
         "test:integration": "vendor/bin/phpunit --testsuite integration",
         "test:unit": "vendor/bin/phpunit --testsuite unit"
-    }
+    },
+    "bin": [
+        "bin/playwright-install"
+    ]
 }

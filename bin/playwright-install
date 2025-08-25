@@ -6,7 +6,22 @@
  * Installs Node.js dependencies for the Playwright server using Symfony Process
  */
 
-require_once __DIR__.'/../vendor/autoload.php';
+$possibleFiles = [__DIR__.'/../../../autoload.php', __DIR__.'/../../autoload.php', __DIR__.'/../vendor/autoload.php'];
+$file = null;
+
+foreach ($possibleFiles as $possibleFile) {
+    if (file_exists($possibleFile)) {
+        $file = $possibleFile;
+
+        break;
+    }
+}
+
+if (null === $file) {
+    throw new RuntimeException('Unable to locate autoload.php file.');
+}
+
+require_once $file;
 
 use Symfony\Component\Console\Output\ConsoleOutput;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -260,7 +275,7 @@ $help = \in_array('-h', $_SERVER['argv'] ?? [], true)
 if ($help) {
     echo "Playwright Server Installer\n";
     echo "\n";
-    echo "Usage: bin/install-server [options]\n";
+    echo "Usage: bin/playwright-install [options]\n";
     echo "\n";
     echo "Options:\n";
     echo "  -v, --verbose    Show detailed output\n";
