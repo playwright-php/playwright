@@ -1,0 +1,31 @@
+name: "Install"
+
+on:
+  schedule:
+    - cron: '7 7 * * *'  # At 07:07 every day
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scratch:
+    name: "Install"
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: "PHP: setup 8.4"
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.4
+          coverage: none
+          tools: composer
+
+      - name: "Composer: require"
+        run: composer require --dev playwright-php/playwright
+
+      - name: "Composer: show"
+        run: composer show -i "playwright-php/playwright"
+
+      - name: "Playwright Install"
+        run: vendor/bin/playwright-install --help
