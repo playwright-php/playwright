@@ -57,8 +57,8 @@ jobs:
       - name: "PHPStan: version"
         run: vendor/bin/phpstan --version
 
-      - name: "PHPStan: analyse"
-        run: composer run analyse
+      - name: "PHPStan: analyze"
+        run: vendor/bin/phpstan
 
   unit-tests:
     name: "Unit Tests (PHP ${{ matrix.php-version }})"
