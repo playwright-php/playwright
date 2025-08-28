@@ -1,3 +1,13 @@
+<div align="center">
+<img src="https://github.com/playwright-php/.github/raw/main/profile/playwright-php.png" alt="Playwright PHP" />
+
+&nbsp; ![PHP Version](https://img.shields.io/badge/PHP-8.3+-05971B?labelColor=09161E&color=1D8D23&logoColor=FFFFFF)
+&nbsp; ![CI](https://img.shields.io/github/actions/workflow/status/playwright-php/playwright/CI.yaml?branch=main&label=Tests&color=1D8D23&labelColor=09161E&logoColor=FFFFFF)
+&nbsp; ![Release](https://img.shields.io/github/v/release/playwright-php/playwright?label=Stable&labelColor=09161E&color=1D8D23&logoColor=FFFFFF)
+&nbsp; ![License](https://img.shields.io/github/license/playwright-php/playwright?label=License&labelColor=09161E&color=1D8D23&logoColor=FFFFFF)
+
+</div>
+
 # Playwright for PHP
 
 Modern, PHP-native browser automation on top of Microsoft Playwright.
@@ -16,12 +26,15 @@ Modern, PHP-native browser automation on top of Microsoft Playwright.
 
 ## Install
 
-Project dependency:
-- composer require playwright-php/playwright
+```
+composer require playwright-php/playwright
+```
 
-Local/dev setup for this repo:
-- composer install
-- composer run install-browsers
+Optionnally, install the Playwright browsers:
+
+```
+bin/playwright-install
+```
 
 This installs the Node server dependencies under `bin/` and fetches Playwright browsers.
 
@@ -36,9 +49,12 @@ use PlaywrightPHP\Playwright;
 
 // Launch Chromium and get a context
 $context = Playwright::chromium(['headless' => true]);
+
+// Create a new page and navigate to a website
 $page = $context->newPage();
 $page->goto('https://example.com');
 
+// Print the page title
 echo $page->title().PHP_EOL; // "Example Domain"
 
 $context->close();
