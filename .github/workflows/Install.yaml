@@ -27,5 +27,5 @@ jobs:
       - name: "Composer: show"
         run: composer show -i "playwright-php/playwright"
 
-      - name: "TwigMetrics: version"
+      - name: "Playwright Install"
         run: vendor/bin/playwright-install --help
