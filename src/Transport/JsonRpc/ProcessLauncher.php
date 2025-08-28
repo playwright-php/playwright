@@ -15,6 +15,7 @@ use PlaywrightPHP\Exception\ProcessLaunchException;
 use PlaywrightPHP\Support\RingBuffer;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
+use Symfony\Component\Process\ExecutableFinder;
 use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
 
@@ -48,6 +49,24 @@ final class ProcessLauncher implements ProcessLauncherInterface
         }
 
         try {
+            // Proactively validate that the executable exists to distinguish
+            // between a true launch failure (unknown command) and a short-lived
+            // process that exits quickly with a non-zero code (which callers
+            // may want to handle via wait/exit checks).
+            $executable = $command[0] ?? '';
+            if ('' === $executable) {
+                throw new ProcessLaunchException('Command cannot be empty', 0, null, ['command' => $command, 'cwd' => $cwd]);
+            }
+
+            // Only check PATH-resolved commands (no path separators)
+            if (!str_contains($executable, DIRECTORY_SEPARATOR)) {
+                $finder = new ExecutableFinder();
+                $resolved = $finder->find($executable);
+                if (null === $resolved) {
+                    throw new ProcessLaunchException('Failed to launch Node process', 0, null, ['command' => $command, 'cwd' => $cwd, 'env' => array_keys($env), 'stderr' => 'Executable not found in PATH']);
+                }
+            }
+
             $this->lastInputStream = new InputStream();
             $process = new Process($command, $cwd, $env, null, $timeout);
             $process->setTimeout($timeout);
@@ -59,12 +78,10 @@ final class ProcessLauncher implements ProcessLauncherInterface
                 }
             });
 
-            usleep(50_000);
-
-            if (!$process->isRunning() && !$process->isSuccessful()) {
-                $excerpt = $this->stderrBuf->toString();
-                throw new ProcessLaunchException('Failed to launch Node process', 0, null, ['command' => $command, 'cwd' => $cwd, 'env' => array_keys($env), 'stderr' => $excerpt, 'exitCode' => $process->getExitCode(), 'exitCodeText' => $process->getExitCodeText()]);
-            }
+            // Do not treat an immediate non-zero exit as a launch failure.
+            // Some tests intentionally start short-lived commands. True
+            // launch errors are detected above (executable missing), while
+            // runtime failures should be surfaced by waitForExit().
 
             $this->log('Node process started successfully', [
                 'pid' => $process->getPid(),
