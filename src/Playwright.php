@@ -40,9 +40,19 @@ final class Playwright
     /**
      * @param array<string, mixed> $options
      */
-    public static function safari(array $options = []): BrowserContextInterface
+    public static function webkit(array $options = []): BrowserContextInterface
     {
         return self::launch('webkit', $options);
+    }
+
+    /**
+     * Alias for WebKit to match common browser naming.
+     *
+     * @param array<string, mixed> $options
+     */
+    public static function safari(array $options = []): BrowserContextInterface
+    {
+        return self::webkit($options);
     }
 
     /**

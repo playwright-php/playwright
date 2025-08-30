@@ -10,35 +10,44 @@
 
 # Playwright for PHP
 
-Modern, PHP-native browser automation on top of Microsoft Playwright.
+Modern, PHP‑native browser automation powered by Microsoft Playwright.
 
-## Highlights
+## About
 
-- Powerful: Drive Chromium, Firefox, and WebKit with one API
-- Reliable: Auto-waits and locator model reduce flakiness
-- Expressive: Jest-style `expect()` assertions for pages and locators
-- Test-ready: PHPUnit integration and convenient test helpers
+Playwright for PHP lets you launch real browsers (Chromium, Firefox, WebKit), drive pages and locators, and write reliable end‑to‑end tests — all from PHP.
 
-## Requirements
+- Familiar model: browser → context → page → locator
+- Auto‑waiting interactions reduce flakiness
+- PHPUnit integration with a base test case and fluent `expect()` assertions
+- Cross‑browser: Chromium, Firefox, and WebKit supported
 
+Requirements:
 - PHP 8.3+
-- Node.js 20+ (used by the Playwright server and browser binaries)
+- Node.js 20+ (used by the bundled Playwright server and browsers)
 
 ## Install
+
+Add the library to your project:
 
 ```
 composer require playwright-php/playwright
 ```
 
-Optionnally, install the Playwright browsers:
+Install the Playwright browsers (Chromium, Firefox, WebKit):
 
 ```
-bin/playwright-install
+composer run install-browsers
+# or, if your environment needs extra OS deps
+composer run install-browsers-with-deps
 ```
 
-This installs the Node server dependencies under `bin/` and fetches Playwright browsers.
+The PHP library installs and manages a lightweight Node server under the hood; no manual server process is required.
 
-## Quick Start
+## Usage
+
+### Quick start
+
+Open a page and print its title:
 
 ```php
 <?php
@@ -47,68 +56,136 @@ require __DIR__.'/vendor/autoload.php';
 
 use PlaywrightPHP\Playwright;
 
-// Launch Chromium and get a context
 $context = Playwright::chromium(['headless' => true]);
-
-// Create a new page and navigate to a website
 $page = $context->newPage();
 $page->goto('https://example.com');
 
-// Print the page title
-echo $page->title().PHP_EOL; // "Example Domain"
+echo $page->title().PHP_EOL; // Example Domain
 
 $context->close();
 ```
 
-Tip: Debug with Inspector by running headed and pausing:
-- Env: `PWDEBUG=1 php your_script.php`
-- Builder: `$playwright->chromium()->withHeadless(false)->withInspector()->launch();` then `$page->pause();`
+### Browser
 
-Minimal `expect()` example:
+- Choose a browser: `Playwright::chromium()`, `Playwright::firefox()`, or `Playwright::webkit()`.
+- `Playwright::safari()` is an alias of `webkit()`.
+- Common launch options: `headless` (bool), `slowMo` (ms), `args` (array of CLI args), and an optional `context` array.
 
 ```php
-<?php
-require __DIR__.'/vendor/autoload.php';
+$context = Playwright::webkit([
+    'headless' => false,
+    'slowMo' => 200,
+    'args' => ['--no-sandbox'],
+]);
+```
 
-use PlaywrightPHP\Playwright;
+### Page
+
+Create pages, navigate, evaluate scripts, and take screenshots:
+
+```php
+$page = $context->newPage();
+$page->goto('https://example.com');
+
+$html = $page->content();
+$title = $page->title();
+$path = $page->screenshot(__DIR__.'/screenshot.png');
+
+$answer = $page->evaluate('() => 6 * 7'); // 42
+```
+
+### Locator
+
+Work with auto‑waiting locators for reliable interactions and assertions:
+
+```php
 use function PlaywrightPHP\Testing\expect;
 
-$context = Playwright::chromium();
-$page = $context->newPage();
-$page->goto('https://example.com');
+$h1 = $page->locator('h1');
+expect($h1)->toHaveText('Example Domain');
 
-expect($page->locator('h1'))->toHaveText('Example Domain');
-expect($page->locator('h1 ~ p'))->toHaveCount(2);
+$search = $page->locator('#q');
+$search->fill('playwright php');
+$page->locator('form')->submit();
 
-$context->close();
+// Compose and filter
+$items = $page->locator('.result-item');
+expect($items)->toHaveCount(10);
 ```
 
-You can also run the ready-made example:
-- php docs/examples/example_expect.php
+### Server
 
-## Scripts
+- A lightweight Node.js Playwright server is installed under `bin/` and started automatically by the PHP library.
+- Install browsers with: `composer run install-browsers` (or `install-browsers-with-deps`).
+- Requires Node.js 20+ in your environment (local and CI).
 
-- composer test — runs the full test suite
-- composer analyse — static analysis (PHPStan)
-- composer cs-check — code style check
-- composer cs-fix — code style fix
-- composer run install-browsers — installs server deps and browsers (in `bin/`)
+### Inspector (debugging)
 
-## Notes on the Server
+- Run headed by setting `headless => false`.
+- Export `PWDEBUG=1` to open the Inspector: `PWDEBUG=1 php your_script.php`.
+- You can also call `$page->pause()` to break into the Inspector during a run.
 
-- The Node-based Playwright server and its dependencies live under `bin/`.
-- Composer’s `install-browsers` script installs dependencies in `bin/` and runs `npx playwright install` there.
-- The PHP transport auto-starts the Node server as needed; no manual server process is required.
+More examples: see `docs/examples/` (e.g., `php docs/examples/expect.php`).
 
-## Debugging with Playwright Inspector
+### Route interception
 
-- Enable Inspector via builder: call `withInspector()` and run headed.
-  - Example: `$browser = $playwright->chromium()->withHeadless(false)->withInspector()->launch();`
-- Pause at a point to open Inspector: `$page->pause();`
-- Alternatively, export `PWDEBUG` when running your script to enable Inspector globally:
-  - macOS/Linux: `PWDEBUG=1 php your_script.php`
-  - Windows (PowerShell): `$env:PWDEBUG='1'; php your_script.php`
+Intercept and control network requests at page or context scope.
 
-Notes:
-- Inspector opens from the Node server; `PWDEBUG` is forwarded automatically.
-- A headed browser (`headless: false`) makes it easier to see UI interactions while debugging.
+- Page-level block (e.g., images):
+
+```php
+$page->route('**/*.png', function ($route) {
+    $route->abort(); // block images
+});
+```
+
+- Context-level stub API and pass-through others:
+
+```php
+$context->route('**/api/todos', function ($route) {
+    $route->fulfill([
+        'status' => 200,
+        'contentType' => 'application/json',
+        'body' => json_encode(['items' => []]),
+    ]);
+});
+
+$context->route('*', fn ($route) => $route->continue());
+```
+
+See runnable examples:
+- `php docs/examples/route_block_images.php`
+- `php docs/examples/route_stub_api.php`
+
+## Testing
+
+Integrate with PHPUnit using the provided base class:
+
+```php
+<?php
+
+use PlaywrightPHP\Testing\PlaywrightTestCase;
+use function PlaywrightPHP\Testing\expect;
+
+final class MyE2ETest extends PlaywrightTestCase
+{
+    public function test_homepage(): void
+    {
+        $this->page->goto('https://example.com');
+        expect($this->page->locator('h1'))->toHaveText('Example Domain');
+    }
+}
+```
+
+Tips:
+- On failure, screenshots are saved under `test-failures/`.
+- Enable tracing with `PW_TRACE=1` to capture a `trace.zip` for Playwright Trace Viewer.
+- Guides: `docs/guide/getting-started.md`, `docs/guide/testing-with-phpunit.md`, `docs/guide/assertions-reference.md`.
+
+## Contributing
+
+Contributions are welcome. Please use Conventional Commits, include tests for behavior changes, and ensure docs/examples are updated when relevant. See `docs/contributing/testing.md` for local workflow.
+
+## Licence
+
+MIT — see `LICENSE` for details.
