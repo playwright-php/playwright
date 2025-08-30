@@ -13,7 +13,7 @@ namespace PlaywrightPHP\Tests\Unit\Configuration;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use PlaywrightPHP\Configuration\BrowserType;
+use PlaywrightPHP\Browser\BrowserType;
 use PlaywrightPHP\Configuration\PlaywrightConfig;
 use PlaywrightPHP\Tests\Mocks\TestLogger;
 

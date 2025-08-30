@@ -15,7 +15,7 @@ namespace PlaywrightPHP\Browser;
  */
 enum BrowserType: string
 {
-    case Chrome = 'chrome';
-    case Firefox = 'firefox';
-    case Safari = 'safari';
+    case CHROMIUM = 'chromium';
+    case FIREFOX = 'firefox';
+    case WEBKIT = 'webkit';
 }

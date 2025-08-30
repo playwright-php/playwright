@@ -13,7 +13,7 @@ namespace PlaywrightPHP\Tests\Unit\Configuration;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use PlaywrightPHP\Configuration\BrowserType;
+use PlaywrightPHP\Browser\BrowserType;
 use PlaywrightPHP\Configuration\PlaywrightConfigBuilder;
 use PlaywrightPHP\Tests\Mocks\TestLogger;
 
@@ -71,7 +71,7 @@ class PlaywrightConfigBuilderTest extends TestCase
         $this->assertEquals(BrowserType::CHROMIUM, $config->browser);
         $this->assertTrue($config->headless);
         $this->assertEquals(30000, $config->timeoutMs);
-        $this->assertEquals('18.0.0', $config->minNodeVersion);
+        $this->assertEquals('20.0.0', $config->minNodeVersion);
         $this->assertEquals(0, $config->slowMoMs);
         $this->assertEmpty($config->args);
         $this->assertEmpty($config->env);
