@@ -23,7 +23,7 @@ use Symfony\Component\Process\Process;
  */
 final class NodeBinaryResolver implements NodeBinaryResolverInterface
 {
-    private const string DEFAULT_MIN_VERSION = '18.0.0';
+    private const string DEFAULT_MIN_VERSION = '20.0.0';
 
     private ?string $cached = null;
 

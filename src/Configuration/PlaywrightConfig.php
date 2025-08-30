@@ -10,6 +10,7 @@ declare(strict_types=1);
 
 namespace PlaywrightPHP\Configuration;
 
+use PlaywrightPHP\Browser\BrowserType;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -31,7 +32,7 @@ final class PlaywrightConfig
      */
     public function __construct(
         public readonly ?string $nodePath = null,
-        public readonly string $minNodeVersion = '18.0.0',
+        public readonly string $minNodeVersion = '20.0.0',
 
         public readonly BrowserType $browser = BrowserType::CHROMIUM,
         public readonly ?string $channel = null,

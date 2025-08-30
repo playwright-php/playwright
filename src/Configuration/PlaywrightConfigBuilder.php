@@ -10,6 +10,7 @@ declare(strict_types=1);
 
 namespace PlaywrightPHP\Configuration;
 
+use PlaywrightPHP\Browser\BrowserType;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -19,14 +20,14 @@ use Psr\Log\LoggerInterface;
  * - Browser: chromium
  * - Headless: true
  * - Timeout: 30s
- * - Node min version: 18.0.0
+ * - Node min version: 20.0.0
  *
  * @author Simon André <smn.andre@gmail.com>
  */
 final class PlaywrightConfigBuilder
 {
     private ?string $nodePath = null;
-    private string $minNodeVersion = '18.0.0';
+    private string $minNodeVersion = '20.0.0';
 
     private BrowserType $browser = BrowserType::CHROMIUM;
     private ?string $channel = null;

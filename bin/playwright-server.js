@@ -153,6 +153,7 @@ class PlaywrightServer {
     this.browsers = new Map();
     this.contexts = new Map();
     this.pages = new Map();
+    this.pageContexts = new Map();
     this.responses = new Map();
     this.browserCounter = 0;
     this.contextCounter = 0;
@@ -160,6 +161,8 @@ class PlaywrightServer {
     this.responseCounter = 0;
     this.routes = new Map();
     this.routeCounter = 0;
+    this.contextThrottling = new Map();
+    this.dialogs = new Map();
     this.elementHandleCounter = 0;
     this.elementHandles = new Map();
   }
@@ -221,6 +224,9 @@ class PlaywrightServer {
     }
     if (actionPrefix === 'route') {
       return await this.handleRouteCommand(command, actionMethod);
+    }
+    if (actionPrefix === 'response') {
+      return await this.handleResponseCommand(command, actionMethod);
     }
     if (actionPrefix === 'mouse') {
       return await this.handleMouseCommand(command, actionMethod);
@@ -289,10 +295,22 @@ class PlaywrightServer {
       case 'stopTracing':
         await context.tracing.stop({ path: command.path });
         return {success: true};
+      case 'waitForEvent':
+        await context.waitForEvent(command.event, { timeout: command.timeout });
+        return {success: true};
+      case 'setNetworkThrottling':
+        if (command.throttling && typeof command.throttling === 'object') {
+          this.contextThrottling.set(command.contextId, {
+            latency: Number(command.throttling.latency) || 0,
+            downloadThroughput: Number(command.throttling.downloadThroughput) || 0,
+            uploadThroughput: Number(command.throttling.uploadThroughput) || 0,
+          });
+        }
+        return {success: true};
       case 'route':
         await context.route(command.url, async (route) => {
           const routeId = `route_${++this.routeCounter}`;
-          this.routes.set(routeId, route);
+          this.routes.set(routeId, { route, contextId: command.contextId });
 
           const req = route.request();
           let postData = null;
@@ -326,6 +344,62 @@ class PlaywrightServer {
         const page = await context.newPage(command.options);
         const pageId = `page_${++this.pageCounter}`;
         this.pages.set(pageId, page);
+        this.pageContexts.set(pageId, command.contextId);
+
+        // Forward important page events
+        page.on('console', (msg) => {
+          const params = {
+            type: msg.type(),
+            text: msg.text(),
+            args: [],
+            location: msg.location ? msg.location() : {},
+          };
+          sendFramedResponse({ objectId: pageId, event: 'console', params });
+        });
+
+        page.on('dialog', (dialog) => {
+          const dialogId = `dialog_${Date.now()}_${Math.floor(Math.random()*1000)}`;
+          this.dialogs.set(dialogId, dialog);
+          const params = {
+            dialogId,
+            type: dialog.type(),
+            message: dialog.message(),
+            defaultValue: dialog.defaultValue ? dialog.defaultValue() : null,
+          };
+          sendFramedResponse({ objectId: pageId, event: 'dialog', params });
+        });
+
+        page.on('request', (req) => {
+          const params = {
+            request: {
+              url: req.url(),
+              method: req.method(),
+              headers: req.headers(),
+              postData: (() => { try { return req.postData(); } catch { return null; } })(),
+              resourceType: req.resourceType ? req.resourceType() : 'document',
+            }
+          };
+          sendFramedResponse({ objectId: pageId, event: 'request', params });
+        });
+
+        page.on('response', (res) => {
+          const params = { response: this.serializeResponse(res) };
+          sendFramedResponse({ objectId: pageId, event: 'response', params });
+        });
+
+        page.on('requestfailed', (req) => {
+          const params = {
+            request: {
+              url: req.url(),
+              method: req.method(),
+              headers: req.headers(),
+              postData: (() => { try { return req.postData(); } catch { return null; } })(),
+              resourceType: req.resourceType ? req.resourceType() : 'document',
+            }
+          };
+          sendFramedResponse({ objectId: pageId, event: 'requestfailed', params });
+        });
+
         return {pageId: pageId};
       case 'cookies':
         return {cookies: await context.cookies(command.urls)};
@@ -439,10 +513,22 @@ class PlaywrightServer {
       case 'addStyleTag':
         await page.addStyleTag(command.options);
         return {success: true};
+      case 'handleDialog':
+        const dialog = this.dialogs.get(command.dialogId);
+        if (dialog) {
+          if (command.accept) {
+            await dialog.accept(command.promptText);
+          } else {
+            await dialog.dismiss();
+          }
+          this.dialogs.delete(command.dialogId);
+        }
+        return {success: true};
       case 'route':
         await page.route(command.url, async (route) => {
           const routeId = `route_${++this.routeCounter}`;
-          this.routes.set(routeId, route);
+          const contextId = this.pageContexts.get(command.pageId);
+          this.routes.set(routeId, { route, contextId });
           
           const req = route.request();
           let postData = null;
@@ -547,6 +633,9 @@ class PlaywrightServer {
       case 'screenshot':
         const buffer = await locator.screenshot(command.options);
         return {binary: buffer.toString('base64')};
+      case 'setInputFiles':
+        await locator.setInputFiles(command.files, command.options);
+        return;
       case 'evaluate':
         try {
           const count = await locator.count();
@@ -596,8 +685,9 @@ class PlaywrightServer {
   }
 
   async handleRouteCommand(command, method) {
-    const route = this.routes.get(command.routeId);
-    if (!route) throw new Error(`Route not found: ${command.routeId}`);
+    const info = this.routes.get(command.routeId);
+    if (!info) throw new Error(`Route not found: ${command.routeId}`);
+    const route = info.route || info;
 
     switch (method) {
       case 'fulfill':
@@ -610,12 +700,31 @@ class PlaywrightServer {
         break;
       case 'continue':
         debugLogger.info('ROUTE CONTINUE', { routeId: command.routeId });
+        try {
+          const ctxId = info.contextId;
+          const throttle = ctxId ? this.contextThrottling.get(ctxId) : null;
+          if (throttle && throttle.latency && throttle.latency > 0) {
+            await new Promise(r => setTimeout(r, throttle.latency));
+          }
+        } catch {}
         await route.continue(command.options || undefined);
         break;
       default:
         throw new Error(`Unknown route action: ${method}`);
     }
     this.routes.delete(command.routeId);
+  }
+
+  async handleResponseCommand(command, method) {
+    switch (method) {
+      case 'body':
+        const res = this.responses.get(command.responseId);
+        if (!res) throw new Error(`Response not found: ${command.responseId}`);
+        const buf = await res.body();
+        return { binary: Buffer.from(buf).toString('base64') };
+      default:
+        throw new Error(`Unknown response action: ${method}`);
+    }
   }
 
   async handleMouseCommand(command, method) {
