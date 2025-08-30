@@ -289,6 +289,39 @@ class PlaywrightServer {
       case 'stopTracing':
         await context.tracing.stop({ path: command.path });
         return {success: true};
+      case 'route':
+        await context.route(command.url, async (route) => {
+          const routeId = `route_${++this.routeCounter}`;
+          this.routes.set(routeId, route);
+
+          const req = route.request();
+          let postData = null;
+          try {
+            postData = req.postData();
+          } catch (e) {
+            postData = null;
+          }
+          debugLogger.info('CTX ROUTE', { url: req.url(), method: req.method() });
+          const event = {
+            objectId: command.contextId,
+            event: 'route',
+            params: {
+              routeId,
+              request: {
+                url: req.url(),
+                method: req.method(),
+                headers: req.headers(),
+                postData: postData ?? null,
+                resourceType: req.resourceType ? req.resourceType() : 'document'
+              }
+            }
+          };
+          sendFramedResponse(event);
+        });
+        return {success: true};
+      case 'unroute':
+        await context.unroute(command.url);
+        return {success: true};
       case 'newPage':
         const page = await context.newPage(command.options);
         const pageId = `page_${++this.pageCounter}`;
@@ -327,8 +360,36 @@ class PlaywrightServer {
         const gotoResponse = await page.goto(command.url, command.options);
         return {response: this.serializeResponse(gotoResponse)};
       case 'evaluate':
-        const result = await page.evaluate(command.expression, command.arg);
-        return {result};
+        try {
+          // Attempt function-like evaluation first to support strings like '() => 42' or 'async () => {...}'
+          const attempt = await page.evaluate(async ({expression, arg}) => {
+            try {
+              const func = eval(`(${expression})`);
+              if (typeof func === 'function') {
+                const value = await func(arg);
+                return { ok: true, value };
+              }
+              return { ok: false, reason: 'not-a-function' };
+            } catch (e) {
+              return { ok: false, reason: e.message };
+            }
+          }, {expression: command.expression, arg: command.arg});
+
+          if (attempt && attempt.ok === true) {
+            const value = attempt.value === undefined ? null : attempt.value;
+            debugLogger.info('PAGE EVALUATE(FUNC) OK', { type: typeof value });
+            return {result: value};
+          }
+
+          // Fallback: treat expression as direct JS expression (e.g., 'window.foo')
+          const result = await page.evaluate(command.expression, command.arg);
+          const value = result === undefined ? null : result;
+          debugLogger.info('PAGE EVALUATE(EXPR) OK', { type: typeof value });
+          return {result: value};
+        } catch (error) {
+          debugLogger.error('PAGE EVALUATE ERROR', { message: error.message });
+          throw error;
+        }
       case 'waitForResponse':
         const jsAction = command.jsAction;
         const [response] = await Promise.all([
@@ -390,6 +451,7 @@ class PlaywrightServer {
           } catch (e) {
             postData = null;
           }
+          debugLogger.info('PAGE ROUTE', { url: req.url(), method: req.method() });
           const event = {
             objectId: command.pageId,
             event: 'route',
@@ -539,10 +601,16 @@ class PlaywrightServer {
 
     switch (method) {
       case 'fulfill':
+        debugLogger.info('ROUTE FULFILL', { routeId: command.routeId });
         await route.fulfill(command.options);
         break;
       case 'abort':
+        debugLogger.info('ROUTE ABORT', { routeId: command.routeId, errorCode: command.errorCode });
         await route.abort(command.errorCode);
+        break;
+      case 'continue':
+        debugLogger.info('ROUTE CONTINUE', { routeId: command.routeId });
+        await route.continue(command.options || undefined);
         break;
       default:
         throw new Error(`Unknown route action: ${method}`);
