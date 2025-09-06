@@ -11,6 +11,7 @@ declare(strict_types=1);
 namespace PlaywrightPHP\Locator;
 
 use PlaywrightPHP\Exception\PlaywrightException;
+use PlaywrightPHP\Exception\ProtocolErrorException;
 use PlaywrightPHP\Exception\TimeoutException;
 use PlaywrightPHP\Frame\FrameLocator;
 use PlaywrightPHP\Frame\FrameLocatorInterface;
@@ -138,7 +139,7 @@ final class Locator implements LocatorInterface
         $response = $this->sendCommand('locator.innerHTML');
         $value = $response['value'];
         if (!is_string($value)) {
-            throw new \RuntimeException('Invalid innerHTML response');
+            throw new ProtocolErrorException('Invalid innerHTML response', 0);
         }
 
         return $value;
@@ -149,7 +150,7 @@ final class Locator implements LocatorInterface
         $response = $this->sendCommand('locator.innerText');
         $value = $response['value'];
         if (!is_string($value)) {
-            throw new \RuntimeException('Invalid innerText response');
+            throw new ProtocolErrorException('Invalid innerText response', 0);
         }
 
         return $value;
@@ -160,7 +161,7 @@ final class Locator implements LocatorInterface
         $response = $this->sendCommand('locator.inputValue');
         $value = $response['value'];
         if (!is_string($value)) {
-            throw new \RuntimeException('Invalid inputValue response');
+            throw new ProtocolErrorException('Invalid inputValue response', 0);
         }
 
         return $value;

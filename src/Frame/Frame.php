@@ -11,6 +11,7 @@ declare(strict_types=1);
 namespace PlaywrightPHP\Frame;
 
 use PlaywrightPHP\Exception\PlaywrightException;
+use PlaywrightPHP\Exception\ProtocolErrorException;
 use PlaywrightPHP\Locator\Locator;
 use PlaywrightPHP\Locator\LocatorInterface;
 use PlaywrightPHP\Transport\TransportInterface;
@@ -75,7 +76,7 @@ final class Frame implements FrameInterface
         $response = $this->sendCommand('frame.name');
         $value = $response['value'] ?? null;
         if (!is_string($value)) {
-            throw new \RuntimeException('Invalid frame.name response');
+            throw new ProtocolErrorException('Invalid frame.name response', 0);
         }
 
         return $value;
@@ -86,7 +87,7 @@ final class Frame implements FrameInterface
         $response = $this->sendCommand('frame.url');
         $value = $response['value'] ?? null;
         if (!is_string($value)) {
-            throw new \RuntimeException('Invalid frame.url response');
+            throw new ProtocolErrorException('Invalid frame.url response', 0);
         }
 
         return $value;

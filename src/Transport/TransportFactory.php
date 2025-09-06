@@ -11,6 +11,7 @@ declare(strict_types=1);
 namespace PlaywrightPHP\Transport;
 
 use PlaywrightPHP\Configuration\PlaywrightConfig;
+use PlaywrightPHP\Exception\RuntimeException;
 use PlaywrightPHP\Node\NodeBinaryResolver;
 use PlaywrightPHP\Transport\JsonRpc\JsonRpcTransport;
 use PlaywrightPHP\Transport\JsonRpc\ProcessLauncher;
@@ -27,7 +28,7 @@ final class TransportFactory
         $serverScriptPath = $serverManager->getServerScriptPath();
 
         if (!$serverScriptPath || !file_exists($serverScriptPath)) {
-            throw new \RuntimeException('playwright-server.js not found.');
+            throw new RuntimeException('playwright-server.js not found.');
         }
 
         $nodePath = $config->nodePath ?? (new NodeBinaryResolver())->resolve();

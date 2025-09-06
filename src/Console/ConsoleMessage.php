@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace PlaywrightPHP\Console;
 
+use PlaywrightPHP\Exception\ProtocolErrorException;
+
 /**
  * @author Simon André <smn.andre@gmail.com>
  */
@@ -32,7 +34,7 @@ final class ConsoleMessage
     {
         $type = $this->data['type'];
         if (!is_string($type)) {
-            throw new \RuntimeException('Invalid console message type');
+            throw new ProtocolErrorException('Invalid console message type', 0);
         }
 
         return $type;
@@ -42,7 +44,7 @@ final class ConsoleMessage
     {
         $text = $this->data['text'];
         if (!is_string($text)) {
-            throw new \RuntimeException('Invalid console message text');
+            throw new ProtocolErrorException('Invalid console message text', 0);
         }
 
         return $text;
@@ -55,7 +57,7 @@ final class ConsoleMessage
     {
         $args = $this->data['args'];
         if (!is_array($args)) {
-            throw new \RuntimeException('Invalid console message args');
+            throw new ProtocolErrorException('Invalid console message args', 0);
         }
 
         return $args;
@@ -68,13 +70,13 @@ final class ConsoleMessage
     {
         $location = $this->data['location'];
         if (!is_array($location)) {
-            throw new \RuntimeException('Invalid console message location');
+            throw new ProtocolErrorException('Invalid console message location', 0);
         }
 
         $result = [];
         foreach ($location as $key => $value) {
             if (!is_string($key)) {
-                throw new \RuntimeException('Invalid console message location: non-string key');
+                throw new ProtocolErrorException('Invalid console message location: non-string key', 0);
             }
             $result[$key] = $value;
         }

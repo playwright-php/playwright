@@ -12,6 +12,8 @@ namespace PlaywrightPHP\Browser;
 
 use PlaywrightPHP\Configuration\PlaywrightConfig;
 use PlaywrightPHP\Event\EventDispatcherInterface;
+use PlaywrightPHP\Exception\ProtocolErrorException;
+use PlaywrightPHP\Exception\TransportException;
 use PlaywrightPHP\Network\NetworkThrottling;
 use PlaywrightPHP\Network\Route;
 use PlaywrightPHP\Page\Page;
@@ -60,10 +62,10 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
     {
         if ('route' === $eventName) {
             if (!is_string($params['routeId'])) {
-                throw new \RuntimeException('Invalid routeId in route event');
+                throw new ProtocolErrorException('Invalid routeId in route event', 0);
             }
             if (!is_array($params['request'])) {
-                throw new \RuntimeException('Invalid request data in route event');
+                throw new ProtocolErrorException('Invalid request data in route event', 0);
             }
             $route = new Route(
                 $this->transport,
@@ -126,11 +128,11 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
 
         if (isset($response['error'])) {
             $errorMsg = is_string($response['error']) ? $response['error'] : 'Unknown transport error';
-            throw new \RuntimeException('Transport error in newPage: '.$errorMsg);
+            throw new TransportException('Transport error in newPage: '.$errorMsg);
         }
 
         if (!isset($response['pageId']) || !is_string($response['pageId'])) {
-            throw new \RuntimeException('No valid pageId returned from transport in newPage');
+            throw new ProtocolErrorException('No valid pageId returned from transport in newPage', 0);
         }
 
         $page = new Page($this->transport, $this, $response['pageId'], $this->config);
@@ -147,7 +149,7 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
         ]);
 
         if (!is_string($response['value'])) {
-            throw new \RuntimeException('Invalid clipboard text response');
+            throw new ProtocolErrorException('Invalid clipboard text response', 0);
         }
 
         return $response['value'];
@@ -210,7 +212,7 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
         ]);
 
         if (!is_array($response['cookies'])) {
-            throw new \RuntimeException('Invalid cookies response');
+            throw new ProtocolErrorException('Invalid cookies response', 0);
         }
 
         /** @phpstan-var array<array<string, mixed>> $cookies */
@@ -271,7 +273,7 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
         ]);
 
         if (!is_array($response['storageState'])) {
-            throw new \RuntimeException('Invalid storageState response');
+            throw new ProtocolErrorException('Invalid storageState response', 0);
         }
 
         /** @phpstan-var array<string, mixed> $storageState */
@@ -420,13 +422,13 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
     private function validateTransportArray(mixed $data, string $context = ''): array
     {
         if (!is_array($data)) {
-            throw new \RuntimeException("Invalid {$context} data in transport response");
+            throw new ProtocolErrorException("Invalid {$context} data in transport response", 0);
         }
 
         $result = [];
         foreach ($data as $key => $value) {
             if (!is_string($key)) {
-                throw new \RuntimeException("Invalid {$context} payload: non-string key in transport response");
+                throw new ProtocolErrorException("Invalid {$context} payload: non-string key in transport response", 0);
             }
             $result[$key] = $value;
         }

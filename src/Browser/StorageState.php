@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace PlaywrightPHP\Browser;
 
+use PlaywrightPHP\Exception\RuntimeException;
+
 /**
  * Storage state container for cookies and localStorage data.
  *
@@ -64,7 +66,7 @@ final readonly class StorageState
 
         $content = \file_get_contents($filePath);
         if (false === $content) {
-            throw new \RuntimeException(\sprintf('Failed to read storage state file: %s', $filePath));
+            throw new RuntimeException(\sprintf('Failed to read storage state file: %s', $filePath));
         }
 
         return self::fromJson($content);
@@ -111,12 +113,12 @@ final readonly class StorageState
     {
         $directory = \dirname($filePath);
         if (!\is_dir($directory) && !\mkdir($directory, 0755, true) && !\is_dir($directory)) {
-            throw new \RuntimeException(\sprintf('Failed to create directory: %s', $directory));
+            throw new RuntimeException(\sprintf('Failed to create directory: %s', $directory));
         }
 
         $result = \file_put_contents($filePath, $this->toJson(JSON_PRETTY_PRINT));
         if (false === $result) {
-            throw new \RuntimeException(\sprintf('Failed to write storage state file: %s', $filePath));
+            throw new RuntimeException(\sprintf('Failed to write storage state file: %s', $filePath));
         }
     }
 
