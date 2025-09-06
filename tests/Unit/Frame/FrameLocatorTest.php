@@ -14,7 +14,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use PlaywrightPHP\FrameLocator\FrameLocator;
+use PlaywrightPHP\Frame\FrameLocator;
 use PlaywrightPHP\Locator\Locator;
 use PlaywrightPHP\Locator\LocatorInterface;
 use PlaywrightPHP\Transport\TransportInterface;

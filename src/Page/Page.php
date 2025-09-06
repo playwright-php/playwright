@@ -18,8 +18,10 @@ use PlaywrightPHP\Event\EventDispatcherInterface;
 use PlaywrightPHP\Exception\NetworkException;
 use PlaywrightPHP\Exception\PlaywrightException;
 use PlaywrightPHP\Exception\TimeoutException;
-use PlaywrightPHP\FrameLocator\FrameLocator;
-use PlaywrightPHP\FrameLocator\FrameLocatorInterface;
+use PlaywrightPHP\Frame\Frame;
+use PlaywrightPHP\Frame\FrameInterface;
+use PlaywrightPHP\Frame\FrameLocator;
+use PlaywrightPHP\Frame\FrameLocatorInterface;
 use PlaywrightPHP\Input\Keyboard;
 use PlaywrightPHP\Input\KeyboardInterface;
 use PlaywrightPHP\Input\Mouse;
@@ -577,6 +579,46 @@ final class Page implements PageInterface, EventDispatcherInterface
     public function frameLocator(string $selector): FrameLocatorInterface
     {
         return new FrameLocator($this->transport, $this->pageId, $selector);
+    }
+
+    public function mainFrame(): FrameInterface
+    {
+        return new Frame($this->transport, $this->pageId, ':root');
+    }
+
+    /**
+     * @return array<FrameInterface>
+     */
+    public function frames(): array
+    {
+        $response = $this->sendCommand('frames');
+        $frames = $response['frames'] ?? [];
+        if (!\is_array($frames)) {
+            return [];
+        }
+
+        $result = [];
+        foreach ($frames as $frameData) {
+            if (\is_array($frameData) && isset($frameData['selector']) && \is_string($frameData['selector'])) {
+                $result[] = new Frame($this->transport, $this->pageId, $frameData['selector']);
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param array{name?: string, url?: string, urlRegex?: string} $options
+     */
+    public function frame(array $options): ?FrameInterface
+    {
+        $response = $this->sendCommand('frame', ['options' => $options]);
+        $selector = $response['selector'] ?? null;
+        if (\is_string($selector)) {
+            return new Frame($this->transport, $this->pageId, $selector);
+        }
+
+        return null;
     }
 
     public function route(string $url, callable $handler): void

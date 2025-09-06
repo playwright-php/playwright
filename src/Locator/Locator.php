@@ -12,8 +12,8 @@ namespace PlaywrightPHP\Locator;
 
 use PlaywrightPHP\Exception\PlaywrightException;
 use PlaywrightPHP\Exception\TimeoutException;
-use PlaywrightPHP\FrameLocator\FrameLocator;
-use PlaywrightPHP\FrameLocator\FrameLocatorInterface;
+use PlaywrightPHP\Frame\FrameLocator;
+use PlaywrightPHP\Frame\FrameLocatorInterface;
 use PlaywrightPHP\Transport\TransportInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -24,6 +24,7 @@ use Psr\Log\NullLogger;
 final class Locator implements LocatorInterface
 {
     private SelectorChain $selectorChain;
+
     private LoggerInterface $logger;
 
     public function __construct(
@@ -44,6 +45,11 @@ final class Locator implements LocatorInterface
     public function __toString(): string
     {
         return 'Locator(selector="'.$this->selectorChain.'")';
+    }
+
+    public function getSelector(): string
+    {
+        return (string) $this->selectorChain;
     }
 
     /**
@@ -163,65 +169,57 @@ final class Locator implements LocatorInterface
     public function isAttached(): bool
     {
         $response = $this->sendCommand('locator.isAttached');
-        $value = $response['value'];
 
-        return is_bool($value) ? $value : false;
+        return true === $response['value'];
     }
 
     public function isChecked(): bool
     {
         $response = $this->sendCommand('locator.isChecked');
-        $value = $response['value'];
 
-        return is_bool($value) ? $value : false;
+        return true === $response['value'];
     }
 
     public function isDisabled(): bool
     {
         $response = $this->sendCommand('locator.isDisabled');
-        $value = $response['value'];
 
-        return is_bool($value) ? $value : false;
+        return true === $response['value'];
     }
 
     public function isEditable(): bool
     {
         $response = $this->sendCommand('locator.isEditable');
-        $value = $response['value'];
 
-        return is_bool($value) ? $value : false;
+        return true === $response['value'];
     }
 
     public function isEmpty(): bool
     {
         $response = $this->sendCommand('locator.isEmpty');
-        $value = $response['value'];
 
-        return is_bool($value) ? $value : false;
+        return true === $response['value'];
     }
 
     public function isEnabled(): bool
     {
         $response = $this->sendCommand('locator.isEnabled');
-        $value = $response['value'];
 
-        return is_bool($value) ? $value : false;
+        return true === $response['value'];
     }
 
     public function isHidden(): bool
     {
         $response = $this->sendCommand('locator.isHidden');
-        $value = $response['value'];
 
-        return is_bool($value) ? $value : false;
+        return true === $response['value'];
     }
 
     public function isVisible(): bool
     {
         $response = $this->sendCommand('locator.isVisible');
-        $value = $response['value'];
 
-        return is_bool($value) ? $value : false;
+        return true === $response['value'];
     }
 
     public function locator(string $selector): self

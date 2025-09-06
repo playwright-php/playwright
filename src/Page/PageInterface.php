@@ -11,7 +11,8 @@ declare(strict_types=1);
 namespace PlaywrightPHP\Page;
 
 use PlaywrightPHP\Browser\BrowserContextInterface;
-use PlaywrightPHP\FrameLocator\FrameLocatorInterface;
+use PlaywrightPHP\Frame\FrameInterface;
+use PlaywrightPHP\Frame\FrameLocatorInterface;
 use PlaywrightPHP\Input\KeyboardInterface;
 use PlaywrightPHP\Input\MouseInterface;
 use PlaywrightPHP\Locator\LocatorInterface;
@@ -144,4 +145,23 @@ interface PageInterface
      * @param array<string, mixed> $options  Additional options
      */
     public function setInputFiles(string $selector, array $files, array $options = []): self;
+
+    /**
+     * Get a handle to the main frame.
+     */
+    public function mainFrame(): FrameInterface;
+
+    /**
+     * List top-level child frames of the main frame.
+     *
+     * @return array<FrameInterface>
+     */
+    public function frames(): array;
+
+    /**
+     * Find a top-level frame by name or URL.
+     *
+     * @param array{name?: string, url?: string, urlRegex?: string} $options
+     */
+    public function frame(array $options): ?FrameInterface;
 }
