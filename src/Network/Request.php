@@ -78,7 +78,7 @@ final class Request implements RequestInterface
         if (null === $postData) {
             return null;
         }
-        
+
         if (!json_validate($postData)) {
             return null;
         }
