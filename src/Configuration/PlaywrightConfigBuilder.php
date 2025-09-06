@@ -265,16 +265,16 @@ final class PlaywrightConfigBuilder
         if ($this->slowMoMs < 0) {
             throw new \InvalidArgumentException('slowMoMs must be >= 0');
         }
-        if (null !== $this->channel && '' === $this->channel) {
+        if ('' === $this->channel) {
             $this->channel = null;
         }
-        if (null !== $this->downloadsDir && '' === $this->downloadsDir) {
+        if ('' === $this->downloadsDir) {
             $this->downloadsDir = null;
         }
-        if (null !== $this->videosDir && '' === $this->videosDir) {
+        if ('' === $this->videosDir) {
             $this->videosDir = null;
         }
-        if ($this->tracingEnabled && null !== $this->traceDir && '' === $this->traceDir) {
+        if ($this->tracingEnabled && '' === $this->traceDir) {
             $this->traceDir = null;
         }
 

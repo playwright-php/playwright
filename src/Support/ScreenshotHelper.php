@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace PlaywrightPHP\Support;
 
+use PlaywrightPHP\Exception\RuntimeException;
+
 /**
  * Utility for generating screenshot filenames and managing screenshot directories.
  *
@@ -93,7 +95,7 @@ final class ScreenshotHelper
         }
 
         if (!mkdir($directory, 0755, true) && !is_dir($directory)) {
-            throw new \RuntimeException(sprintf('Failed to create screenshot directory: %s', $directory));
+            throw new RuntimeException(sprintf('Failed to create screenshot directory: %s', $directory));
         }
     }
 

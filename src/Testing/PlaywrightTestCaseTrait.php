@@ -15,6 +15,7 @@ use Monolog\Logger;
 use PlaywrightPHP\Browser\BrowserContextInterface;
 use PlaywrightPHP\Browser\BrowserInterface;
 use PlaywrightPHP\Configuration\PlaywrightConfig;
+use PlaywrightPHP\Exception\RuntimeException;
 use PlaywrightPHP\Locator\LocatorInterface;
 use PlaywrightPHP\Page\PageInterface;
 use PlaywrightPHP\PlaywrightClient;
@@ -137,7 +138,7 @@ trait PlaywrightTestCaseTrait
             $failuresDir = getcwd().'/test-failures';
             if (!is_dir($failuresDir)) {
                 if (!mkdir($failuresDir, 0777, true) && !is_dir($failuresDir)) {
-                    throw new \RuntimeException(sprintf('Directory "%s" was not created', $failuresDir));
+                    throw new RuntimeException(sprintf('Directory "%s" was not created', $failuresDir));
                 }
             }
             $testName = 'test';

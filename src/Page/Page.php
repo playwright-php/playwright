@@ -17,6 +17,8 @@ use PlaywrightPHP\Dialog\Dialog;
 use PlaywrightPHP\Event\EventDispatcherInterface;
 use PlaywrightPHP\Exception\NetworkException;
 use PlaywrightPHP\Exception\PlaywrightException;
+use PlaywrightPHP\Exception\ProtocolErrorException;
+use PlaywrightPHP\Exception\RuntimeException;
 use PlaywrightPHP\Exception\TimeoutException;
 use PlaywrightPHP\Frame\Frame;
 use PlaywrightPHP\Frame\FrameInterface;
@@ -178,7 +180,7 @@ final class Page implements PageInterface, EventDispatcherInterface
         );
 
         if (!is_string($finalPath)) {
-            throw new \RuntimeException('Invalid screenshot path generated');
+            throw new RuntimeException('Invalid screenshot path generated');
         }
 
         $this->logger->debug('Taking screenshot', ['path' => $finalPath, 'options' => $options]);
@@ -477,7 +479,7 @@ final class Page implements PageInterface, EventDispatcherInterface
         $response = $this->sendCommand('url');
         $url = $response['value'];
         if (!is_string($url)) {
-            throw new \RuntimeException('Invalid URL response from transport');
+            throw new ProtocolErrorException('Invalid URL response from transport', 0);
         }
 
         return $url;
@@ -488,7 +490,7 @@ final class Page implements PageInterface, EventDispatcherInterface
         $response = $this->sendCommand('title');
         $title = $response['value'];
         if (!is_string($title)) {
-            throw new \RuntimeException('Invalid title response from transport');
+            throw new ProtocolErrorException('Invalid title response from transport', 0);
         }
 
         return $title;
@@ -512,7 +514,7 @@ final class Page implements PageInterface, EventDispatcherInterface
             || !is_int($viewport['width'])
             || !is_int($viewport['height'])
         ) {
-            throw new \RuntimeException('Invalid viewportSize response from transport');
+            throw new ProtocolErrorException('Invalid viewportSize response from transport', 0);
         }
 
         /* @var array{width: int, height: int} $viewport */
@@ -729,12 +731,12 @@ final class Page implements PageInterface, EventDispatcherInterface
     private function validateRequestData(mixed $data): array
     {
         if (!is_array($data)) {
-            throw new \RuntimeException('Invalid request data from transport');
+            throw new ProtocolErrorException('Invalid request data from transport', 0);
         }
         $result = [];
         foreach ($data as $key => $value) {
             if (!is_string($key)) {
-                throw new \RuntimeException('Invalid request data from transport: non-string key');
+                throw new ProtocolErrorException('Invalid request data from transport: non-string key', 0);
             }
             $result[$key] = $value;
         }
@@ -750,12 +752,12 @@ final class Page implements PageInterface, EventDispatcherInterface
     private function validateResponseData(mixed $data): array
     {
         if (!is_array($data)) {
-            throw new \RuntimeException('Invalid response data from transport');
+            throw new ProtocolErrorException('Invalid response data from transport', 0);
         }
         $result = [];
         foreach ($data as $key => $value) {
             if (!is_string($key)) {
-                throw new \RuntimeException('Invalid response data from transport: non-string key');
+                throw new ProtocolErrorException('Invalid response data from transport: non-string key', 0);
             }
             $result[$key] = $value;
         }

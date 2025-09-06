@@ -11,6 +11,8 @@ declare(strict_types=1);
 namespace PlaywrightPHP\Browser;
 
 use PlaywrightPHP\Configuration\PlaywrightConfig;
+use PlaywrightPHP\Exception\ProtocolErrorException;
+use PlaywrightPHP\Exception\RuntimeException;
 use PlaywrightPHP\Page\PageInterface;
 use PlaywrightPHP\Transport\TransportInterface;
 
@@ -42,7 +44,7 @@ final class Browser implements BrowserInterface
     public function context(): BrowserContextInterface
     {
         if (null === $this->defaultContext) {
-            throw new \RuntimeException('Default context is not available');
+            throw new RuntimeException('Default context is not available');
         }
 
         return $this->defaultContext;
@@ -60,7 +62,7 @@ final class Browser implements BrowserInterface
         ]);
 
         if (!is_string($response['contextId'])) {
-            throw new \RuntimeException('Invalid contextId returned from transport');
+            throw new ProtocolErrorException('Invalid contextId returned from transport', 0);
         }
 
         $context = new BrowserContext($this->transport, $response['contextId'], $this->config);

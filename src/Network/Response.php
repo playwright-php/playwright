@@ -10,6 +10,7 @@ declare(strict_types=1);
 
 namespace PlaywrightPHP\Network;
 
+use PlaywrightPHP\Exception\ProtocolErrorException;
 use PlaywrightPHP\Transport\TransportInterface;
 
 /**
@@ -35,7 +36,7 @@ final class Response implements ResponseInterface
     {
         $url = $this->data['url'];
         if (!is_string($url)) {
-            throw new \RuntimeException('Invalid URL in response data');
+            throw new ProtocolErrorException('Invalid URL in response data', 0);
         }
 
         return $url;
@@ -45,7 +46,7 @@ final class Response implements ResponseInterface
     {
         $status = $this->data['status'];
         if (!is_int($status)) {
-            throw new \RuntimeException('Invalid status in response data');
+            throw new ProtocolErrorException('Invalid status in response data', 0);
         }
 
         return $status;
@@ -55,7 +56,7 @@ final class Response implements ResponseInterface
     {
         $statusText = $this->data['statusText'];
         if (!is_string($statusText)) {
-            throw new \RuntimeException('Invalid statusText in response data');
+            throw new ProtocolErrorException('Invalid statusText in response data', 0);
         }
 
         return $statusText;
@@ -94,11 +95,11 @@ final class Response implements ResponseInterface
             ]);
             $binary = $response['binary'];
             if (!is_string($binary)) {
-                throw new \RuntimeException('Invalid binary response data');
+                throw new ProtocolErrorException('Invalid binary response data', 0);
             }
             $decoded = base64_decode($binary);
             if (false === $decoded) {
-                throw new \RuntimeException('Failed to decode binary response data');
+                throw new ProtocolErrorException('Failed to decode binary response data', 0);
             }
             $this->body = $decoded;
         }

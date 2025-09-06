@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace PlaywrightPHP\Support;
 
+use PlaywrightPHP\Exception\RuntimeException;
+
 /**
  * Utility class for sanitizing sensitive data from logs and error messages.
  *
@@ -93,11 +95,11 @@ final class Sanitizer
     {
         $json = json_encode($object);
         if (false === $json) {
-            throw new \RuntimeException('Failed to encode object to JSON');
+            throw new RuntimeException('Failed to encode object to JSON');
         }
         $array = json_decode($json, true);
         if (!is_array($array)) {
-            throw new \RuntimeException('Object could not be converted to array');
+            throw new RuntimeException('Object could not be converted to array');
         }
         $sanitized = self::sanitizeArray($array);
 
@@ -126,7 +128,7 @@ final class Sanitizer
         foreach ($patterns as $pattern => $replacement) {
             $result = preg_replace($pattern, $replacement, $string);
             if (null === $result) {
-                throw new \RuntimeException('preg_replace failed');
+                throw new RuntimeException('preg_replace failed');
             }
             $string = $result;
         }

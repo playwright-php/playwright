@@ -18,7 +18,7 @@ use Psr\Log\LoggerInterface;
 /**
  * @author Simon André <smn.andre@gmail.com>
  */
-class BrowserBuilder
+final class BrowserBuilder
 {
     /**
      * @var array<string, mixed>

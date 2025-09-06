@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 namespace PlaywrightPHP\Network;
 
+use PlaywrightPHP\Exception\ProtocolErrorException;
+
 /**
  * @author Simon André <smn.andre@gmail.com>
  */
@@ -27,7 +29,7 @@ final class Request implements RequestInterface
     {
         $url = $this->data['url'];
         if (!is_string($url)) {
-            throw new \RuntimeException('Invalid URL in request data');
+            throw new ProtocolErrorException('Invalid URL in request data', 0);
         }
 
         return $url;
@@ -37,7 +39,7 @@ final class Request implements RequestInterface
     {
         $method = $this->data['method'];
         if (!is_string($method)) {
-            throw new \RuntimeException('Invalid method in request data');
+            throw new ProtocolErrorException('Invalid method in request data', 0);
         }
 
         return $method;
@@ -96,7 +98,7 @@ final class Request implements RequestInterface
     {
         $resourceType = $this->data['resourceType'];
         if (!is_string($resourceType)) {
-            throw new \RuntimeException('Invalid resourceType in request data');
+            throw new ProtocolErrorException('Invalid resourceType in request data', 0);
         }
 
         return $resourceType;
