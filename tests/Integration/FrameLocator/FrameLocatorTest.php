@@ -13,7 +13,7 @@ namespace PlaywrightPHP\Tests\Integration\FrameLocator;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use PlaywrightPHP\FrameLocator\FrameLocator;
+use PlaywrightPHP\Frame\FrameLocator;
 use PlaywrightPHP\Testing\PlaywrightTestCaseTrait;
 use PlaywrightPHP\Tests\Support\RouteServerTestTrait;
 

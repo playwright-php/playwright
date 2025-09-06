@@ -234,6 +234,9 @@ class PlaywrightServer {
     if (actionPrefix === 'keyboard') {
       return await this.handleKeyboardCommand(command, actionMethod);
     }
+    if (actionPrefix === 'frame') {
+      return await this.handleFrameCommand(command, actionMethod);
+    }
     switch (command.action) {
       case 'launch':
         return await this.launchBrowser(command);
@@ -245,6 +248,138 @@ class PlaywrightServer {
         return await this.exit();
       default:
         throw new Error(`Unknown action: ${command.action}`);
+    }
+  }
+
+  async handleFrameCommand(command, method) {
+    const page = this.pages.get(command.pageId);
+    if (!page) throw new Error(`Page not found: ${command.pageId}`);
+
+    const isMainFrame = !command.frameSelector || command.frameSelector === ':root';
+    const resolveFrameLocator = (page, chain) => {
+      if (!chain || chain === ':root') return page;
+      const parts = String(chain).split(' >> ').filter(Boolean);
+      let fl = page;
+      for (const part of parts) fl = fl.frameLocator(part);
+      return fl;
+    };
+    const frameLocator = isMainFrame ? null : resolveFrameLocator(page, command.frameSelector);
+
+    const evalInFrame = async (expression) => {
+      if (isMainFrame) {
+        return await page.evaluate(expression);
+      }
+      const loc = frameLocator.locator('html');
+      const count = await loc.count();
+      if (count === 0) return null;
+      return await loc.evaluate(expression);
+    };
+
+    const waitForReadyState = async (state, timeoutMs) => {
+      const start = Date.now();
+      const deadline = start + timeoutMs;
+      const target = state || 'load';
+      const predicate = async () => {
+        const readyState = await evalInFrame(() => document.readyState);
+        if (readyState === null) return false; // detached
+        if (target === 'load') return readyState === 'complete';
+        if (target === 'domcontentloaded') return readyState === 'interactive' || readyState === 'complete';
+        if (target === 'networkidle') return readyState === 'complete'; // approximation
+        return readyState === 'complete';
+      };
+      while (Date.now() < deadline) {
+        try {
+          if (await predicate()) return;
+        } catch {}
+        await new Promise(r => setTimeout(r, 50));
+      }
+      throw new Error(`Timeout waiting for load state: ${state || 'load'}`);
+    };
+
+    switch (method) {
+      case 'name': {
+        const value = await evalInFrame(() => window.name || '');
+        return { value: value ?? '' };
+      }
+      case 'url': {
+        const value = await evalInFrame(() => document.location.href);
+        return { value: value ?? '' };
+      }
+      case 'isDetached': {
+        if (isMainFrame) return { value: false };
+        const count = await frameLocator.locator('html').count();
+        return { value: count === 0 };
+      }
+      case 'waitForLoadState': {
+        const timeout = (command.options && typeof command.options.timeout === 'number') ? command.options.timeout : 30000;
+        if (isMainFrame) {
+          await page.waitForLoadState(command.state || 'load', command.options || {});
+          return { success: true };
+        }
+        await frameLocator.locator('body').waitFor({ state: 'attached', timeout });
+        await waitForReadyState(command.state || 'load', timeout);
+        return { success: true };
+      }
+      case 'parent': {
+        if (isMainFrame) return { selector: null };
+        const parts = String(command.frameSelector).split(' >> ').filter(Boolean);
+        parts.pop();
+        const parentSelector = parts.length ? parts.join(' >> ') : ':root';
+        return { selector: parentSelector };
+      }
+      case 'children': {
+        const buildSelectors = async () => {
+          const compute = (root) => {
+            const esc = (s) => (typeof CSS !== 'undefined' && CSS.escape) ? CSS.escape(s) : String(s).replace(/[^a-zA-Z0-9_-]/g, (m) => `\\${m}`);
+            const iframes = Array.from(root.ownerDocument.querySelectorAll('iframe'));
+            return iframes.map((node, idx) => {
+              const id = node.id;
+              if (id) return `iframe#${esc(id)}`;
+              const name = node.getAttribute('name');
+              if (name) return `iframe[name="${name}"]`;
+              const src = node.getAttribute('src');
+              if (src) return `iframe[src="${src}"]`;
+              return `iframe >> nth=${idx}`;
+            });
+          };
+          if (isMainFrame) {
+            return await page.evaluate(() => {
+              const esc = (s) => (typeof CSS !== 'undefined' && CSS.escape) ? CSS.escape(s) : String(s).replace(/[^a-zA-Z0-9_-]/g, (m) => `\\${m}`);
+              const iframes = Array.from(document.querySelectorAll('iframe'));
+              return iframes.map((node, idx) => {
+                const id = node.id;
+                if (id) return `iframe#${esc(id)}`;
+                const name = node.getAttribute('name');
+                if (name) return `iframe[name="${name}"]`;
+                const src = node.getAttribute('src');
+                if (src) return `iframe[src="${src}"]`;
+                return `iframe >> nth=${idx}`;
+              });
+            });
+          }
+          const results = await frameLocator.locator('html').evaluate((root) => {
+            const esc = (s) => (typeof CSS !== 'undefined' && CSS.escape) ? CSS.escape(s) : String(s).replace(/[^a-zA-Z0-9_-]/g, (m) => `\\${m}`);
+            const iframes = Array.from(root.ownerDocument.querySelectorAll('iframe'));
+            return iframes.map((node, idx) => {
+              const id = node.id;
+              if (id) return `iframe#${esc(id)}`;
+              const name = node.getAttribute('name');
+              if (name) return `iframe[name="${name}"]`;
+              const src = node.getAttribute('src');
+              if (src) return `iframe[src="${src}"]`;
+              return `iframe >> nth=${idx}`;
+            });
+          });
+          return results || [];
+        };
+
+        const childSelectors = await buildSelectors();
+        const prefix = isMainFrame ? '' : (String(command.frameSelector) + ' >> ');
+        const frames = childSelectors.map(sel => ({ selector: prefix + sel }));
+        return { frames };
+      }
+      default:
+        throw new Error(`Unknown frame action: ${method}`);
     }
   }
 
@@ -564,6 +699,94 @@ class PlaywrightServer {
       case 'reload':
         await page.reload(command.options);
         return;
+      case 'frames': {
+        const all = page.frames();
+        const main = page.mainFrame();
+        const framesOut = [];
+        const selectorFor = async (frame) => {
+          if (frame === main) return ':root';
+          const chain = [];
+          let cur = frame;
+          while (cur && cur !== main) {
+            const element = await cur.frameElement();
+            const sel = await element.evaluate((node) => {
+              const esc = (s) => (typeof CSS !== 'undefined' && CSS.escape) ? CSS.escape(s) : String(s).replace(/[^a-zA-Z0-9_-]/g, (m) => `\\${m}`);
+              const id = node.id;
+              if (id) return `iframe#${esc(id)}`;
+              const name = node.getAttribute('name');
+              if (name) return `iframe[name="${name}"]`;
+              const src = node.getAttribute('src');
+              if (src) return `iframe[src="${src}"]`;
+              const iframes = Array.from(node.ownerDocument.querySelectorAll('iframe'));
+              const idx = iframes.indexOf(node);
+              return `iframe >> nth=${idx}`;
+            });
+            chain.unshift(sel);
+            cur = cur.parentFrame();
+          }
+          return chain.join(' >> ');
+        };
+        for (const f of all) {
+          if (f === main) continue;
+          const selector = await selectorFor(f);
+          framesOut.push({ selector });
+        }
+        return { frames: framesOut };
+      }
+      case 'frame': {
+        const opts = command.options || {};
+        const all = page.frames();
+        const main = page.mainFrame();
+        let target = null;
+        for (const f of all) {
+          if (f === main) continue;
+          const fname = f.name();
+          const furl = f.url();
+          let matched = false;
+          if (opts.name && typeof opts.name === 'string') matched = fname === opts.name;
+          if (!matched && opts.url && typeof opts.url === 'string') matched = furl === opts.url;
+          if (!matched && opts.urlRegex && typeof opts.urlRegex === 'string') {
+            try {
+              const raw = String(opts.urlRegex);
+              let regex;
+              if (raw.startsWith('/')) {
+                const last = raw.lastIndexOf('/');
+                const pattern = raw.slice(1, last > 0 ? last : raw.length);
+                const flags = last > 0 ? raw.slice(last + 1) : '';
+                regex = new RegExp(pattern, flags);
+              } else {
+                regex = new RegExp(raw);
+              }
+              matched = regex.test(furl);
+            } catch {}
+          }
+          if (matched) { target = f; break; }
+        }
+        if (!target) return { selector: null };
+        const selector = await (async () => {
+          const chain = [];
+          let cur = target;
+          while (cur && cur !== main) {
+            const element = await cur.frameElement();
+            const sel = await element.evaluate((node) => {
+              const esc = (s) => (typeof CSS !== 'undefined' && CSS.escape) ? CSS.escape(s) : String(s).replace(/[^a-zA-Z0-9_-]/g, (m) => `\\${m}`);
+              const id = node.id;
+              if (id) return `iframe#${esc(id)}`;
+              const name = node.getAttribute('name');
+              if (name) return `iframe[name="${name}"]`;
+              const src = node.getAttribute('src');
+              if (src) return `iframe[src="${src}"]`;
+              const iframes = Array.from(node.ownerDocument.querySelectorAll('iframe'));
+              const idx = iframes.indexOf(node);
+              return `iframe >> nth=${idx}`;
+            });
+            chain.unshift(sel);
+            cur = cur.parentFrame();
+          }
+          return chain.join(' >> ');
+        })();
+        return { selector };
+      }
       default:
         throw new Error(`Unknown page action: ${method}`);
     }
@@ -575,7 +798,14 @@ class PlaywrightServer {
 
     let locator;
     if (command.frameSelector) {
-      locator = page.frameLocator(command.frameSelector).locator(command.selector);
+      const resolveFrameLocator = (page, chain) => {
+        if (!chain || chain === ':root') return page;
+        const parts = String(chain).split(' >> ').filter(Boolean);
+        let fl = page;
+        for (const part of parts) fl = fl.frameLocator(part);
+        return fl;
+      };
+      locator = resolveFrameLocator(page, command.frameSelector).locator(command.selector);
     } else {
       locator = page.locator(command.selector);
     }

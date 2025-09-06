@@ -10,7 +10,7 @@ declare(strict_types=1);
 
 namespace PlaywrightPHP\Locator;
 
-use PlaywrightPHP\FrameLocator\FrameLocatorInterface;
+use PlaywrightPHP\Frame\FrameLocatorInterface;
 
 /**
  * @author Simon André <smn.andre@gmail.com>
@@ -150,4 +150,6 @@ interface LocatorInterface
     public function evaluate(string $expression, mixed $arg = null): mixed;
 
     public function frameLocator(string $selector): FrameLocatorInterface;
+
+    public function getSelector(): string;
 }

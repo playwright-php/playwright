@@ -129,7 +129,19 @@ final class JsonRpcTransport implements TransportInterface
         }
 
         if ($this->process && $this->process->isRunning()) {
-            $this->process->stop();
+            // First attempt a graceful terminate via launcher (fast path),
+            // then always call Process::stop() to satisfy teardown expectations
+            // and ensure the underlying process is fully reaped.
+            try {
+                $this->processLauncher->terminate($this->process, 0.5);
+            } catch (\Throwable) {
+                // ignore, will still call stop()
+            }
+            try {
+                $this->process->stop(0.25);
+            } catch (\Throwable) {
+                // ignore failures on stop during shutdown
+            }
             $this->process = null;
         }
 

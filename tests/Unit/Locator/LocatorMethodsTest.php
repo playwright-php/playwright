@@ -12,7 +12,7 @@ namespace PlaywrightPHP\Tests\Unit\Locator;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use PlaywrightPHP\FrameLocator\FrameLocatorInterface;
+use PlaywrightPHP\Frame\FrameLocatorInterface;
 use PlaywrightPHP\Locator\Locator;
 use PlaywrightPHP\Transport\TransportInterface;
 
