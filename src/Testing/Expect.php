@@ -65,6 +65,19 @@ final class Expect implements ExpectInterface
         );
     }
 
+    public function toBeEmpty(): void
+    {
+        if (!$this->subject instanceof LocatorInterface) {
+            throw new \InvalidArgumentException('toBeEmpty() can only be used with LocatorInterface');
+        }
+
+        $this->retryAssertion(
+            fn () => $this->subject->isEmpty(),
+            !$this->negated,
+            $this->negated ? 'Locator is empty, but expected not to be.' : 'Locator is not empty.'
+        );
+    }
+
     public function toHaveText(string $text): void
     {
         if (!$this->subject instanceof LocatorInterface) {
@@ -250,6 +263,19 @@ final class Expect implements ExpectInterface
         );
     }
 
+    public function toHaveFocus(): void
+    {
+        if (!$this->subject instanceof LocatorInterface) {
+            throw new \InvalidArgumentException('toHaveFocus() can only be used with LocatorInterface');
+        }
+
+        $this->retryAssertion(
+            fn () => (bool) $this->subject->evaluate('(element) => document.activeElement === element'),
+            !$this->negated,
+            $this->negated ? 'Locator has focus, but expected not to have.' : 'Locator has not focus.'
+        );
+    }
+
     public function toHaveTitle(string $title): void
     {
         if (!$this->subject instanceof PageInterface) {
@@ -294,6 +320,51 @@ final class Expect implements ExpectInterface
                     : \sprintf('Expected URL %s, but was %s', \json_encode($url), \json_encode($actual));
             }
         );
+    }
+
+    public function toHaveClass(string|array $class): void
+    {
+        if (!$this->subject instanceof LocatorInterface) {
+            throw new \InvalidArgumentException('toHaveClass() can only be used with LocatorInterface');
+        }
+
+        $expectedClasses = is_array($class) ? $class : [$class];
+
+        $this->retryAssertion(
+            function () use ($expectedClasses) {
+                \assert($this->subject instanceof LocatorInterface);
+                $elementClass = $this->subject->getAttribute('class');
+                if (null === $elementClass) {
+                    return false;
+                }
+                $classes = explode(' ', $elementClass);
+                foreach ($expectedClasses as $expectedClass) {
+                    if (!in_array($expectedClass, $classes, true)) {
+                        return false;
+                    }
+                }
+
+                return true;
+            },
+            !$this->negated,
+            $this->negated
+                ? 'Locator has the specified class(es), but expected not to.'
+                : 'Locator does not have the specified class(es).',
+            function () use ($expectedClasses): string {
+                \assert($this->subject instanceof LocatorInterface);
+                $actual = (string) $this->subject->getAttribute('class');
+                $expected = implode(' ', $expectedClasses);
+
+                return $this->negated
+                    ? \sprintf('Expected class list not to contain %s. Actual: %s', \json_encode($expected), \json_encode($actual))
+                    : \sprintf('Expected class list to contain %s. Actual: %s', \json_encode($expected), \json_encode($actual));
+            }
+        );
+    }
+
+    public function toHaveId(string $id): void
+    {
+        $this->toHaveAttribute('id', $id);
     }
 
     /**

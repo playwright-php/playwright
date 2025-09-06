@@ -37,9 +37,20 @@ interface ExpectInterface
 
     public function toHaveCSS(string $name, string $value): void;
 
+    public function toHaveId(string $id): void;
+
+    /**
+     * @param string|string[] $class
+     */
+    public function toHaveClass(string|array $class): void;
+
+    public function toBeEmpty(): void;
+
     public function toHaveCount(int $count): void;
 
     public function toBeFocused(): void;
+
+    public function toHaveFocus(): void;
 
     public function toHaveTitle(string $title): void;
 
