@@ -35,7 +35,7 @@ jobs:
         run: vendor/bin/php-cs-fixer -V
 
       - name: "Php-CS-Fixer: check"
-        run: vendor/bin/php-cs-fixer --diff --dry-run
+        run: vendor/bin/php-cs-fixer fix --diff --dry-run
 
   sa:
     name: "Static Analysis"
