@@ -35,7 +35,7 @@ jobs:
         run: vendor/bin/php-cs-fixer -V
 
       - name: "Php-CS-Fixer: check"
-        run: composer run cs-check
+        run: vendor/bin/php-cs-fixer fix --diff --dry-run
 
   sa:
     name: "Static Analysis"
@@ -82,7 +82,7 @@ jobs:
         run: composer install --prefer-dist --no-interaction --no-progress
 
       - name: "PHPUnit: unit tests"
-        run: composer run test:unit
+        run: vendor/bin/phpunit --testsuite=unit
 
   integration-tests:
     name: "Integration Tests (PHP ${{ matrix.php-version }} ${{ matrix.dependencies }})"
@@ -126,7 +126,7 @@ jobs:
         run: vendor/bin/phpunit --version
 
       - name: "PHPUnit: all tests with coverage"
-        run: composer run test -- --coverage-clover=coverage.xml
+        run: vendor/bin/phpunit --coverage-clover=coverage.xml
 
       - name: "Codecov: upload coverage"
         uses: codecov/codecov-action@v5
