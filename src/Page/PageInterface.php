@@ -38,6 +38,21 @@ interface PageInterface
     /**
      * @param array<string, mixed> $options
      */
+    public function altClick(string $selector, array $options = []): self;
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function controlClick(string $selector, array $options = []): self;
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function shiftClick(string $selector, array $options = []): self;
+
+    /**
+     * @param array<string, mixed> $options
+     */
     public function type(string $selector, string $text, array $options = []): self;
 
     /**
@@ -63,7 +78,8 @@ interface PageInterface
     /**
      * @param array<string>|null $urls
      *
-     * @return array<array{name: string, value: string, domain: string, path: string, expires: int, httpOnly: bool, secure: bool, sameSite: 'Strict'|'Lax'|'None'}>
+     * @return array<array{name: string, value: string, domain: string, path: string, expires: int, httpOnly: bool,
+     *                           secure: bool, sameSite: 'Strict'|'Lax'|'None'}>
      */
     public function cookies(?array $urls = null): array;
 

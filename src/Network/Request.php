@@ -27,7 +27,7 @@ final class Request implements RequestInterface
 
     public function url(): string
     {
-        $url = $this->data['url'];
+        $url = $this->data['url'] ?? null;
         if (!is_string($url)) {
             throw new ProtocolErrorException('Invalid URL in request data', 0);
         }
@@ -37,7 +37,7 @@ final class Request implements RequestInterface
 
     public function method(): string
     {
-        $method = $this->data['method'];
+        $method = $this->data['method'] ?? null;
         if (!is_string($method)) {
             throw new ProtocolErrorException('Invalid method in request data', 0);
         }
@@ -45,9 +45,12 @@ final class Request implements RequestInterface
         return $method;
     }
 
+    /**
+     * @return array<string, string>
+     */
     public function headers(): array
     {
-        $headers = $this->data['headers'];
+        $headers = $this->data['headers'] ?? [];
         if (!is_array($headers)) {
             return [];
         }
@@ -59,7 +62,6 @@ final class Request implements RequestInterface
             }
         }
 
-        /* @var array<string, string> $stringHeaders */
         return $stringHeaders;
     }
 
@@ -77,26 +79,22 @@ final class Request implements RequestInterface
             return null;
         }
 
-        $decoded = json_decode($postData, true);
-
-        if (!is_array($decoded)) {
+        if (!json_validate($postData)) {
             return null;
         }
 
-        $result = [];
-        foreach ($decoded as $key => $value) {
-            if (!is_string($key)) {
-                return null;
-            }
-            $result[$key] = $value;
+        $decoded = json_decode($postData, false, 512, JSON_THROW_ON_ERROR);
+
+        if (!$decoded instanceof \stdClass) {
+            return null;
         }
 
-        return $result;
+        return (array) $decoded;
     }
 
     public function resourceType(): string
     {
-        $resourceType = $this->data['resourceType'];
+        $resourceType = $this->data['resourceType'] ?? null;
         if (!is_string($resourceType)) {
             throw new ProtocolErrorException('Invalid resourceType in request data', 0);
         }

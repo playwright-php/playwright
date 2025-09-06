@@ -26,6 +26,7 @@ use PlaywrightPHP\Frame\FrameLocator;
 use PlaywrightPHP\Frame\FrameLocatorInterface;
 use PlaywrightPHP\Input\Keyboard;
 use PlaywrightPHP\Input\KeyboardInterface;
+use PlaywrightPHP\Input\ModifierKey;
 use PlaywrightPHP\Input\Mouse;
 use PlaywrightPHP\Input\MouseInterface;
 use PlaywrightPHP\Locator\Locator;
@@ -45,8 +46,11 @@ use Psr\Log\NullLogger;
 final class Page implements PageInterface, EventDispatcherInterface
 {
     private KeyboardInterface $keyboard;
+
     private MouseInterface $mouse;
+
     private PageEventHandlerInterface $eventHandler;
+
     private LoggerInterface $logger;
 
     public function __construct(
@@ -285,6 +289,30 @@ final class Page implements PageInterface, EventDispatcherInterface
         $this->transport->processEvents();
 
         return $this;
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function altClick(string $selector, array $options = []): self
+    {
+        return $this->click($selector, [...$options, 'modifiers' => ModifierKey::Alt]);
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function controlClick(string $selector, array $options = []): self
+    {
+        return $this->click($selector, [...$options, 'modifiers' => ModifierKey::Control]);
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function shiftClick(string $selector, array $options = []): self
+    {
+        return $this->click($selector, [...$options, 'modifiers' => ModifierKey::Shift]);
     }
 
     /**
