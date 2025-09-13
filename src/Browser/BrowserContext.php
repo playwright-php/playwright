@@ -85,6 +85,9 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
         if ('binding' === $eventName) {
             $bindingName = $params['name'];
             if (is_string($bindingName) && isset($this->bindings[$bindingName]) && is_callable($this->bindings[$bindingName])) {
+                if (!is_string($params['pageId'])) {
+                    throw new ProtocolErrorException('Invalid pageId in binding event', 0);
+                }
                 $source = [
                     'context' => $this,
                     'page' => $this->pages[$params['pageId']] ?? null,
