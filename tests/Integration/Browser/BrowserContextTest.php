@@ -133,7 +133,17 @@ class BrowserContextTest extends TestCase
 
         $page->click('button');
 
-        usleep(500000);
+        // Poll for either coordinates or error text since Page::waitForFunction is not available
+        $deadline = microtime(true) + 5.0; // 5 seconds
+        do {
+            $content = $page->content() ?? '';
+            $hasCoordinates = str_contains($content, '59.95,30.31667');
+            $hasError = str_contains($content, 'Error');
+            if ($hasCoordinates || $hasError) {
+                break;
+            }
+            usleep(100 * 1000); // 100ms
+        } while (microtime(true) < $deadline);
 
         $content = $page->content();
         $hasCoordinates = str_contains($content, '59.95,30.31667');

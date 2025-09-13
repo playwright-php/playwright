@@ -168,6 +168,16 @@ class LocatorTest extends TestCase
         $this->assertStringStartsWith(base64_decode('iVBORw0KGgo='), base64_decode($binary));
     }
 
+    #[Test]
+    public function itEvaluatesElementTagNameAndCss(): void
+    {
+        $tagName = $this->page->locator('h1')->evaluate('element => element.tagName');
+        $this->assertEquals('H1', $tagName);
+
+        $width = $this->page->locator('#div-1')->evaluate('element => window.getComputedStyle(element).width');
+        $this->assertEquals('50px', $width);
+    }
+
     private static function findFreePort(): int
     {
         return 0;

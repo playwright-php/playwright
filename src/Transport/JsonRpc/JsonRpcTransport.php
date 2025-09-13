@@ -272,6 +272,12 @@ final class JsonRpcTransport implements TransportInterface
         }
 
         $objectId = $event['objectId'];
+        if (!is_string($objectId)) {
+            $this->logger->warning('Invalid objectId in event', ['event' => $event]);
+
+            return;
+        }
+
         if (isset($this->eventDispatchers[$objectId])) {
             $this->logger->debug('Dispatching event to registered handler', [
                 'objectId' => $objectId,
