@@ -8,11 +8,11 @@ declare(strict_types=1);
  * the LICENSE file that was distributed with this source code.
  */
 
-namespace PlaywrightPHP\Tests\Unit\Support;
+namespace PlaywrightPHP\Tests\Unit\Screenshot;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use PlaywrightPHP\Support\ScreenshotHelper;
+use PlaywrightPHP\Screenshot\ScreenshotHelper;
 
 #[CoversClass(ScreenshotHelper::class)]
 class ScreenshotHelperTest extends TestCase

@@ -15,7 +15,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use PlaywrightPHP\Configuration\PlaywrightConfig;
 use PlaywrightPHP\Page\Page;
-use PlaywrightPHP\Support\ScreenshotHelper;
+use PlaywrightPHP\Screenshot\ScreenshotHelper;
 use PlaywrightPHP\Testing\PlaywrightTestCaseTrait;
 use PlaywrightPHP\Tests\Support\RouteServerTestTrait;
 

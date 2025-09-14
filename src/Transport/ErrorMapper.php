@@ -14,7 +14,6 @@ use PlaywrightPHP\Exception\DisconnectedException;
 use PlaywrightPHP\Exception\PlaywrightException;
 use PlaywrightPHP\Exception\ProtocolErrorException;
 use PlaywrightPHP\Exception\TimeoutException;
-use PlaywrightPHP\Support\Sanitizer;
 
 /**
  * Converts low-level protocol error payloads into typed exceptions.
