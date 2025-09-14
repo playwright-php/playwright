@@ -28,4 +28,3 @@ final class BrowserContextPopupPagesTest extends TestCase
         $this->assertCount(0, $context->pages());
     }
 }
-
