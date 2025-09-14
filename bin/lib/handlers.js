@@ -235,6 +235,7 @@ class LocatorHandler extends BaseHandler {
       click: () => locator.click(command.options),
       dblclick: () => locator.dblclick(command.options),
       hover: () => locator.hover(command.options),
+      blur: () => locator.blur(),
       focus: () => locator.focus(command.options),
       fill: () => locator.fill(command.value, command.options),
       type: () => locator.type(command.text, command.options),

@@ -178,6 +178,26 @@ class LocatorTest extends TestCase
         $this->assertEquals('50px', $width);
     }
 
+    #[Test]
+    public function itBlursAnElement(): void
+    {
+        $this->page->evaluate(<<<'JS'
+            () => {
+                const el = document.querySelector('#input-text');
+                if (el) {
+                    el.addEventListener('blur', () => { document.body.dataset.blurred = '1'; }, { once: true });
+                }
+            }
+        JS);
+
+        $locator = $this->page->locator('#input-text');
+        $locator->focus();
+        $locator->blur();
+
+        $blurred = $this->page->evaluate('() => document.body.dataset.blurred || null');
+        $this->assertSame('1', $blurred);
+    }
+
     private static function findFreePort(): int
     {
         return 0;
