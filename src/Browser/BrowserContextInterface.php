@@ -27,6 +27,11 @@ interface BrowserContextInterface
 
     public function clearCookies(): void;
 
+    /**
+     * Delete all cookies with the given name across domain and path variants.
+     */
+    public function deleteCookie(string $name): void;
+
     public function clearPermissions(): void;
 
     public function close(): void;
