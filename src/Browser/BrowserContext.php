@@ -195,6 +195,48 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
         ]);
     }
 
+    public function deleteCookie(string $name): void
+    {
+        $cookies = $this->cookies();
+        if (empty($cookies)) {
+            return;
+        }
+
+        $toDelete = [];
+        foreach ($cookies as $cookie) {
+            if (!isset($cookie['name']) || !is_string($cookie['name'])) {
+                continue;
+            }
+            if ($cookie['name'] !== $name) {
+                continue;
+            }
+
+            $domain = $cookie['domain'] ?? null;
+            $path = $cookie['path'] ?? null;
+            if (!is_string($domain) || !is_string($path)) {
+                continue;
+            }
+
+            $toDelete[] = [
+                'name' => $name,
+                'value' => '',
+                'domain' => $domain,
+                'path' => $path,
+                'expires' => 0,
+            ];
+        }
+
+        if (empty($toDelete)) {
+            return;
+        }
+
+        $this->transport->send([
+            'action' => 'context.addCookies',
+            'contextId' => $this->contextId,
+            'cookies' => $toDelete,
+        ]);
+    }
+
     public function clearPermissions(): void
     {
         $this->transport->send([
