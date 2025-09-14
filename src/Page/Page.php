@@ -35,7 +35,7 @@ use PlaywrightPHP\Network\Request;
 use PlaywrightPHP\Network\Response;
 use PlaywrightPHP\Network\ResponseInterface;
 use PlaywrightPHP\Network\Route;
-use PlaywrightPHP\Support\ScreenshotHelper;
+use PlaywrightPHP\Screenshot\ScreenshotHelper;
 use PlaywrightPHP\Transport\TransportInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;

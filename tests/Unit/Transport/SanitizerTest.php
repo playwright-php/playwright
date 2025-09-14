@@ -8,12 +8,12 @@ declare(strict_types=1);
  * the LICENSE file that was distributed with this source code.
  */
 
-namespace PlaywrightPHP\Tests\Unit\Support;
+namespace PlaywrightPHP\Tests\Unit\Transport;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use PlaywrightPHP\Support\Sanitizer;
+use PlaywrightPHP\Transport\Sanitizer;
 
 #[CoversClass(Sanitizer::class)]
 class SanitizerTest extends TestCase

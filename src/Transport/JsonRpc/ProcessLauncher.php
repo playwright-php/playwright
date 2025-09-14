@@ -12,7 +12,7 @@ namespace PlaywrightPHP\Transport\JsonRpc;
 
 use PlaywrightPHP\Exception\ProcessCrashedException;
 use PlaywrightPHP\Exception\ProcessLaunchException;
-use PlaywrightPHP\Support\RingBuffer;
+use PlaywrightPHP\Transport\RingBuffer;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use Symfony\Component\Process\ExecutableFinder;

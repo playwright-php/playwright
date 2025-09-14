@@ -8,7 +8,7 @@ declare(strict_types=1);
  * the LICENSE file that was distributed with this source code.
  */
 
-namespace PlaywrightPHP\Support;
+namespace PlaywrightPHP\Transport;
 
 /**
  * Fixed-size ring buffer for capturing recent stderr/stdout lines.
