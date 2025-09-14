@@ -19,7 +19,7 @@ class ContextHandler extends BaseHandler {
       setNetworkThrottling: () => this.setThrottling(command),
       route: () => RouteUtils.setupContextRoute(context, command, this.generateId, this.routes, this.extractRequestData, this.sendFramedResponse),
       unroute: () => context.unroute(command.url),
-      cookies: () => context.cookies(command.urls),
+      cookies: async () => ({ cookies: await context.cookies(command.urls) }),
       storageState: async () => ({ storageState: await context.storageState(command.options) }),
       clipboardText: () => this.getClipboardText(context),
       newPage: () => this.createNewPage(context, command)
