@@ -301,4 +301,108 @@ final class LocatorMethodsTest extends TestCase
         $result = $this->locator->evaluate('element.nonexistent');
         $this->assertNull($result);
     }
+
+    public function testDragToBasic(): void
+    {
+        $targetLocator = new Locator($this->transport, 'page1', '.target');
+
+        $this->transport
+            ->expects($this->exactly(3))
+            ->method('send')
+            ->willReturnCallback(function ($payload) {
+                // First call: isVisible check
+                if ('locator.isVisible' === $payload['action']) {
+                    return ['value' => true];
+                }
+                // Second call: isEnabled check
+                if ('locator.isEnabled' === $payload['action']) {
+                    return ['value' => true];
+                }
+                // Third call: actual dragAndDrop
+                if ('locator.dragAndDrop' === $payload['action']
+                    && '.target' === $payload['target']
+                    && [] === $payload['options']) {
+                    return ['value' => true];
+                }
+
+                return [];
+            });
+
+        $this->transport
+            ->expects($this->once())
+            ->method('processEvents');
+
+        $this->locator->dragTo($targetLocator);
+    }
+
+    public function testDragToWithOptions(): void
+    {
+        $targetLocator = new Locator($this->transport, 'page1', '.target');
+        $options = [
+            'sourcePosition' => ['x' => 10, 'y' => 15],
+            'targetPosition' => ['x' => 20, 'y' => 25],
+            'force' => true,
+            'timeout' => 5000,
+        ];
+
+        $this->transport
+            ->expects($this->exactly(3))
+            ->method('send')
+            ->willReturnCallback(function ($payload) use ($options) {
+                // First call: isVisible check
+                if ('locator.isVisible' === $payload['action']) {
+                    return ['value' => true];
+                }
+                // Second call: isEnabled check
+                if ('locator.isEnabled' === $payload['action']) {
+                    return ['value' => true];
+                }
+                // Third call: actual dragAndDrop
+                if ('locator.dragAndDrop' === $payload['action']
+                    && '.target' === $payload['target']
+                    && $options === $payload['options']) {
+                    return ['value' => true];
+                }
+
+                return [];
+            });
+
+        $this->transport
+            ->expects($this->once())
+            ->method('processEvents');
+
+        $this->locator->dragTo($targetLocator, $options);
+    }
+
+    public function testDragToWithComplexSelectors(): void
+    {
+        $targetLocator = new Locator($this->transport, 'page1', '#dropzone .drop-target[data-accept="files"]');
+
+        $this->transport
+            ->expects($this->exactly(3))
+            ->method('send')
+            ->willReturnCallback(function ($payload) {
+                // First call: isVisible check
+                if ('locator.isVisible' === $payload['action']) {
+                    return ['value' => true];
+                }
+                // Second call: isEnabled check
+                if ('locator.isEnabled' === $payload['action']) {
+                    return ['value' => true];
+                }
+                // Third call: actual dragAndDrop
+                if ('locator.dragAndDrop' === $payload['action']
+                    && '#dropzone .drop-target[data-accept="files"]' === $payload['target']) {
+                    return ['value' => true];
+                }
+
+                return [];
+            });
+
+        $this->transport
+            ->expects($this->once())
+            ->method('processEvents');
+
+        $this->locator->dragTo($targetLocator);
+    }
 }

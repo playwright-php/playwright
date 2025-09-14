@@ -345,6 +345,31 @@ final class Locator implements LocatorInterface
     }
 
     /**
+     * Drag this element to the target element.
+     *
+     * Supports the following options:
+     * - sourcePosition: {x: int, y: int} - A point to use relative to the top-left corner of element
+     * - targetPosition: {x: int, y: int} - A point to use relative to the top-left corner of target element
+     * - force: bool - Whether to bypass the actionability checks
+     * - timeout: int - Maximum time in milliseconds
+     *
+     * @param array<string, mixed> $options
+     */
+    public function dragTo(LocatorInterface $target, array $options = []): void
+    {
+        $this->waitForActionable();
+
+        $targetSelector = $target->getSelector();
+
+        $this->sendCommand('locator.dragAndDrop', [
+            'target' => $targetSelector,
+            'options' => $options,
+        ]);
+
+        $this->transport->processEvents();
+    }
+
+    /**
      * @param array<string, mixed> $options
      */
     public function textContent(array $options = []): ?string

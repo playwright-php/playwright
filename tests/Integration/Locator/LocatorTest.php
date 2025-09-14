@@ -198,6 +198,107 @@ class LocatorTest extends TestCase
         $this->assertSame('1', $blurred);
     }
 
+    #[Test]
+    public function itPerformsDragAndDrop(): void
+    {
+        // Add drag and drop HTML elements
+        $this->page->evaluate(<<<'JS'
+            () => {
+                const container = document.createElement('div');
+                container.innerHTML = `
+                    <div id="draggable" 
+                         draggable="true" 
+                         style="width: 50px; height: 50px; background: red; margin: 10px;"
+                         data-status="source">
+                        Drag me
+                    </div>
+                    <div id="dropzone" 
+                         style="width: 150px; height: 150px; background: lightblue; margin: 10px; border: 2px dashed #ccc;"
+                         data-status="target">
+                        Drop here
+                    </div>
+                `;
+                
+                const dropzone = container.querySelector('#dropzone');
+                dropzone.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                });
+                
+                dropzone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    const draggable = document.querySelector('#draggable');
+                    dropzone.appendChild(draggable);
+                    dropzone.dataset.status = 'dropped';
+                });
+                
+                document.body.appendChild(container);
+            }
+        JS);
+
+        $draggable = $this->page->locator('#draggable');
+        $dropzone = $this->page->locator('#dropzone');
+
+        // Verify initial state
+        $this->assertEquals('source', $draggable->getAttribute('data-status'));
+        $this->assertEquals('target', $dropzone->getAttribute('data-status'));
+
+        // Perform drag and drop
+        $draggable->dragTo($dropzone);
+
+        // Verify the drop was successful
+        $this->assertEquals('dropped', $dropzone->getAttribute('data-status'));
+    }
+
+    #[Test]
+    public function itPerformsDragAndDropWithOptions(): void
+    {
+        // Add drag and drop HTML elements
+        $this->page->evaluate(<<<'JS'
+            () => {
+                const container = document.createElement('div');
+                container.innerHTML = `
+                    <div id="precise-draggable" 
+                         draggable="true" 
+                         style="width: 100px; height: 100px; background: green; margin: 20px;"
+                         data-drag-count="0">
+                        Precise drag
+                    </div>
+                    <div id="precise-dropzone" 
+                         style="width: 200px; height: 200px; background: lightyellow; margin: 20px; border: 2px solid #999;"
+                         data-drops="0">
+                        Precise drop zone
+                    </div>
+                `;
+                
+                const dropzone = container.querySelector('#precise-dropzone');
+                dropzone.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                });
+                
+                dropzone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    const currentDrops = parseInt(dropzone.dataset.drops) + 1;
+                    dropzone.dataset.drops = currentDrops.toString();
+                });
+                
+                document.body.appendChild(container);
+            }
+        JS);
+
+        $draggable = $this->page->locator('#precise-draggable');
+        $dropzone = $this->page->locator('#precise-dropzone');
+
+        // Perform drag and drop with specific positions
+        $draggable->dragTo($dropzone, [
+            'sourcePosition' => ['x' => 50, 'y' => 50], // center of draggable
+            'targetPosition' => ['x' => 100, 'y' => 100], // center of dropzone
+        ]);
+
+        // Verify the drop was successful
+        $this->assertEquals('1', $dropzone->getAttribute('data-drops'));
+    }
+
     private static function findFreePort(): int
     {
         return 0;
