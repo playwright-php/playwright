@@ -53,6 +53,13 @@ interface LocatorInterface
     public function hover(array $options = []): void;
 
     /**
+     * Drag this element to target element.
+     *
+     * @param array<string, mixed> $options
+     */
+    public function dragTo(LocatorInterface $target, array $options = []): void;
+
+    /**
      * @param array<string, mixed> $options
      */
     public function dblclick(array $options = []): void;

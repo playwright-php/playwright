@@ -254,7 +254,8 @@ class LocatorHandler extends BaseHandler {
       getAttribute: () => PromiseUtils.wrapValue(locator.getAttribute(command.name)),
       selectOption: () => PromiseUtils.wrapValues(locator.selectOption(command.values, command.options)),
       screenshot: () => PromiseUtils.wrapBinary(locator.screenshot(command.options)),
-      evaluate: () => this.evaluateLocator(locator, command)
+      evaluate: () => this.evaluateLocator(locator, command),
+      dragAndDrop: () => this.handleDragAndDrop(page, command)
     });
 
     return await this.executeWithRegistry(registry, method);
@@ -295,6 +296,31 @@ class LocatorHandler extends BaseHandler {
       return this.createValueResult(result === undefined ? null : result);
     } catch (error) {
       logger.error('Locator evaluate failed', { selector: command.selector, error: error.message });
+      throw error;
+    }
+  }
+
+  async handleDragAndDrop(page, command) {
+    logger.info('Handling drag and drop', { 
+      selector: command.selector, 
+      target: command.target, 
+      options: command.options 
+    });
+    
+    try {
+      // Use page.dragAndDrop which is the native Playwright method
+      await page.dragAndDrop(command.selector, command.target, {
+        strict: true,
+        ...command.options
+      });
+      
+      return this.createValueResult(true);
+    } catch (error) {
+      logger.error('Drag and drop failed', { 
+        selector: command.selector, 
+        target: command.target, 
+        error: error.message 
+      });
       throw error;
     }
   }
