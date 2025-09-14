@@ -24,8 +24,8 @@ final class TransportFactory
 {
     public function create(PlaywrightConfig $config, LoggerInterface $logger): TransportInterface
     {
-        $serverManager = new ServerManager();
-        $serverScriptPath = $serverManager->getServerScriptPath();
+        $serverFinder = new ServerFinder();
+        $serverScriptPath = $serverFinder->getServerScriptPath();
 
         if (!$serverScriptPath || !file_exists($serverScriptPath)) {
             throw new RuntimeException('playwright-server.js not found.');

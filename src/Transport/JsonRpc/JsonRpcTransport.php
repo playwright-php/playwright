@@ -12,8 +12,6 @@ namespace PlaywrightPHP\Transport\JsonRpc;
 
 use PlaywrightPHP\Event\EventDispatcherInterface;
 use PlaywrightPHP\Exception\NetworkException;
-use PlaywrightPHP\Node\NodeBinaryResolver;
-use PlaywrightPHP\Transport\ServerManager;
 use PlaywrightPHP\Transport\TransportInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -59,17 +57,11 @@ final class JsonRpcTransport implements TransportInterface
         }
 
         try {
-            if (!isset($this->config['command'])) {
-                $nodeResolver = new NodeBinaryResolver();
-                $nodePath = $nodeResolver->resolve();
-                $command = [$nodePath, (new ServerManager())->getServerScriptPath()];
-            } else {
-                $command = $this->config['command'];
-                if (!is_array($command)) {
-                    throw new NetworkException('Invalid command configuration: must be array');
-                }
-                $command = $this->validateCommand(array_values($command));
+            $command = $this->config['command'] ?? null;
+            if (!is_array($command)) {
+                throw new NetworkException('Command configuration is required and must be array');
             }
+            $command = $this->validateCommand(array_values($command));
 
             $cwd = $this->config['cwd'] ?? null;
             if (null !== $cwd && !is_string($cwd)) {
