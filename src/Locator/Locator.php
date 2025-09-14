@@ -407,7 +407,8 @@ final class Locator implements LocatorInterface
 
     public function evaluate(string $expression, mixed $arg = null): mixed
     {
-        $response = $this->sendCommand('locator.evaluate', ['expression' => $expression, 'arg' => $arg]);
+        $normalized = self::normalizeForLocator($expression);
+        $response = $this->sendCommand('locator.evaluate', ['expression' => $normalized, 'arg' => $arg]);
 
         return $response['value'] ?? null;
     }
@@ -445,6 +446,32 @@ final class Locator implements LocatorInterface
         }
 
         return $response;
+    }
+
+    private static function normalizeForLocator(string $expression): string
+    {
+        $trimmed = ltrim($expression);
+
+        if (self::isFunctionLike($trimmed)) {
+            return $expression;
+        }
+
+        if (self::startsWithReturn($trimmed)) {
+            return '(el, arg) => { '.$trimmed.' }';
+        }
+
+        return $expression;
+    }
+
+    private static function isFunctionLike(string $s): bool
+    {
+        // Detect common JS function patterns: function, async function, arrow functions
+        return (bool) preg_match('/^((async\s+)?function\b|\([^)]*\)\s*=>|[A-Za-z_$][A-Za-z0-9_$]*\s*=>|async\s*\([^)]*\)\s*=>)/', $s);
+    }
+
+    private static function startsWithReturn(string $s): bool
+    {
+        return (bool) preg_match('/^return\b/', $s);
     }
 
     /**
