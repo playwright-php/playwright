@@ -82,6 +82,25 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
             $route->continue();
         }
 
+        // Track popup/new page lifecycle if server emits such events.
+        if (in_array($eventName, ['page', 'popup', 'pageCreated'], true)) {
+            $pageId = $params['pageId'] ?? null;
+            if (is_string($pageId) && !isset($this->pages[$pageId])) {
+                $this->pages[$pageId] = new Page($this->transport, $this, $pageId, $this->config);
+            }
+
+            return;
+        }
+
+        if (in_array($eventName, ['pageClosed', 'page-closed'], true)) {
+            $pageId = $params['pageId'] ?? null;
+            if (is_string($pageId)) {
+                unset($this->pages[$pageId]);
+            }
+
+            return;
+        }
+
         if ('binding' === $eventName) {
             $bindingName = $params['name'];
             if (is_string($bindingName) && isset($this->bindings[$bindingName]) && is_callable($this->bindings[$bindingName])) {
