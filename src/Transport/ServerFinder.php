@@ -53,6 +53,14 @@ final class ServerFinder
         return null;
     }
 
+    /**
+     * Get the path to the Playwright server script.
+     */
+    public function getServerScriptPath(): string
+    {
+        return __DIR__.'/../../bin/playwright-server.js';
+    }
+
     private function getUserConfiguredPath(): ?string
     {
         if ($envPath = getenv('PLAYWRIGHT_PATH')) {
@@ -103,7 +111,7 @@ final class ServerFinder
         $nodeResolver = $this->nodeResolver ?? new NodeBinaryResolver();
         $nodePath = $nodeResolver->resolve();
 
-        $serverScript = (new ServerManager())->getServerScriptPath();
+        $serverScript = $this->getServerScriptPath();
 
         return [
             'strategy' => 'project',

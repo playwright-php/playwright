@@ -69,6 +69,7 @@ final class JsonRpcTransportTest extends TestCase
 
         $transport = new JsonRpcTransport(
             processLauncher: $this->processLauncher,
+            config: ['command' => ['node', 'server.js']],
             logger: $this->logger
         );
 
@@ -106,6 +107,7 @@ final class JsonRpcTransportTest extends TestCase
 
         $transport = new JsonRpcTransport(
             processLauncher: $this->processLauncher,
+            config: ['command' => ['node', 'server.js']],
             logger: $this->logger
         );
 
@@ -134,6 +136,7 @@ final class JsonRpcTransportTest extends TestCase
 
         $transport = new JsonRpcTransport(
             processLauncher: $this->processLauncher,
+            config: ['command' => ['node', 'server.js']],
             logger: $this->logger
         );
 
@@ -201,6 +204,7 @@ final class JsonRpcTransportTest extends TestCase
 
         $transport = new JsonRpcTransport(
             processLauncher: $this->processLauncher,
+            config: ['command' => ['node', 'server.js']],
             logger: $this->logger
         );
 
