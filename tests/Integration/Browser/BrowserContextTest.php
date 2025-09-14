@@ -78,6 +78,39 @@ class BrowserContextTest extends TestCase
     }
 
     #[Test]
+    public function itGetsCookiesWithExpectedShape(): void
+    {
+        $page = $this->context->newPage();
+        $this->installRouteServer($page, [
+            '/index.html' => '<h1>Cookies</h1>',
+        ]);
+        $page->goto($this->routeUrl('/index.html'));
+
+        $baseUrl = rtrim($this->routeUrl('/'), '/');
+
+        $this->context->addCookies([
+            [
+                'name' => 'shape-test',
+                'value' => 'ok',
+                'url' => $baseUrl,
+            ],
+        ]);
+
+        $cookies = $this->context->cookies([$baseUrl]);
+
+        $this->assertIsArray($cookies);
+        $this->assertNotEmpty($cookies);
+        $this->assertArrayHasKey('name', $cookies[0]);
+        $this->assertArrayHasKey('value', $cookies[0]);
+
+        $found = array_values(array_filter($cookies, fn ($c) => ($c['name'] ?? null) === 'shape-test'));
+        $this->assertNotEmpty($found, 'Expected cookie "shape-test" to be present');
+        $this->assertSame('ok', $found[0]['value'] ?? null);
+
+        $page->close();
+    }
+
+    #[Test]
     public function itAddsInitScript(): void
     {
         $this->context->addInitScript('window.myVar = 42;');
