@@ -69,8 +69,8 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
         if (null === $requestId) {
             throw new NetworkException('Request must have either id or requestId');
         }
-        if (!is_int($requestId)) {
-            throw new NetworkException('Request ID must be an integer');
+        if (!is_int($requestId) && !is_string($requestId)) {
+            throw new NetworkException('Request ID must be an integer or string');
         }
 
         $json = json_encode($request, JSON_THROW_ON_ERROR);
@@ -97,7 +97,7 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
     /**
      * @return array<string, mixed>
      */
-    private function waitForResponse(int $requestId, ?float $deadline): array
+    private function waitForResponse(int|string $requestId, ?float $deadline): array
     {
         $pollInterval = 1000;
         $maxInterval = 10000;
@@ -209,7 +209,7 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
     /**
      * @return array<string, mixed>|null
      */
-    private function findResponseForRequest(int $requestId): ?array
+    private function findResponseForRequest(int|string $requestId): ?array
     {
         if (isset($this->responses[$requestId])) {
             $response = $this->responses[$requestId];

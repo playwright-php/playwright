@@ -173,17 +173,7 @@ final class JsonRpcTransport implements TransportInterface
                 return $this->handleCallbackCommand($message, $timeoutMs);
             }
 
-            $result = $this->client->sendRaw($message, $timeoutMs);
-            
-            // Debug: log all waitForPopup responses
-            if (($message['action'] ?? '') === 'page.waitForPopup') {
-                $this->logger->info('DEBUG: waitForPopup response', [
-                    'action' => $message['action'],
-                    'response' => $result
-                ]);
-            }
-
-            return $result;
+            return $this->client->sendRaw($message, $timeoutMs);
         } catch (\Throwable $e) {
             $this->logger->error('JSON-RPC send failed', [
                 'error' => $e->getMessage(),
@@ -358,7 +348,10 @@ final class JsonRpcTransport implements TransportInterface
         // Send initial message to server
         $response = $this->client->sendRaw($message, $timeoutMs);
         
-        echo "DEBUG: Callback command response: " . json_encode($response) . "\n";
+        $this->logger->debug('Callback command response received', [
+            'requestId' => $requestId,
+            'response' => $response
+        ]);
         
         // Check if server is waiting for callback
         if (isset($response['type']) && 'callback' === $response['type']) {
@@ -368,9 +361,7 @@ final class JsonRpcTransport implements TransportInterface
             ]);
             
             // Execute the stored callback
-            echo "DEBUG: About to execute callback\n";
             $this->executeCallback($response);
-            echo "DEBUG: Callback execution completed\n";
             
             // Continue coordination by sending callback completion
             $continueMessage = [
@@ -401,24 +392,28 @@ final class JsonRpcTransport implements TransportInterface
         $requestId = $callbackData['requestId'] ?? '';
         $callbackType = $callbackData['callbackType'] ?? '';
         
-        echo "DEBUG: executeCallback requestId=$requestId, callbackType=$callbackType\n";
-        echo "DEBUG: pending callbacks: " . json_encode(array_keys($this->pendingCallbacks)) . "\n";
+        $this->logger->info('Executing callback', [
+            'requestId' => $requestId,
+            'callbackType' => $callbackType
+        ]);
         
         switch ($callbackType) {
             case 'readyForAction':
                 // Server is ready - execute the stored action
                 if (isset($this->pendingCallbacks[$requestId])) {
-                    echo "DEBUG: Found pending callback, executing...\n";
                     $callback = $this->pendingCallbacks[$requestId];
                     $callback();
-                    echo "DEBUG: Callback executed successfully\n";
+                    $this->logger->info('Executed readyForAction callback', ['requestId' => $requestId]);
                 } else {
-                    echo "DEBUG: No pending callback found for requestId=$requestId\n";
+                    $this->logger->warning('No pending callback found', ['requestId' => $requestId]);
                 }
                 break;
                 
             default:
-                echo "DEBUG: Unknown callback type: $callbackType\n";
+                $this->logger->warning('Unknown callback type', [
+                    'requestId' => $requestId,
+                    'callbackType' => $callbackType
+                ]);
                 break;
         }
     }

@@ -115,7 +115,12 @@ class JsonRpcClient implements JsonRpcClientInterface
     public function sendRaw(array $message, ?float $timeoutMs = null): array
     {
         $timeoutMs ??= $this->defaultTimeoutMs;
-        $id = $this->nextId++;
+        
+        // Preserve existing requestId if provided, otherwise generate new one
+        $id = $message['requestId'] ?? $this->nextId++;
+        
+        // Ensure we track numeric IDs for internal bookkeeping
+        $trackingId = is_string($id) ? $this->nextId++ : $id;
 
         $deadline = $timeoutMs > 0
             ? $this->getCurrentTimeMs() + $timeoutMs
@@ -125,21 +130,22 @@ class JsonRpcClient implements JsonRpcClientInterface
         $request['requestId'] = $id;
 
         $actionString = is_string($message['action'] ?? null) ? $message['action'] : 'unknown';
-        $this->trackRequest($id, $actionString);
+        $this->trackRequest($trackingId, $actionString);
 
         $this->logger->debug('Sending raw request', [
             'id' => $id,
+            'trackingId' => $trackingId,
             'action' => $message['action'] ?? 'unknown',
             'timeoutMs' => $timeoutMs,
         ]);
 
         try {
             $response = $this->sendAndReceive($request, $deadline);
-            unset($this->pendingRequests[$id]);
+            unset($this->pendingRequests[$trackingId]);
 
             return $response;
         } catch (\Throwable $e) {
-            unset($this->pendingRequests[$id]);
+            unset($this->pendingRequests[$trackingId]);
             throw $e;
         }
     }
