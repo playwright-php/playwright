@@ -336,7 +336,8 @@ final class JsonRpcTransport implements TransportInterface
      */
     private function handleCallbackCommand(array $message, ?int $timeoutMs): array
     {
-        $requestId = $message['requestId'] ?? uniqid('callback_', true);
+        $requestIdRaw = $message['requestId'] ?? null;
+        $requestId = is_string($requestIdRaw) ? $requestIdRaw : uniqid('callback_', true);
         $message['requestId'] = $requestId;
 
         $this->logger->info('Handling callback command', [
@@ -386,7 +387,14 @@ final class JsonRpcTransport implements TransportInterface
      */
     private function executeCallback(array $callbackData): void
     {
-        $requestId = $callbackData['requestId'] ?? '';
+        $requestIdRaw = $callbackData['requestId'] ?? null;
+        if (!is_string($requestIdRaw)) {
+            $this->logger->warning('Invalid or missing requestId in callback data', [
+                'callbackData' => $callbackData,
+            ]);
+            return;
+        }
+        $requestId = $requestIdRaw;
         $callbackType = $callbackData['callbackType'] ?? '';
 
         $this->logger->info('Executing callback', [
