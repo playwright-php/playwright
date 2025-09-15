@@ -392,6 +392,7 @@ final class JsonRpcTransport implements TransportInterface
             $this->logger->warning('Invalid or missing requestId in callback data', [
                 'callbackData' => $callbackData,
             ]);
+
             return;
         }
         $requestId = $requestIdRaw;
