@@ -35,7 +35,7 @@ class ContextHandler extends BaseHandler {
       },
       waitForPopup: () => this.waitForPopup(context, command),
       setNetworkThrottling: () => this.setThrottling(command),
-      route: () => RouteUtils.setupContextRoute(context, command, this.generateId, this.routes, this.extractRequestData, this.sendFramedResponse),
+      route: () => RouteUtils.setupRoute(context, command.contextId, command.url, this.generateId, this.routes, this.extractRequestData, this.sendFramedResponse),
       unroute: () => context.unroute(command.url),
       cookies: async () => ({ cookies: await context.cookies(command.urls) }),
       storageState: async () => ({ storageState: await context.storageState(command.options) }),
@@ -88,7 +88,7 @@ class ContextHandler extends BaseHandler {
     });
     
     // Create coordination phases
-    const phases = PopupCoordinator.createContextPopupPhases({
+    const phases = PopupCoordinator.createPopupPhases('context', {
       pages: this.pages,
       pageContexts: this.pageContexts,
       setupPageEventListeners: this.setupPageEventListeners?.bind(this),
@@ -159,7 +159,7 @@ class PageHandler extends BaseHandler {
       addScriptTag: () => page.addScriptTag(command.options),
       addStyleTag: () => page.addStyleTag(command.options).then(() => ({ success: true })),
       handleDialog: () => this.handleDialog(command),
-      route: () => RouteUtils.setupPageRoute(page, command, this.generateId, this.routes, this.extractRequestData, this.sendFramedResponse, this.routeCounter),
+      route: () => RouteUtils.setupRoute(page, command.pageId, command.url, this.generateId, this.routes, this.extractRequestData, this.sendFramedResponse, () => `route_${++this.routeCounter.value}`),
       goBack: () => page.goBack(command.options),
       goForward: () => page.goForward(command.options),
       reload: () => page.reload(command.options),
@@ -309,7 +309,7 @@ class PageHandler extends BaseHandler {
     });
     
     // Create coordination phases
-    const phases = PopupCoordinator.createPagePopupPhases({
+    const phases = PopupCoordinator.createPopupPhases('page', {
       pages: this.pages,
       pageContexts: this.pageContexts,
       setupPageEventListeners: this.setupPageEventListeners?.bind(this),
