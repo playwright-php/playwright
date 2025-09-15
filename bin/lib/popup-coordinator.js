@@ -7,26 +7,28 @@ class PopupCoordinator {
     /**
      * Create coordination phases for page popup operations
      */
-    static createPagePopupPhases(dependencies) {
+    static createPopupPhases(mode, dependencies) {
         const { pages, pageContexts, setupPageEventListeners, generateId } = dependencies;
-        
+        const isPage = mode === 'page';
+
         return [
             {
                 name: 'setupListener',
                 handler: async (data) => {
-                    const { page, timeout, requestId } = data;
+                    const { timeout, requestId } = data;
+                    const idKey = isPage ? 'pageId' : 'contextId';
+                    const src = isPage ? data.page : data.context;
+                    const label = isPage ? 'popup' : 'context popup';
 
-                    logger.info('Setting up popup listener via page.waitForEvent', { 
-                        pageId: data.pageId,
-                        timeout,
-                        requestId 
-                    });
+                    logger.info(`Setting up ${label} listener`, { [idKey]: data[idKey], timeout, requestId });
 
-                    const popupPromise = page.waitForEvent('popup', { timeout });
+                    const popupPromise = isPage
+                        ? src.waitForEvent('popup', { timeout })
+                        : src.waitForEvent('page', { timeout });
 
-                    return { 
-                        popupPromise, 
-                        listenerId: generateId('popup_listener'),
+                    return {
+                        popupPromise,
+                        listenerId: generateId(isPage ? 'popup_listener' : 'context_popup_listener'),
                         setupTime: Date.now()
                     };
                 },
@@ -36,63 +38,33 @@ class PopupCoordinator {
             {
                 name: 'waitForPopup',
                 handler: async (data) => {
-                    const { popupPromise, requestId, pageId } = data;
-                    
-                    logger.debug('Waiting for popup event', { requestId, pageId });
-                    
+                    const { popupPromise, requestId } = data;
+                    const idKey = isPage ? 'pageId' : 'contextId';
+                    const ownerId = data[idKey];
+
+                    logger.debug(`Waiting for ${isPage ? 'popup' : 'context popup'} event`, { requestId, [idKey]: ownerId });
+
                     try {
-                        logger.debug('About to await popup promise', { requestId, pageId });
                         const popup = await popupPromise;
                         if (!popup) {
-                            logger.error('Popup is null or undefined', { requestId, pageId });
+                            logger.error('Popup is null or undefined', { requestId, ownerId });
                             return { popupPageId: null };
                         }
                         const popupPageId = generateId('page');
-                        let popupInfo = {};
-                        try {
-                            popupInfo.url = popup.url();
-                            popupInfo.title = await popup.title();
-                        } catch (_) {}
-                        logger.info('Popup created successfully', { 
-                            requestId,
-                            popupPageId,
-                            originalPageId: pageId,
-                            popupInfo
-                        });
-                        
+
+                        // Register popup and context mapping
                         pages.set(popupPageId, popup);
-                        
-                        const contextId = pageContexts.get(pageId);
-                        if (contextId) {
-                            pageContexts.set(popupPageId, contextId);
+                        if (isPage) {
+                            const contextId = pageContexts.get(ownerId);
+                            if (contextId) pageContexts.set(popupPageId, contextId);
+                        } else {
+                            pageContexts.set(popupPageId, ownerId);
                         }
 
-                        // Setup event listeners for popup
-                        if (setupPageEventListeners) {
-                            setupPageEventListeners(popup, popupPageId);
-                        }
-                        
-                        const isRegistered = pages.has(popupPageId);
-                        const registeredPage = pages.get(popupPageId);
-                        const pageType = registeredPage ? registeredPage.constructor.name : 'undefined';
-                        
-                        logger.debug('Popup page registered successfully', { 
-                            popupPageId, 
-                            isRegistered,
-                            totalPages: pages.size,
-                            contextId,
-                            pageType,
-                            popupReady: true
-                        });
-                        
+                        if (setupPageEventListeners) setupPageEventListeners(popup, popupPageId);
                         return { popupPageId, popup };
                     } catch (error) {
-                        logger.error('Popup wait failed', { 
-                            requestId, 
-                            error: error.message 
-                        });
-                        
-                        // Return null to indicate failure
+                        logger.error(`${isPage ? 'Popup' : 'Context popup'} wait failed`, { requestId, error: error.message });
                         return { popupPageId: null };
                     }
                 },
@@ -101,78 +73,7 @@ class PopupCoordinator {
         ];
     }
 
-    /**
-     * Create coordination phases for context popup operations
-     */
-    static createContextPopupPhases(dependencies) {
-        const { pages, pageContexts, setupPageEventListeners, generateId } = dependencies;
-        
-        return [
-            {
-                name: 'setupListener',
-                handler: async (data) => {
-                    const { context, timeout, requestId } = data;
-                    
-                    logger.info('Setting up context popup listener', { 
-                        contextId: data.contextId,
-                        timeout,
-                        requestId 
-                    });
-                    
-                    // Start listening for new page (popup) but don't wait yet
-                    const popupPromise = context.waitForEvent('page', { timeout });
-                    
-                    return { 
-                        popupPromise, 
-                        listenerId: generateId('context_popup_listener'),
-                        setupTime: Date.now()
-                    };
-                },
-                waitForCallback: true,
-                callbackType: 'readyForAction'
-            },
-            {
-                name: 'waitForPopup',
-                handler: async (data) => {
-                    const { popupPromise, requestId, contextId } = data;
-                    
-                    logger.debug('Waiting for context popup event', { requestId, contextId });
-                    
-                    try {
-                        // Now actually wait for the popup event
-                        const popup = await popupPromise;
-                        const popupPageId = generateId('page');
-                        
-                        logger.info('Context popup created successfully', { 
-                            requestId,
-                            popupPageId,
-                            contextId
-                        });
-                        
-                        // Register popup page
-                        pages.set(popupPageId, popup);
-                        pageContexts.set(popupPageId, contextId);
-
-                        // Setup event listeners for popup
-                        if (setupPageEventListeners) {
-                            setupPageEventListeners(popup, popupPageId);
-                        }
-                        
-                        return { popupPageId, popup };
-                    } catch (error) {
-                        logger.error('Context popup wait failed', { 
-                            requestId, 
-                            error: error.message 
-                        });
-                        
-                        // Return null to indicate failure
-                        return { popupPageId: null };
-                    }
-                },
-                waitForCallback: false
-            }
-        ];
-    }
+    // Legacy wrappers removed pre-1.0; use createPopupPhases('page'|'context', deps)
 
     /**
      * Validate popup coordination result

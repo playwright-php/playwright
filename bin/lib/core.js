@@ -11,15 +11,15 @@ class Logger {
     this.logPath = path.join(DEBUG_LOG_DIR, DEBUG_LOG_FILE);
     this.enabled = DEBUG;
     this.level = DEBUG_LEVEL.toLowerCase();
-    this.levels = { 'error': 0, 'warn': 1, 'info': 2, 'debug': 3 };
-    this.currentLevelPriority = this.levels[this.level] ?? this.levels['info'];
+    this.levels = { error: 0, warn: 1, info: 2, debug: 3 };
+    this.currentLevelPriority = this.levels[this.level] ?? this.levels.info;
     this.logStream = null;
     this.initConsoleLogging();
   }
 
   initConsoleLogging() {
     if (DEBUG) {
-      this.logStream = fs.createWriteStream('playwright-server.log', {flags: 'a'});
+      this.logStream = fs.createWriteStream('playwright-server.log', { flags: 'a' });
       const originalConsoleLog = console.log;
       console.log = (d) => {
         this.logStream.write(new Date().toISOString() + ' - ' + d + '\n');
@@ -30,7 +30,7 @@ class Logger {
 
   shouldLog(level) {
     if (!this.enabled) return false;
-    const levelPriority = this.levels[level] ?? this.levels['info'];
+    const levelPriority = this.levels[level] ?? this.levels.info;
     return levelPriority <= this.currentLevelPriority;
   }
 
@@ -52,7 +52,7 @@ class Logger {
     logMessage += '\n';
     try {
       fs.appendFileSync(this.logPath, logMessage);
-    } catch (error) {}
+    } catch (_error) {}
   }
 
   error(message, data = null) { this.log(message, data, 'error'); }
@@ -67,12 +67,17 @@ class ErrorHandler {
   static formatError(error, command, requestId) {
     const message = error instanceof Error ? error.message : String(error);
     logger.error('Command execution failed', {
-      command: command?.action, error: message, stack: error.stack, requestId, pageId: command?.pageId
+      command: command?.action,
+      error: message,
+      stack: error.stack,
+      requestId,
+      pageId: command?.pageId,
     });
     return {
-      requestId, error: message,
+      requestId,
+      error: message,
       stack: process.env.PLAYWRIGHT_DEBUG === 'true' ? error.stack : undefined,
-      command: command?.action
+      command: command?.action,
     };
   }
 
@@ -166,11 +171,11 @@ class BaseHandler {
   validateResource(resourceMap, resourceId, resourceType) {
     const resource = resourceMap.get(resourceId);
     if (!resource) {
-      logger.error(`${resourceType} not found`, { 
+      logger.error(`${resourceType} not found`, {
         resourceId,
         availableIds: Array.from(resourceMap.keys()),
         totalResources: resourceMap.size,
-        mapType: resourceMap.constructor.name
+        mapType: resourceMap.constructor.name,
       });
       throw new Error(`${resourceType} not found: ${resourceId}`);
     }
@@ -224,26 +229,16 @@ class FrameUtils {
 }
 
 class RouteUtils {
-  static async setupContextRoute(context, command, generateId, routes, extractRequestData, sendFramedResponse) {
-    await context.route(command.url, async (route) => {
-      const routeId = generateId('route');
-      routes.set(routeId, { route, contextId: command.contextId });
+  static async setupRoute(owner, ownerId, url, generateId, routes, extractRequestData, sendFramedResponse, routeIdFactory = null) {
+    await owner.route(url, async (route) => {
+      const routeId = typeof routeIdFactory === 'function' ? routeIdFactory() : generateId('route');
+      routes.set(routeId, { route, contextId: ownerId });
       const req = route.request();
       const requestData = extractRequestData(req);
-      logger.info('ROUTE SETUP', { url: requestData.url, method: requestData.method, type: 'context' });
-      sendFramedResponse({ objectId: command.contextId, event: 'route', params: { routeId, request: requestData } });
+      logger.info('ROUTE SETUP', { url: requestData.url || req.url(), method: requestData.method || req.method(), ownerId });
+      sendFramedResponse({ objectId: ownerId, event: 'route', params: { routeId, request: requestData } });
     });
     return { success: true };
-  }
-
-  static async setupPageRoute(page, command, generateId, routes, extractRequestData, sendFramedResponse, routeCounter) {
-    await page.route(command.url, async (route) => {
-      const routeId = `route_${++routeCounter.value}`;
-      routes.set(routeId, { route, contextId: command.pageId });
-      const req = route.request();
-      logger.info('ROUTE SETUP', { url: req.url(), method: req.method(), type: 'page' });
-      sendFramedResponse({ objectId: command.pageId, event: 'route', params: { routeId, request: extractRequestData(req) } });
-    });
   }
 }
 
@@ -251,5 +246,5 @@ const logger = new Logger();
 
 module.exports = {
   logger, ErrorHandler, LspFraming, sendFramedResponse,
-  CommandRegistry, BaseHandler, PromiseUtils, FrameUtils, RouteUtils
+  CommandRegistry, BaseHandler, PromiseUtils, FrameUtils, RouteUtils,
 };
