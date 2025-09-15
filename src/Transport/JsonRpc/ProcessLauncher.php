@@ -58,7 +58,6 @@ final class ProcessLauncher implements ProcessLauncherInterface
                 throw new ProcessLaunchException('Command cannot be empty', 0, null, ['command' => $command, 'cwd' => $cwd]);
             }
 
-            // Only check PATH-resolved commands (no path separators)
             if (!str_contains($executable, DIRECTORY_SEPARATOR)) {
                 $finder = new ExecutableFinder();
                 $resolved = $finder->find($executable);

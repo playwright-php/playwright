@@ -33,6 +33,8 @@ final class JsonRpcTransport implements TransportInterface
     private LoggerInterface $logger;
     /** @var array<string, EventDispatcherInterface> */
     private array $eventDispatchers = [];
+    /** @var array<string, callable> */
+    private array $pendingCallbacks = [];
 
     /**
      * @param array<string, mixed> $config
@@ -120,6 +122,8 @@ final class JsonRpcTransport implements TransportInterface
             $this->client = null;
         }
 
+        $this->pendingCallbacks = [];
+
         if ($this->process && $this->process->isRunning()) {
             // First attempt a graceful terminate via launcher (fast path),
             // then always call Process::stop() to satisfy teardown expectations
@@ -127,13 +131,13 @@ final class JsonRpcTransport implements TransportInterface
             try {
                 $this->processLauncher->terminate($this->process, 0.5);
             } catch (\Throwable) {
-                // ignore, will still call stop()
             }
+
             try {
                 $this->process->stop(0.25);
             } catch (\Throwable) {
-                // ignore failures on stop during shutdown
             }
+
             $this->process = null;
         }
 
@@ -161,6 +165,11 @@ final class JsonRpcTransport implements TransportInterface
 
             if (null === $this->client) {
                 throw new NetworkException('JSON-RPC client not available');
+            }
+
+            $action = is_string($message['action'] ?? null) ? $message['action'] : '';
+            if ($this->isCallbackCommand($action)) {
+                return $this->handleCallbackCommand($message, $timeoutMs);
             }
 
             return $this->client->sendRaw($message, $timeoutMs);
@@ -293,6 +302,124 @@ final class JsonRpcTransport implements TransportInterface
                 'objectId' => $objectId,
                 'availableDispatchers' => array_keys($this->eventDispatchers),
             ]);
+        }
+    }
+
+    /**
+     * Store a callback for later execution during coordination.
+     */
+    public function storePendingCallback(string $requestId, callable $callback): void
+    {
+        $this->pendingCallbacks[$requestId] = $callback;
+        $this->logger->debug('Stored pending callback', ['requestId' => $requestId]);
+    }
+
+    /**
+     * Check if action requires callback coordination.
+     */
+    private function isCallbackCommand(string $action): bool
+    {
+        return in_array($action, [
+            'page.waitForPopup',
+            'context.waitForPopup',
+            'page.waitForDownload',
+            'page.waitForFileChooser',
+        ], true);
+    }
+
+    /**
+     * Handle callback-coordinated command.
+     *
+     * @param array<string, mixed> $message
+     *
+     * @return array<string, mixed>
+     */
+    private function handleCallbackCommand(array $message, ?int $timeoutMs): array
+    {
+        $requestIdRaw = $message['requestId'] ?? null;
+        $requestId = is_string($requestIdRaw) ? $requestIdRaw : uniqid('callback_', true);
+        $message['requestId'] = $requestId;
+
+        $this->logger->info('Handling callback command', [
+            'action' => $message['action'],
+            'requestId' => $requestId,
+        ]);
+
+        // Send initial message to server
+        if (null === $this->client) {
+            throw new NetworkException('JSON-RPC client not available');
+        }
+        $client = $this->client;
+        $response = $client->sendRaw($message, $timeoutMs);
+
+        $this->logger->debug('Callback command response received', [
+            'requestId' => $requestId,
+            'response' => $response,
+        ]);
+
+        if (isset($response['type']) && 'callback' === $response['type']) {
+            $this->logger->info('Server requested callback', [
+                'requestId' => $requestId,
+                'callbackType' => $response['callbackType'] ?? 'unknown',
+            ]);
+
+            $this->executeCallback($response);
+
+            $continueMessage = [
+                'action' => 'callback.continue',
+                'requestId' => $requestId,
+                'callbackResult' => ['executed' => true],
+            ];
+
+            $finalResponse = $client->sendRaw($continueMessage, $timeoutMs);
+            unset($this->pendingCallbacks[$requestId]);
+
+            return $finalResponse;
+        }
+
+        return $response;
+    }
+
+    /**
+     * Execute callback based on callback data from server.
+     *
+     * @param array<string, mixed> $callbackData
+     */
+    private function executeCallback(array $callbackData): void
+    {
+        $requestIdRaw = $callbackData['requestId'] ?? null;
+        if (!is_string($requestIdRaw)) {
+            $this->logger->warning('Invalid or missing requestId in callback data', [
+                'callbackData' => $callbackData,
+            ]);
+
+            return;
+        }
+        $requestId = $requestIdRaw;
+        $callbackType = $callbackData['callbackType'] ?? '';
+
+        $this->logger->info('Executing callback', [
+            'requestId' => $requestId,
+            'callbackType' => $callbackType,
+        ]);
+
+        switch ($callbackType) {
+            case 'readyForAction':
+                if (isset($this->pendingCallbacks[$requestId])) {
+                    $callback = $this->pendingCallbacks[$requestId];
+                    $callback();
+                    $this->logger->info('Executed readyForAction callback', ['requestId' => $requestId]);
+                } else {
+                    $this->logger->warning('No pending callback found', ['requestId' => $requestId]);
+                }
+                break;
+
+            default:
+                $this->logger->warning('Unknown callback type', [
+                    'requestId' => $requestId,
+                    'callbackType' => $callbackType,
+                ]);
+                break;
         }
     }
 

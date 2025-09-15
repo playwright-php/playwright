@@ -1,4 +1,6 @@
 const { logger, ErrorHandler, CommandRegistry, BaseHandler, PromiseUtils, FrameUtils, RouteUtils } = require('./core');
+const { globalCoordinator } = require('./coordination');
+const { PopupCoordinator } = require('./popup-coordinator');
 
 class ContextHandler extends BaseHandler {
   async handle(command, method) {
@@ -15,9 +17,25 @@ class ContextHandler extends BaseHandler {
       clearPermissions: () => context.clearPermissions(),
       startTracing: () => context.tracing.start(command.options || {}),
       stopTracing: () => context.tracing.stop({ path: command.path }),
-      waitForEvent: () => context.waitForEvent(command.event, { timeout: command.timeout }),
+      waitForEvent: async () => {
+        // Special-case 'page' event to return a serializable payload
+        if (command.event === 'page') {
+          const popup = await context.waitForEvent('page', { timeout: command.timeout });
+          const popupPageId = this.generateId('page');
+          this.pages.set(popupPageId, popup);
+          this.pageContexts.set(popupPageId, command.contextId);
+          if (this.setupPageEventListeners) {
+            this.setupPageEventListeners(popup, popupPageId);
+          }
+          return { popupPageId };
+        }
+        // For other events, return a basic value wrapper
+        const value = await context.waitForEvent(command.event, { timeout: command.timeout });
+        return { value: value ?? null };
+      },
+      waitForPopup: () => this.waitForPopup(context, command),
       setNetworkThrottling: () => this.setThrottling(command),
-      route: () => RouteUtils.setupContextRoute(context, command, this.generateId, this.routes, this.extractRequestData, this.sendFramedResponse),
+      route: () => RouteUtils.setupRoute(context, command.contextId, command.url, this.generateId, this.routes, this.extractRequestData, this.sendFramedResponse),
       unroute: () => context.unroute(command.url),
       cookies: async () => ({ cookies: await context.cookies(command.urls) }),
       storageState: async () => ({ storageState: await context.storageState(command.options) }),
@@ -58,6 +76,63 @@ class ContextHandler extends BaseHandler {
 
     return { pageId };
   }
+
+  async waitForPopup(context, command) {
+    const timeout = command.timeout || 30000;
+    const requestId = command.requestId || this.generateId('popup_req');
+    
+    logger.info('Starting context popup coordination', { 
+      contextId: command.contextId, 
+      timeout, 
+      requestId 
+    });
+    
+    // Create coordination phases
+    const phases = PopupCoordinator.createPopupPhases('context', {
+      pages: this.pages,
+      pageContexts: this.pageContexts,
+      setupPageEventListeners: this.setupPageEventListeners?.bind(this),
+      generateId: this.generateId.bind(this)
+    });
+    
+    // Register the async command
+    globalCoordinator.registerAsyncCommand(requestId, phases);
+    
+    try {
+      // Start execution with initial data
+      const result = await globalCoordinator.executeNextPhase(requestId, {
+        context,
+        contextId: command.contextId,
+        timeout,
+        requestId
+      });
+      
+      if (result.type === 'callback') {
+        // Command is waiting for callback - this is expected for popup coordination
+        logger.debug('Context popup coordination waiting for callback', { requestId, callbackType: result.callbackType });
+        return result;
+      }
+      
+      if (result.completed) {
+        const validation = PopupCoordinator.validatePopupResult(result.result);
+        if (!validation.valid) {
+          logger.error('Invalid popup result', { requestId, error: validation.error });
+          return { popupPageId: null };
+        }
+        
+        return result.result;
+      }
+      
+      return { popupPageId: null };
+      
+    } catch (error) {
+      logger.error('Context popup coordination failed', { 
+        requestId, 
+        error: error.message 
+      });
+      return { popupPageId: null };
+    }
+  }
 }
 
 class PageHandler extends BaseHandler {
@@ -84,12 +159,13 @@ class PageHandler extends BaseHandler {
       addScriptTag: () => page.addScriptTag(command.options),
       addStyleTag: () => page.addStyleTag(command.options).then(() => ({ success: true })),
       handleDialog: () => this.handleDialog(command),
-      route: () => RouteUtils.setupPageRoute(page, command, this.generateId, this.routes, this.extractRequestData, this.sendFramedResponse, this.routeCounter),
+      route: () => RouteUtils.setupRoute(page, command.pageId, command.url, this.generateId, this.routes, this.extractRequestData, this.sendFramedResponse, () => `route_${++this.routeCounter.value}`),
       goBack: () => page.goBack(command.options),
       goForward: () => page.goForward(command.options),
       reload: () => page.reload(command.options),
       frames: () => this.getFrames(page),
-      frame: () => this.getFrame(page, command)
+      frame: () => this.getFrame(page, command),
+      waitForPopup: () => this.waitForPopup(page, command)
     });
 
     return await ErrorHandler.safeExecute(() => this.executeWithRegistry(registry, method), { method, pageId: command.pageId });
@@ -118,7 +194,7 @@ class PageHandler extends BaseHandler {
 
       const result = attempt?.ok ? attempt.value : await page.evaluate(command.expression, command.arg);
       const value = result === undefined ? null : result;
-      logger.info('PAGE EVALUATE OK', { type: typeof value, method: attempt?.ok ? 'func' : 'expr' });
+      logger.debug('PAGE EVALUATE OK', { type: typeof value, method: attempt?.ok ? 'func' : 'expr' });
       return { result: value };
     } catch (error) {
       logger.error('PAGE EVALUATE ERROR', { message: error.message });
@@ -221,6 +297,92 @@ class PageHandler extends BaseHandler {
     }
     return chain.join(' >> ');
   }
+
+  async waitForPopup(page, command) {
+    const timeout = command.timeout || 30000;
+    const requestId = command.requestId || this.generateId('popup_req');
+    
+    logger.info('Starting page popup coordination', { 
+      pageId: command.pageId, 
+      timeout, 
+      requestId 
+    });
+    
+    // Create coordination phases
+    const phases = PopupCoordinator.createPopupPhases('page', {
+      pages: this.pages,
+      pageContexts: this.pageContexts,
+      setupPageEventListeners: this.setupPageEventListeners?.bind(this),
+      generateId: this.generateId.bind(this)
+    });
+    
+    // Register the async command
+    globalCoordinator.registerAsyncCommand(requestId, phases);
+    
+    try {
+      // Start execution with initial data
+      const result = await globalCoordinator.executeNextPhase(requestId, {
+        page,
+        pageId: command.pageId,
+        timeout,
+        requestId
+      });
+      
+      if (result.type === 'callback') {
+        // Command is waiting for callback - this is expected for popup coordination
+        logger.debug('Page popup coordination waiting for callback', { requestId, callbackType: result.callbackType });
+        return result;
+      }
+      
+      if (result.completed) {
+        const validation = PopupCoordinator.validatePopupResult(result.result);
+        if (!validation.valid) {
+          logger.error('Invalid popup result', { requestId, error: validation.error });
+          return { popupPageId: null };
+        }
+        
+        // Ensure popup page is registered in main pages Map
+        const popupPageId = result.result.popupPageId;
+        const popup = result.result.popup;
+        
+        if (popup && !this.pages.has(popupPageId)) {
+          // Re-register the popup page in the main pages Map
+          this.pages.set(popupPageId, popup);
+          
+          // Set up context mapping
+          const contextId = this.pageContexts.get(command.pageId);
+          if (contextId) {
+            this.pageContexts.set(popupPageId, contextId);
+          }
+          
+          logger.debug('Re-registered popup page in main pages Map', {
+            popupPageId,
+            contextId,
+            totalPages: this.pages.size
+          });
+        }
+        
+        // Verify registration before returning
+        const isRegistered = this.pages.has(popupPageId);
+        logger.info('Page popup coordination completed', {
+          popupPageId,
+          isRegistered,
+          totalPages: this.pages.size
+        });
+        
+        return result.result;
+      }
+      
+      return { popupPageId: null };
+      
+    } catch (error) {
+      logger.error('Page popup coordination failed', { 
+        requestId, 
+        error: error.message 
+      });
+      return { popupPageId: null };
+    }
+  }
 }
 
 class LocatorHandler extends BaseHandler {
@@ -301,7 +463,7 @@ class LocatorHandler extends BaseHandler {
   }
 
   async handleDragAndDrop(page, command) {
-    logger.info('Handling drag and drop', { 
+    logger.debug('Handling drag and drop', { 
       selector: command.selector, 
       target: command.target, 
       options: command.options 

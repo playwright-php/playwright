@@ -684,6 +684,36 @@ final class Page implements PageInterface, EventDispatcherInterface
     /**
      * @param array<string, mixed> $options
      */
+    public function waitForPopup(callable $action, array $options = []): self
+    {
+        $timeout = $options['timeout'] ?? 30000;
+        $requestId = uniqid('popup_', true);
+
+        if (method_exists($this->transport, 'storePendingCallback')) {
+            $this->transport->storePendingCallback($requestId, $action);
+        } else {
+            // Fallback for transports that don't support callbacks
+            $action();
+        }
+
+        $response = $this->transport->send([
+            'action' => 'page.waitForPopup',
+            'pageId' => $this->pageId,
+            'timeout' => $timeout,
+            'requestId' => $requestId,
+        ]);
+
+        $popupPageId = $response['popupPageId'] ?? null;
+        if (!is_string($popupPageId)) {
+            throw new TimeoutException('No popup was created within the timeout period');
+        }
+
+        return new self($this->transport, $this->context, $popupPageId, $this->config, $this->logger);
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
     public function setInputFiles(string $selector, array $files, array $options = []): self
     {
         $this->logger->debug('Setting input files', ['selector' => $selector, 'files' => $files]);

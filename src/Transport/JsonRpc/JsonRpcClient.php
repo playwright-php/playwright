@@ -50,9 +50,7 @@ class JsonRpcClient implements JsonRpcClientInterface
         $timeoutMs ??= $this->defaultTimeoutMs;
         $id = $this->nextId++;
 
-        $deadline = $timeoutMs > 0
-            ? $this->getCurrentTimeMs() + $timeoutMs
-            : null;
+        $deadline = $timeoutMs > 0 ? $this->getCurrentTimeMs() + $timeoutMs : null;
 
         $this->trackRequest($id, $method);
 
@@ -115,31 +113,33 @@ class JsonRpcClient implements JsonRpcClientInterface
     public function sendRaw(array $message, ?float $timeoutMs = null): array
     {
         $timeoutMs ??= $this->defaultTimeoutMs;
-        $id = $this->nextId++;
 
-        $deadline = $timeoutMs > 0
-            ? $this->getCurrentTimeMs() + $timeoutMs
-            : null;
+        $rawId = $message['requestId'] ?? null;
+        $requestIdForMessage = (is_int($rawId) || is_string($rawId)) ? $rawId : $this->nextId++;
+        $trackingId = is_int($requestIdForMessage) ? $requestIdForMessage : $this->nextId++;
+
+        $deadline = $timeoutMs > 0 ? $this->getCurrentTimeMs() + $timeoutMs : null;
 
         $request = $message;
-        $request['requestId'] = $id;
+        $request['requestId'] = $requestIdForMessage;
 
         $actionString = is_string($message['action'] ?? null) ? $message['action'] : 'unknown';
-        $this->trackRequest($id, $actionString);
+        $this->trackRequest($trackingId, $actionString);
 
         $this->logger->debug('Sending raw request', [
-            'id' => $id,
+            'id' => $requestIdForMessage,
+            'trackingId' => $trackingId,
             'action' => $message['action'] ?? 'unknown',
             'timeoutMs' => $timeoutMs,
         ]);
 
         try {
             $response = $this->sendAndReceive($request, $deadline);
-            unset($this->pendingRequests[$id]);
+            unset($this->pendingRequests[$trackingId]);
 
             return $response;
         } catch (\Throwable $e) {
-            unset($this->pendingRequests[$id]);
+            unset($this->pendingRequests[$trackingId]);
             throw $e;
         }
     }
@@ -193,9 +193,6 @@ class JsonRpcClient implements JsonRpcClientInterface
         $this->pendingRequests = [];
     }
 
-    /**
-     * Helper method to properly track requests.
-     */
     private function trackRequest(int $id, string $method): void
     {
         $this->pendingRequests[$id] = [

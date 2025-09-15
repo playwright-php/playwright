@@ -154,6 +154,11 @@ interface PageInterface
     public function waitForEvents(): void;
 
     /**
+     * @param array<string, mixed> $options
+     */
+    public function waitForPopup(callable $action, array $options = []): self;
+
+    /**
      * Set files to an input element with type="file".
      *
      * @param string               $selector The input selector

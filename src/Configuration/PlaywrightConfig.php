@@ -74,6 +74,33 @@ final class PlaywrightConfig
     }
 
     /**
+     * Return a new instance with the given node path.
+     */
+    public function withNodePath(?string $nodePath): self
+    {
+        return new PlaywrightConfig(
+            nodePath: $nodePath,
+            minNodeVersion: $this->minNodeVersion,
+            browser: $this->browser,
+            channel: $this->channel,
+            headless: $this->headless,
+            timeoutMs: $this->timeoutMs,
+            slowMoMs: $this->slowMoMs,
+            args: $this->args,
+            env: $this->env,
+            downloadsDir: $this->downloadsDir,
+            videosDir: $this->videosDir,
+            screenshotDir: $this->screenshotDir,
+            tracingEnabled: $this->tracingEnabled,
+            traceDir: $this->traceDir,
+            traceScreenshots: $this->traceScreenshots,
+            traceSnapshots: $this->traceSnapshots,
+            proxy: $this->proxy,
+            logger: $this->logger,
+        );
+    }
+
+    /**
      * For debugging/logging.
      *
      * @return array<string, mixed>
