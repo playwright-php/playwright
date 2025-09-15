@@ -83,7 +83,6 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
             $route->continue();
         }
 
-        // Track popup/new page lifecycle if server emits such events.
         if (in_array($eventName, ['page', 'popup', 'pageCreated'], true)) {
             $pageId = $params['pageId'] ?? null;
             if (is_string($pageId) && !isset($this->pages[$pageId])) {
@@ -486,8 +485,7 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
     {
         $timeout = $options['timeout'] ?? 30000;
         $requestId = uniqid('popup_', true);
-        
-        // Store the action for callback execution via transport
+
         if (method_exists($this->transport, 'storePendingCallback')) {
             $this->transport->storePendingCallback($requestId, $action);
         } else {
@@ -499,7 +497,7 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
             'action' => 'context.waitForPopup',
             'contextId' => $this->contextId,
             'timeout' => $timeout,
-            'requestId' => $requestId
+            'requestId' => $requestId,
         ]);
 
         $popupPageId = $response['popupPageId'] ?? null;

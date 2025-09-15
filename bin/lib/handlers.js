@@ -17,7 +17,22 @@ class ContextHandler extends BaseHandler {
       clearPermissions: () => context.clearPermissions(),
       startTracing: () => context.tracing.start(command.options || {}),
       stopTracing: () => context.tracing.stop({ path: command.path }),
-      waitForEvent: () => context.waitForEvent(command.event, { timeout: command.timeout }),
+      waitForEvent: async () => {
+        // Special-case 'page' event to return a serializable payload
+        if (command.event === 'page') {
+          const popup = await context.waitForEvent('page', { timeout: command.timeout });
+          const popupPageId = this.generateId('page');
+          this.pages.set(popupPageId, popup);
+          this.pageContexts.set(popupPageId, command.contextId);
+          if (this.setupPageEventListeners) {
+            this.setupPageEventListeners(popup, popupPageId);
+          }
+          return { popupPageId };
+        }
+        // For other events, return a basic value wrapper
+        const value = await context.waitForEvent(command.event, { timeout: command.timeout });
+        return { value: value ?? null };
+      },
       waitForPopup: () => this.waitForPopup(context, command),
       setNetworkThrottling: () => this.setThrottling(command),
       route: () => RouteUtils.setupContextRoute(context, command, this.generateId, this.routes, this.extractRequestData, this.sendFramedResponse),
@@ -92,9 +107,9 @@ class ContextHandler extends BaseHandler {
         requestId
       });
       
-      if (result.waiting) {
+      if (result.type === 'callback') {
         // Command is waiting for callback - this is expected for popup coordination
-        logger.info('Context popup coordination waiting for callback', { requestId });
+        logger.info('Context popup coordination waiting for callback', { requestId, callbackType: result.callbackType });
         return result;
       }
       
@@ -325,6 +340,35 @@ class PageHandler extends BaseHandler {
           logger.error('Invalid popup result', { requestId, error: validation.error });
           return { popupPageId: null };
         }
+        
+        // Ensure popup page is registered in main pages Map
+        const popupPageId = result.result.popupPageId;
+        const popup = result.result.popup;
+        
+        if (popup && !this.pages.has(popupPageId)) {
+          // Re-register the popup page in the main pages Map
+          this.pages.set(popupPageId, popup);
+          
+          // Set up context mapping
+          const contextId = this.pageContexts.get(command.pageId);
+          if (contextId) {
+            this.pageContexts.set(popupPageId, contextId);
+          }
+          
+          logger.info('Re-registered popup page in main pages Map', {
+            popupPageId,
+            contextId,
+            totalPages: this.pages.size
+          });
+        }
+        
+        // Verify registration before returning
+        const isRegistered = this.pages.has(popupPageId);
+        logger.info('Page popup coordination completed', {
+          popupPageId,
+          isRegistered,
+          totalPages: this.pages.size
+        });
         
         return result.result;
       }

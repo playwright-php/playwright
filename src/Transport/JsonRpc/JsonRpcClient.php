@@ -50,9 +50,7 @@ class JsonRpcClient implements JsonRpcClientInterface
         $timeoutMs ??= $this->defaultTimeoutMs;
         $id = $this->nextId++;
 
-        $deadline = $timeoutMs > 0
-            ? $this->getCurrentTimeMs() + $timeoutMs
-            : null;
+        $deadline = $timeoutMs > 0 ? $this->getCurrentTimeMs() + $timeoutMs : null;
 
         $this->trackRequest($id, $method);
 
@@ -115,16 +113,11 @@ class JsonRpcClient implements JsonRpcClientInterface
     public function sendRaw(array $message, ?float $timeoutMs = null): array
     {
         $timeoutMs ??= $this->defaultTimeoutMs;
-        
-        // Preserve existing requestId if provided, otherwise generate new one
+
         $id = $message['requestId'] ?? $this->nextId++;
-        
-        // Ensure we track numeric IDs for internal bookkeeping
         $trackingId = is_string($id) ? $this->nextId++ : $id;
 
-        $deadline = $timeoutMs > 0
-            ? $this->getCurrentTimeMs() + $timeoutMs
-            : null;
+        $deadline = $timeoutMs > 0 ? $this->getCurrentTimeMs() + $timeoutMs : null;
 
         $request = $message;
         $request['requestId'] = $id;
@@ -199,9 +192,6 @@ class JsonRpcClient implements JsonRpcClientInterface
         $this->pendingRequests = [];
     }
 
-    /**
-     * Helper method to properly track requests.
-     */
     private function trackRequest(int $id, string $method): void
     {
         $this->pendingRequests[$id] = [

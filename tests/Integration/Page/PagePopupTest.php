@@ -10,10 +10,14 @@ declare(strict_types=1);
 
 namespace PlaywrightPHP\Tests\Integration\Page;
 
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use PlaywrightPHP\Page\Page;
+use PlaywrightPHP\Page\PageInterface;
 use PlaywrightPHP\Testing\PlaywrightTestCaseTrait;
 
+#[CoversClass(Page::class)]
 final class PagePopupTest extends TestCase
 {
     use PlaywrightTestCaseTrait;
@@ -23,7 +27,7 @@ final class PagePopupTest extends TestCase
         $this->setUpPlaywright();
     }
 
-    #[Test] 
+    #[Test]
     public function itCanWaitForPopupFromPageAction(): void
     {
         $page = $this->browser->newPage();
@@ -38,7 +42,13 @@ final class PagePopupTest extends TestCase
                 <button id="popup-btn" onclick="openPopup()">Open Popup</button>
                 <script>
                     function openPopup() {
-                        window.open("/popup.html", "_blank", "width=300,height=200");
+                        console.log("openPopup function called");
+                        try {
+                            const popup = window.open("about:blank", "_blank", "width=300,height=200");
+                            return popup;
+                        } catch (error) {
+                            console.error("Error in openPopup:", error);
+                        }
                     }
                 </script>
             </body>
@@ -48,12 +58,18 @@ final class PagePopupTest extends TestCase
         // Wait for popup when button is clicked
         $popup = $page->waitForPopup(function () use ($page) {
             $page->click('#popup-btn');
-        });
+        }, ['timeout' => 2000]);
 
         $this->assertNotNull($popup);
         $this->assertNotSame($page, $popup);
 
-        // Verify we can interact with the popup
+        // Small delay to ensure popup is fully ready
+        usleep(100000); // 100ms
+
+        // Test popup operations with debug logging enabled
+        $this->assertInstanceOf(PageInterface::class, $popup);
+
+        // This should now show detailed debug output
         $popup->setContent('
             <!DOCTYPE html>
             <html>
@@ -72,23 +88,23 @@ final class PagePopupTest extends TestCase
         $page->close();
     }
 
-    // #[Test] // Temporarily disabled - server implementation needs refinement
+    #[Test]
     public function itCanWaitForPopupFromContextAction(): void
     {
         $context = $this->browser->newContext();
         $page = $context->newPage();
 
         // Set up HTML with popup trigger
-        $page->setContent('
+        $page->setContent(<<<HTML
             <!DOCTYPE html>
             <html>
             <body>
-                <a id="new-tab" href="javascript:void(0)" onclick="window.open(\'/test.html\', \'_blank\')">
+                <a id="new-tab" href="javascript:void(0)" onclick="window.open('/test.html', '_blank')">
                     Open New Tab
                 </a>
             </body>
             </html>
-        ');
+        HTML);
 
         // Wait for popup at context level
         $popup = $context->waitForPopup(function () use ($page) {
@@ -106,48 +122,44 @@ final class PagePopupTest extends TestCase
         $context->close();
     }
 
-    // #[Test] // Temporarily disabled - server implementation needs refinement
+    #[Test]
     public function itCanWaitForEventPopup(): void
     {
         $context = $this->browser->newContext();
         $page = $context->newPage();
 
-        $page->setContent('
+        $page->setContent(<<<HTML
             <!DOCTYPE html>
             <html>
             <body>
-                <button onclick="window.open(\'/popup\', \'popup\')">Open Popup</button>
+                <script>
+                  setTimeout(() => { window.open('/popup', 'popup'); }, 50);
+                </script>
             </body>
             </html>
-        ');
+        HTML);
 
-        // Use waitForEvent to listen for popup events
-        $eventPromise = function () use ($context, $page) {
-            $page->click('button');
-
-            return $context->waitForEvent('page');
-        };
-
-        $result = $eventPromise();
+        // Arm the listener first; the page script will open the popup
+        $result = $context->waitForEvent('page', null, 2000);
         $this->assertIsArray($result);
 
         $context->close();
     }
 
-    // #[Test] // Temporarily disabled - server implementation needs refinement
+    #[Test]
     public function itHandlesMultiplePopups(): void
     {
         $page = $this->browser->newPage();
 
-        $page->setContent('
+        $page->setContent(<<<HTML
             <!DOCTYPE html>
             <html>
             <body>
-                <button id="popup1" onclick="window.open(\'/popup1\', \'p1\')">Popup 1</button>
-                <button id="popup2" onclick="window.open(\'/popup2\', \'p2\')">Popup 2</button>
+                <button id="popup1" onclick="window.open('/popup1', 'p1')">Popup 1</button>
+                <button id="popup2" onclick="window.open('/popup2', 'p2')">Popup 2</button>
             </body>
             </html>
-        ');
+        HTML);
 
         // Open first popup
         $popup1 = $page->waitForPopup(function () use ($page) {

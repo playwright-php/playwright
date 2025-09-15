@@ -165,7 +165,15 @@ class BaseHandler {
   constructor(deps = {}) { Object.assign(this, deps); }
   validateResource(resourceMap, resourceId, resourceType) {
     const resource = resourceMap.get(resourceId);
-    if (!resource) throw new Error(`${resourceType} not found: ${resourceId}`);
+    if (!resource) {
+      logger.error(`${resourceType} not found`, { 
+        resourceId,
+        availableIds: Array.from(resourceMap.keys()),
+        totalResources: resourceMap.size,
+        mapType: resourceMap.constructor.name
+      });
+      throw new Error(`${resourceType} not found: ${resourceId}`);
+    }
     return resource;
   }
   wrapResult(value) { return value === undefined || value === null ? { success: true } : value; }

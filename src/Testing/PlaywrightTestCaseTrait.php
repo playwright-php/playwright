@@ -29,99 +29,46 @@ use Symfony\Component\Process\ExecutableFinder;
 trait PlaywrightTestCaseTrait
 {
     protected PlaywrightClient $playwright;
+
     protected BrowserInterface $browser;
+
     protected BrowserContextInterface $context;
+
     protected PageInterface $page;
 
-    /** Shared lifecycle across tests in a class */
     protected static ?PlaywrightClient $sharedPlaywright = null;
+
     protected static ?BrowserInterface $sharedBrowser = null;
+
     private bool $usingShared = true;
+
     private bool $traceThisTest = false;
 
     protected function setUpPlaywright(?LoggerInterface $logger = null, ?PlaywrightConfig $customConfig = null): void
     {
-        if (isset($_SERVER['PLAYWRIGHT_PHP_TEST_LOGGER_URL'])) {
-            $loggerUrl = $_SERVER['PLAYWRIGHT_PHP_TEST_LOGGER_URL'];
-            if (is_string($loggerUrl)) {
-                $logger = new Logger('playwright-php-test', [
-                    new StreamHandler($loggerUrl),
-                ]);
-            }
-        }
+        $logger = $this->resolveLogger($logger);
 
-        $finder = new ExecutableFinder();
-        $node = $finder->find('node');
-
+        $node = (new ExecutableFinder())->find('node');
         if (null === $node) {
             self::markTestSkipped('Node.js executable not found.');
         }
 
-        if (null !== $customConfig) {
-            $config = new PlaywrightConfig(
-                nodePath: $node,
-                minNodeVersion: $customConfig->minNodeVersion,
-                browser: $customConfig->browser,
-                channel: $customConfig->channel,
-                headless: $customConfig->headless,
-                timeoutMs: $customConfig->timeoutMs,
-                slowMoMs: $customConfig->slowMoMs,
-                args: $customConfig->args,
-                env: $customConfig->env,
-                downloadsDir: $customConfig->downloadsDir,
-                videosDir: $customConfig->videosDir,
-                screenshotDir: $customConfig->screenshotDir,
-                tracingEnabled: $customConfig->tracingEnabled,
-                traceDir: $customConfig->traceDir,
-                traceScreenshots: $customConfig->traceScreenshots,
-                traceSnapshots: $customConfig->traceSnapshots,
-                proxy: $customConfig->proxy,
-                logger: $customConfig->logger,
-            );
-        } else {
-            $config = new PlaywrightConfig(nodePath: $node);
-        }
+        $config = $this->buildConfig($node, $customConfig);
 
         if (null !== $customConfig) {
             $this->usingShared = false;
             $this->playwright = PlaywrightFactory::create($config, $logger);
             $this->browser = $this->playwright->chromium()->launch();
         } else {
-            if (null === self::$sharedPlaywright) {
-                self::$sharedPlaywright = PlaywrightFactory::create($config, $logger);
-            }
-            if (null === self::$sharedBrowser || !self::$sharedBrowser->isConnected()) {
-                self::$sharedBrowser = self::$sharedPlaywright->chromium()->launch();
-            }
-
-            static $shutdownRegistered = false;
-            if (!$shutdownRegistered) {
-                $shutdownRegistered = true;
-                register_shutdown_function(function (): void {
-                    if (self::$sharedBrowser) {
-                        try {
-                            self::$sharedBrowser->close();
-                        } catch (\Throwable) {
-                        }
-                        self::$sharedBrowser = null;
-                    }
-                    if (self::$sharedPlaywright) {
-                        try {
-                            self::$sharedPlaywright->close();
-                        } catch (\Throwable) {
-                        }
-                        self::$sharedPlaywright = null;
-                    }
-                });
-            }
+            $this->initializeShared($config, $logger);
             $this->playwright = self::$sharedPlaywright;
             $this->browser = self::$sharedBrowser;
         }
+
         $this->context = $this->browser->newContext();
         $this->page = $this->context->newPage();
 
-        $envTrace = $_SERVER['PW_TRACE'] ?? getenv('PW_TRACE');
-        $this->traceThisTest = (is_string($envTrace) && '' !== $envTrace && '0' !== $envTrace);
+        $this->traceThisTest = $this->shouldTrace();
         if ($this->traceThisTest) {
             $this->context->startTracing($this->page, [
                 'screenshots' => true,
@@ -135,59 +82,26 @@ trait PlaywrightTestCaseTrait
         $status = $this->status();
 
         if ($status->isFailure() || $status->isError()) {
-            $failuresDir = getcwd().'/test-failures';
-            if (!is_dir($failuresDir)) {
-                if (!mkdir($failuresDir, 0777, true) && !is_dir($failuresDir)) {
-                    throw new RuntimeException(sprintf('Directory "%s" was not created', $failuresDir));
-                }
-            }
-            $testName = 'test';
-            if (method_exists($this, 'getName')) {
-                $name = $this->getName();
-                if (is_string($name)) {
-                    $testName = $name;
-                }
-            }
-            $this->page->screenshot($failuresDir.'/'.$testName.'.png');
-            if ($this->traceThisTest) {
-                $this->context->stopTracing($this->page, $failuresDir.'/'.$testName.'.zip');
-            }
+            $testName = method_exists($this, 'getName') && is_string($this->getName()) ? $this->getName() : 'test';
+            $this->captureFailureArtifacts($testName);
         }
 
-        try {
-            $this->context->close();
-        } catch (\Throwable) {
-        }
+        $this->safeClose($this->context);
 
         if (!$this->usingShared) {
-            try {
-                $this->browser->close();
-            } catch (\Throwable) {
-            }
-            try {
-                $this->playwright->close();
-            } catch (\Throwable) {
-            }
+            $this->safeClose($this->browser);
+            $this->safeClose($this->playwright);
         }
     }
 
-    /**
-     * Optionally call this in tearDownAfterClass from tests to close shared resources.
-     */
     protected static function closeSharedPlaywright(): void
     {
-        if (self::$sharedBrowser) {
-            try {
-                self::$sharedBrowser->close();
-            } catch (\Throwable) {
-            }
+        if (null !== self::$sharedBrowser) {
+            self::safeStaticClose(self::$sharedBrowser);
             self::$sharedBrowser = null;
         }
-        if (self::$sharedPlaywright) {
-            try {
-                self::$sharedPlaywright->close();
-            } catch (\Throwable) {
-            }
+        if (null !== self::$sharedPlaywright) {
+            self::safeStaticClose(self::$sharedPlaywright);
             self::$sharedPlaywright = null;
         }
     }
@@ -201,5 +115,96 @@ trait PlaywrightTestCaseTrait
     protected function expect(LocatorInterface|PageInterface $subject): ExpectInterface
     {
         return new Expect($subject);
+    }
+
+    private function resolveLogger(?LoggerInterface $logger): ?LoggerInterface
+    {
+        $loggerUrl = $_SERVER['PLAYWRIGHT_PHP_TEST_LOGGER_URL'] ?? null;
+        if (is_string($loggerUrl)) {
+            return new Logger('playwright-php-test', [new StreamHandler($loggerUrl)]);
+        }
+
+        return $logger;
+    }
+
+    private function buildConfig(string $node, ?PlaywrightConfig $custom): PlaywrightConfig
+    {
+        if (null === $custom) {
+            return new PlaywrightConfig(nodePath: $node);
+        }
+
+        return $custom->withNodePath($node);
+    }
+
+    private function initializeShared(PlaywrightConfig $config, ?LoggerInterface $logger): void
+    {
+        if (null === self::$sharedPlaywright) {
+            self::$sharedPlaywright = PlaywrightFactory::create($config, $logger);
+        }
+        if (null === self::$sharedBrowser || !self::$sharedBrowser->isConnected()) {
+            self::$sharedBrowser = self::$sharedPlaywright->chromium()->launch();
+        }
+
+        static $shutdownRegistered = false;
+        if (!$shutdownRegistered) {
+            $shutdownRegistered = true;
+            register_shutdown_function(static function (): void {
+                if (self::$sharedBrowser) {
+                    self::safeStaticClose(self::$sharedBrowser);
+                    self::$sharedBrowser = null;
+                }
+                if (self::$sharedPlaywright) {
+                    self::safeStaticClose(self::$sharedPlaywright);
+                    self::$sharedPlaywright = null;
+                }
+            });
+        }
+    }
+
+    private function shouldTrace(): bool
+    {
+        $env = $_SERVER['PW_TRACE'] ?? getenv('PW_TRACE') ?? '';
+
+        return is_string($env) && '' !== $env && '0' !== $env;
+    }
+
+    private function captureFailureArtifacts(string $testName): void
+    {
+        $dir = getcwd().'/test-failures';
+        $this->ensureDirectory($dir);
+        $this->page->screenshot($dir.'/'.$testName.'.png');
+        if ($this->traceThisTest) {
+            $this->context->stopTracing($this->page, $dir.'/'.$testName.'.zip');
+        }
+    }
+
+    private function ensureDirectory(string $path): void
+    {
+        if (is_dir($path)) {
+            return;
+        }
+
+        if (!mkdir($path, 0777, true) && !is_dir($path)) {
+            throw new RuntimeException(sprintf('Directory "%s" was not created', $path));
+        }
+    }
+
+    private function safeClose(?object $resource): void
+    {
+        self::safeStaticClose($resource);
+    }
+
+    private static function safeStaticClose(?object $resource): void
+    {
+        if (null === $resource) {
+            return;
+        }
+
+        try {
+            if (method_exists($resource, 'close')) {
+                $resource->close();
+            }
+        } catch (\Throwable) {
+        }
     }
 }

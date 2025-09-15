@@ -48,15 +48,18 @@ class AsyncCommandCoordinator {
         
         try {
             const result = await phase.handler(sequence.phaseData);
-            
+
+            if (result && typeof result === 'object') {
+                sequence.phaseData = { ...sequence.phaseData, ...result };
+            }
+
             if (phase.waitForCallback) {
                 logger.info('Phase requires callback', { 
                     requestId, 
                     phase: phase.name, 
                     callbackType: phase.callbackType 
                 });
-                
-                // Return callback response format expected by transport
+
                 return { 
                     type: 'callback',
                     requestId,
@@ -64,26 +67,23 @@ class AsyncCommandCoordinator {
                     data: result || {}
                 };
             } else {
-                // Phase complete, advance to next
                 sequence.currentPhase++;
-                
+
                 if (sequence.currentPhase >= sequence.phases.length) {
-                    // All phases complete
                     logger.info('Command sequence completed', { 
                         requestId, 
                         totalPhases: sequence.phases.length,
                         elapsed: Date.now() - sequence.startTime 
                     });
-                    
+
                     this.commandSequences.delete(requestId);
-                    return { completed: true, result };
+                    return { completed: true, result: sequence.phaseData };
                 } else {
-                    // Continue to next phase
                     logger.info('Advancing to next phase', { 
                         requestId, 
                         nextPhase: sequence.currentPhase 
                     });
-                    
+
                     return await this.executeNextPhase(requestId);
                 }
             }

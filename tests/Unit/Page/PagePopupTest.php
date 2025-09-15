@@ -44,6 +44,7 @@ final class PagePopupTest extends TestCase
             ->with($this->callback(function ($payload) use (&$actionExecuted) {
                 // Action should be executed before transport call
                 $this->assertTrue($actionExecuted);
+
                 return 'page.waitForPopup' === $payload['action']
                     && 'page1' === $payload['pageId']
                     && 30000 === $payload['timeout'];
@@ -68,6 +69,7 @@ final class PagePopupTest extends TestCase
             ->method('send')
             ->with($this->callback(function ($payload) use (&$actionExecuted) {
                 $this->assertTrue($actionExecuted);
+
                 return 'page.waitForPopup' === $payload['action']
                     && 5000 === $payload['timeout'];
             }))

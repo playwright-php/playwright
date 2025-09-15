@@ -688,8 +688,7 @@ final class Page implements PageInterface, EventDispatcherInterface
     {
         $timeout = $options['timeout'] ?? 30000;
         $requestId = uniqid('popup_', true);
-        
-        // Store the action for callback execution via transport
+
         if (method_exists($this->transport, 'storePendingCallback')) {
             $this->transport->storePendingCallback($requestId, $action);
         } else {
@@ -701,7 +700,7 @@ final class Page implements PageInterface, EventDispatcherInterface
             'action' => 'page.waitForPopup',
             'pageId' => $this->pageId,
             'timeout' => $timeout,
-            'requestId' => $requestId
+            'requestId' => $requestId,
         ]);
 
         $popupPageId = $response['popupPageId'] ?? null;

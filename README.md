@@ -186,6 +186,7 @@ Tips:
 
 Contributions are welcome. Please use Conventional Commits, include tests for behavior changes, and ensure docs/examples are updated when relevant. See `docs/contributing/testing.md` for local workflow.
 
-## Licence
+## License
 
-MIT — see `LICENSE` for details.
+This package is released by the [Playwright PHP](https://playwright-php.dev) 
+project under the MIT License. See the [LICENSE](LICENSE) file for details.

@@ -181,7 +181,7 @@ class PlaywrightServer extends BaseHandler {
       options.args = [
         '--no-sandbox', '--disable-dev-shm-usage', '--disable-web-security', '--disable-features=VizDisplayCompositor',
         '--disable-background-timer-throttling', '--disable-backgrounding-occluded-windows', '--disable-renderer-backgrounding',
-        '--disable-field-trial-config', '--disable-ipc-flooding-protection', ...(options.args || [])
+        '--disable-field-trial-config', '--disable-ipc-flooding-protection', '--disable-popup-blocking', ...(options.args || [])
       ];
     }
     return options;

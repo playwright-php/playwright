@@ -121,8 +121,7 @@ final class JsonRpcTransport implements TransportInterface
             $this->client->cancelPendingRequests();
             $this->client = null;
         }
-        
-        // Clear pending callbacks
+
         $this->pendingCallbacks = [];
 
         if ($this->process && $this->process->isRunning()) {
@@ -132,13 +131,13 @@ final class JsonRpcTransport implements TransportInterface
             try {
                 $this->processLauncher->terminate($this->process, 0.5);
             } catch (\Throwable) {
-                // ignore, will still call stop()
             }
+
             try {
                 $this->process->stop(0.25);
             } catch (\Throwable) {
-                // ignore failures on stop during shutdown
             }
+
             $this->process = null;
         }
 
@@ -168,7 +167,6 @@ final class JsonRpcTransport implements TransportInterface
                 throw new NetworkException('JSON-RPC client not available');
             }
 
-            // Check if this might be a callback-coordinated command
             if ($this->isCallbackCommand($message['action'] ?? '')) {
                 return $this->handleCallbackCommand($message, $timeoutMs);
             }
@@ -307,7 +305,7 @@ final class JsonRpcTransport implements TransportInterface
     }
 
     /**
-     * Store a callback for later execution during coordination
+     * Store a callback for later execution during coordination.
      */
     public function storePendingCallback(string $requestId, callable $callback): void
     {
@@ -316,7 +314,7 @@ final class JsonRpcTransport implements TransportInterface
     }
 
     /**
-     * Check if action requires callback coordination
+     * Check if action requires callback coordination.
      */
     private function isCallbackCommand(string $action): bool
     {
@@ -324,12 +322,12 @@ final class JsonRpcTransport implements TransportInterface
             'page.waitForPopup',
             'context.waitForPopup',
             'page.waitForDownload',
-            'page.waitForFileChooser'
+            'page.waitForFileChooser',
         ], true);
     }
 
     /**
-     * Handle callback-coordinated command
+     * Handle callback-coordinated command.
      *
      * @param array<string, mixed> $message
      *
@@ -339,51 +337,45 @@ final class JsonRpcTransport implements TransportInterface
     {
         $requestId = $message['requestId'] ?? uniqid('callback_', true);
         $message['requestId'] = $requestId;
-        
+
         $this->logger->info('Handling callback command', [
             'action' => $message['action'],
-            'requestId' => $requestId
+            'requestId' => $requestId,
         ]);
-        
+
         // Send initial message to server
         $response = $this->client->sendRaw($message, $timeoutMs);
-        
+
         $this->logger->debug('Callback command response received', [
             'requestId' => $requestId,
-            'response' => $response
+            'response' => $response,
         ]);
-        
-        // Check if server is waiting for callback
+
         if (isset($response['type']) && 'callback' === $response['type']) {
             $this->logger->info('Server requested callback', [
                 'requestId' => $requestId,
-                'callbackType' => $response['callbackType'] ?? 'unknown'
+                'callbackType' => $response['callbackType'] ?? 'unknown',
             ]);
-            
-            // Execute the stored callback
+
             $this->executeCallback($response);
-            
-            // Continue coordination by sending callback completion
+
             $continueMessage = [
                 'action' => 'callback.continue',
                 'requestId' => $requestId,
-                'callbackResult' => ['executed' => true]
+                'callbackResult' => ['executed' => true],
             ];
-            
+
             $finalResponse = $this->client->sendRaw($continueMessage, $timeoutMs);
-            
-            // Clean up stored callback
             unset($this->pendingCallbacks[$requestId]);
-            
+
             return $finalResponse;
         }
-        
-        // No callback required, return response directly
+
         return $response;
     }
 
     /**
-     * Execute callback based on callback data from server
+     * Execute callback based on callback data from server.
      *
      * @param array<string, mixed> $callbackData
      */
@@ -391,15 +383,14 @@ final class JsonRpcTransport implements TransportInterface
     {
         $requestId = $callbackData['requestId'] ?? '';
         $callbackType = $callbackData['callbackType'] ?? '';
-        
+
         $this->logger->info('Executing callback', [
             'requestId' => $requestId,
-            'callbackType' => $callbackType
+            'callbackType' => $callbackType,
         ]);
-        
+
         switch ($callbackType) {
             case 'readyForAction':
-                // Server is ready - execute the stored action
                 if (isset($this->pendingCallbacks[$requestId])) {
                     $callback = $this->pendingCallbacks[$requestId];
                     $callback();
@@ -408,11 +399,11 @@ final class JsonRpcTransport implements TransportInterface
                     $this->logger->warning('No pending callback found', ['requestId' => $requestId]);
                 }
                 break;
-                
+
             default:
                 $this->logger->warning('Unknown callback type', [
                     'requestId' => $requestId,
-                    'callbackType' => $callbackType
+                    'callbackType' => $callbackType,
                 ]);
                 break;
         }

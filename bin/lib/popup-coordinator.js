@@ -15,20 +15,17 @@ class PopupCoordinator {
                 name: 'setupListener',
                 handler: async (data) => {
                     const { page, timeout, requestId } = data;
-                    
-                    logger.info('Setting up popup listener', { 
+
+                    logger.info('Setting up popup listener via page.waitForEvent', { 
                         pageId: data.pageId,
                         timeout,
                         requestId 
                     });
-                    
-                    // Get the context from the page and listen for new pages (popups)
-                    const context = page.context();
-                    const popupPromise = context.waitForEvent('page', { timeout });
-                    
+
+                    const popupPromise = page.waitForEvent('popup', { timeout });
+
                     return { 
                         popupPromise, 
-                        context,
                         listenerId: generateId('popup_listener'),
                         setupTime: Date.now()
                     };
@@ -44,20 +41,27 @@ class PopupCoordinator {
                     logger.info('Waiting for popup event', { requestId, pageId });
                     
                     try {
-                        // Now actually wait for the popup event
+                        logger.info('About to await popup promise', { requestId, pageId });
                         const popup = await popupPromise;
+                        if (!popup) {
+                            logger.error('Popup is null or undefined', { requestId, pageId });
+                            return { popupPageId: null };
+                        }
                         const popupPageId = generateId('page');
-                        
+                        let popupInfo = {};
+                        try {
+                            popupInfo.url = popup.url();
+                            popupInfo.title = await popup.title();
+                        } catch (_) {}
                         logger.info('Popup created successfully', { 
                             requestId,
                             popupPageId,
-                            originalPageId: pageId
+                            originalPageId: pageId,
+                            popupInfo
                         });
                         
-                        // Register popup page
                         pages.set(popupPageId, popup);
                         
-                        // Inherit context from parent page
                         const contextId = pageContexts.get(pageId);
                         if (contextId) {
                             pageContexts.set(popupPageId, contextId);
@@ -67,6 +71,19 @@ class PopupCoordinator {
                         if (setupPageEventListeners) {
                             setupPageEventListeners(popup, popupPageId);
                         }
+                        
+                        const isRegistered = pages.has(popupPageId);
+                        const registeredPage = pages.get(popupPageId);
+                        const pageType = registeredPage ? registeredPage.constructor.name : 'undefined';
+                        
+                        logger.info('Popup page registered successfully', { 
+                            popupPageId, 
+                            isRegistered,
+                            totalPages: pages.size,
+                            contextId,
+                            pageType,
+                            popupReady: true
+                        });
                         
                         return { popupPageId, popup };
                     } catch (error) {

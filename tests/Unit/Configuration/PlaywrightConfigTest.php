@@ -223,4 +223,15 @@ class PlaywrightConfigTest extends TestCase
         $this->assertEquals(BrowserType::FIREFOX, $firefoxConfig->browser);
         $this->assertEquals(BrowserType::WEBKIT, $webkitConfig->browser);
     }
+
+    #[Test]
+    public function itCreateNewInstanceWithModifiedNodePath(): void
+    {
+        $config = new PlaywrightConfig(nodePath: '/original/node');
+        $newConfig = $config->withNodePath('/new/node');
+
+        $this->assertNotSame($config, $newConfig);
+        $this->assertEquals('/original/node', $config->nodePath);
+        $this->assertEquals('/new/node', $newConfig->nodePath);
+    }
 }
