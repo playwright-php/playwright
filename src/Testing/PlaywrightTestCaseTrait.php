@@ -61,6 +61,9 @@ trait PlaywrightTestCaseTrait
             $this->browser = $this->playwright->chromium()->launch();
         } else {
             $this->initializeShared($config, $logger);
+            if (null === self::$sharedPlaywright || null === self::$sharedBrowser) {
+                throw new RuntimeException('Shared Playwright/Browser not initialized');
+            }
             $this->playwright = self::$sharedPlaywright;
             $this->browser = self::$sharedBrowser;
         }
@@ -163,9 +166,10 @@ trait PlaywrightTestCaseTrait
 
     private function shouldTrace(): bool
     {
-        $env = $_SERVER['PW_TRACE'] ?? getenv('PW_TRACE') ?? '';
+        $env = $_SERVER['PW_TRACE'] ?? getenv('PW_TRACE');
+        $value = is_string($env) ? $env : '';
 
-        return is_string($env) && '' !== $env && '0' !== $env;
+        return '' !== $value && '0' !== $value;
     }
 
     private function captureFailureArtifacts(string $testName): void

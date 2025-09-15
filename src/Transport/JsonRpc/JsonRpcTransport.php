@@ -167,7 +167,8 @@ final class JsonRpcTransport implements TransportInterface
                 throw new NetworkException('JSON-RPC client not available');
             }
 
-            if ($this->isCallbackCommand($message['action'] ?? '')) {
+            $action = is_string($message['action'] ?? null) ? $message['action'] : '';
+            if ($this->isCallbackCommand($action)) {
                 return $this->handleCallbackCommand($message, $timeoutMs);
             }
 
@@ -344,7 +345,11 @@ final class JsonRpcTransport implements TransportInterface
         ]);
 
         // Send initial message to server
-        $response = $this->client->sendRaw($message, $timeoutMs);
+        if (null === $this->client) {
+            throw new NetworkException('JSON-RPC client not available');
+        }
+        $client = $this->client;
+        $response = $client->sendRaw($message, $timeoutMs);
 
         $this->logger->debug('Callback command response received', [
             'requestId' => $requestId,
@@ -365,7 +370,7 @@ final class JsonRpcTransport implements TransportInterface
                 'callbackResult' => ['executed' => true],
             ];
 
-            $finalResponse = $this->client->sendRaw($continueMessage, $timeoutMs);
+            $finalResponse = $client->sendRaw($continueMessage, $timeoutMs);
             unset($this->pendingCallbacks[$requestId]);
 
             return $finalResponse;

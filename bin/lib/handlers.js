@@ -109,7 +109,7 @@ class ContextHandler extends BaseHandler {
       
       if (result.type === 'callback') {
         // Command is waiting for callback - this is expected for popup coordination
-        logger.info('Context popup coordination waiting for callback', { requestId, callbackType: result.callbackType });
+        logger.debug('Context popup coordination waiting for callback', { requestId, callbackType: result.callbackType });
         return result;
       }
       
@@ -194,7 +194,7 @@ class PageHandler extends BaseHandler {
 
       const result = attempt?.ok ? attempt.value : await page.evaluate(command.expression, command.arg);
       const value = result === undefined ? null : result;
-      logger.info('PAGE EVALUATE OK', { type: typeof value, method: attempt?.ok ? 'func' : 'expr' });
+      logger.debug('PAGE EVALUATE OK', { type: typeof value, method: attempt?.ok ? 'func' : 'expr' });
       return { result: value };
     } catch (error) {
       logger.error('PAGE EVALUATE ERROR', { message: error.message });
@@ -330,7 +330,7 @@ class PageHandler extends BaseHandler {
       
       if (result.type === 'callback') {
         // Command is waiting for callback - this is expected for popup coordination
-        logger.info('Page popup coordination waiting for callback', { requestId, callbackType: result.callbackType });
+        logger.debug('Page popup coordination waiting for callback', { requestId, callbackType: result.callbackType });
         return result;
       }
       
@@ -355,7 +355,7 @@ class PageHandler extends BaseHandler {
             this.pageContexts.set(popupPageId, contextId);
           }
           
-          logger.info('Re-registered popup page in main pages Map', {
+          logger.debug('Re-registered popup page in main pages Map', {
             popupPageId,
             contextId,
             totalPages: this.pages.size
@@ -463,7 +463,7 @@ class LocatorHandler extends BaseHandler {
   }
 
   async handleDragAndDrop(page, command) {
-    logger.info('Handling drag and drop', { 
+    logger.debug('Handling drag and drop', { 
       selector: command.selector, 
       target: command.target, 
       options: command.options 

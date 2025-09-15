@@ -114,19 +114,20 @@ class JsonRpcClient implements JsonRpcClientInterface
     {
         $timeoutMs ??= $this->defaultTimeoutMs;
 
-        $id = $message['requestId'] ?? $this->nextId++;
-        $trackingId = is_string($id) ? $this->nextId++ : $id;
+        $rawId = $message['requestId'] ?? null;
+        $requestIdForMessage = (is_int($rawId) || is_string($rawId)) ? $rawId : $this->nextId++;
+        $trackingId = is_int($requestIdForMessage) ? $requestIdForMessage : $this->nextId++;
 
         $deadline = $timeoutMs > 0 ? $this->getCurrentTimeMs() + $timeoutMs : null;
 
         $request = $message;
-        $request['requestId'] = $id;
+        $request['requestId'] = $requestIdForMessage;
 
         $actionString = is_string($message['action'] ?? null) ? $message['action'] : 'unknown';
         $this->trackRequest($trackingId, $actionString);
 
         $this->logger->debug('Sending raw request', [
-            'id' => $id,
+            'id' => $requestIdForMessage,
             'trackingId' => $trackingId,
             'action' => $message['action'] ?? 'unknown',
             'timeoutMs' => $timeoutMs,

@@ -1,4 +1,4 @@
-const { logger, sendFramedResponse } = require('./core');
+const { logger } = require('./core');
 
 /**
  * Coordinates multi-phase async operations between PHP client and JavaScript server
@@ -126,12 +126,7 @@ class AsyncCommandCoordinator {
         }
     }
 
-    /**
-     * Send callback to PHP client (deprecated - using return value approach)
-     */
-    sendCallback(requestId, type, data) {
-        logger.info('Callback sending deprecated - using return value approach', { requestId, type, data });
-    }
+    // Deprecated callback pathway removed; coordination uses return values instead
 
     /**
      * Check if request is waiting for callback

@@ -38,10 +38,10 @@ class PopupCoordinator {
                 handler: async (data) => {
                     const { popupPromise, requestId, pageId } = data;
                     
-                    logger.info('Waiting for popup event', { requestId, pageId });
+                    logger.debug('Waiting for popup event', { requestId, pageId });
                     
                     try {
-                        logger.info('About to await popup promise', { requestId, pageId });
+                        logger.debug('About to await popup promise', { requestId, pageId });
                         const popup = await popupPromise;
                         if (!popup) {
                             logger.error('Popup is null or undefined', { requestId, pageId });
@@ -76,7 +76,7 @@ class PopupCoordinator {
                         const registeredPage = pages.get(popupPageId);
                         const pageType = registeredPage ? registeredPage.constructor.name : 'undefined';
                         
-                        logger.info('Popup page registered successfully', { 
+                        logger.debug('Popup page registered successfully', { 
                             popupPageId, 
                             isRegistered,
                             totalPages: pages.size,
@@ -136,7 +136,7 @@ class PopupCoordinator {
                 handler: async (data) => {
                     const { popupPromise, requestId, contextId } = data;
                     
-                    logger.info('Waiting for context popup event', { requestId, contextId });
+                    logger.debug('Waiting for context popup event', { requestId, contextId });
                     
                     try {
                         // Now actually wait for the popup event
