@@ -1,4 +1,6 @@
 const { logger, ErrorHandler, CommandRegistry, BaseHandler, PromiseUtils, FrameUtils, RouteUtils } = require('./core');
+const { globalCoordinator } = require('./coordination');
+const { PopupCoordinator } = require('./popup-coordinator');
 
 class ContextHandler extends BaseHandler {
   async handle(command, method) {
@@ -16,6 +18,7 @@ class ContextHandler extends BaseHandler {
       startTracing: () => context.tracing.start(command.options || {}),
       stopTracing: () => context.tracing.stop({ path: command.path }),
       waitForEvent: () => context.waitForEvent(command.event, { timeout: command.timeout }),
+      waitForPopup: () => this.waitForPopup(context, command),
       setNetworkThrottling: () => this.setThrottling(command),
       route: () => RouteUtils.setupContextRoute(context, command, this.generateId, this.routes, this.extractRequestData, this.sendFramedResponse),
       unroute: () => context.unroute(command.url),
@@ -58,6 +61,63 @@ class ContextHandler extends BaseHandler {
 
     return { pageId };
   }
+
+  async waitForPopup(context, command) {
+    const timeout = command.timeout || 30000;
+    const requestId = command.requestId || this.generateId('popup_req');
+    
+    logger.info('Starting context popup coordination', { 
+      contextId: command.contextId, 
+      timeout, 
+      requestId 
+    });
+    
+    // Create coordination phases
+    const phases = PopupCoordinator.createContextPopupPhases({
+      pages: this.pages,
+      pageContexts: this.pageContexts,
+      setupPageEventListeners: this.setupPageEventListeners?.bind(this),
+      generateId: this.generateId.bind(this)
+    });
+    
+    // Register the async command
+    globalCoordinator.registerAsyncCommand(requestId, phases);
+    
+    try {
+      // Start execution with initial data
+      const result = await globalCoordinator.executeNextPhase(requestId, {
+        context,
+        contextId: command.contextId,
+        timeout,
+        requestId
+      });
+      
+      if (result.waiting) {
+        // Command is waiting for callback - this is expected for popup coordination
+        logger.info('Context popup coordination waiting for callback', { requestId });
+        return result;
+      }
+      
+      if (result.completed) {
+        const validation = PopupCoordinator.validatePopupResult(result.result);
+        if (!validation.valid) {
+          logger.error('Invalid popup result', { requestId, error: validation.error });
+          return { popupPageId: null };
+        }
+        
+        return result.result;
+      }
+      
+      return { popupPageId: null };
+      
+    } catch (error) {
+      logger.error('Context popup coordination failed', { 
+        requestId, 
+        error: error.message 
+      });
+      return { popupPageId: null };
+    }
+  }
 }
 
 class PageHandler extends BaseHandler {
@@ -89,7 +149,8 @@ class PageHandler extends BaseHandler {
       goForward: () => page.goForward(command.options),
       reload: () => page.reload(command.options),
       frames: () => this.getFrames(page),
-      frame: () => this.getFrame(page, command)
+      frame: () => this.getFrame(page, command),
+      waitForPopup: () => this.waitForPopup(page, command)
     });
 
     return await ErrorHandler.safeExecute(() => this.executeWithRegistry(registry, method), { method, pageId: command.pageId });
@@ -220,6 +281,63 @@ class PageHandler extends BaseHandler {
       cur = cur.parentFrame();
     }
     return chain.join(' >> ');
+  }
+
+  async waitForPopup(page, command) {
+    const timeout = command.timeout || 30000;
+    const requestId = command.requestId || this.generateId('popup_req');
+    
+    logger.info('Starting page popup coordination', { 
+      pageId: command.pageId, 
+      timeout, 
+      requestId 
+    });
+    
+    // Create coordination phases
+    const phases = PopupCoordinator.createPagePopupPhases({
+      pages: this.pages,
+      pageContexts: this.pageContexts,
+      setupPageEventListeners: this.setupPageEventListeners?.bind(this),
+      generateId: this.generateId.bind(this)
+    });
+    
+    // Register the async command
+    globalCoordinator.registerAsyncCommand(requestId, phases);
+    
+    try {
+      // Start execution with initial data
+      const result = await globalCoordinator.executeNextPhase(requestId, {
+        page,
+        pageId: command.pageId,
+        timeout,
+        requestId
+      });
+      
+      if (result.type === 'callback') {
+        // Command is waiting for callback - this is expected for popup coordination
+        logger.info('Page popup coordination waiting for callback', { requestId, callbackType: result.callbackType });
+        return result;
+      }
+      
+      if (result.completed) {
+        const validation = PopupCoordinator.validatePopupResult(result.result);
+        if (!validation.valid) {
+          logger.error('Invalid popup result', { requestId, error: validation.error });
+          return { popupPageId: null };
+        }
+        
+        return result.result;
+      }
+      
+      return { popupPageId: null };
+      
+    } catch (error) {
+      logger.error('Page popup coordination failed', { 
+        requestId, 
+        error: error.message 
+      });
+      return { popupPageId: null };
+    }
   }
 }
 

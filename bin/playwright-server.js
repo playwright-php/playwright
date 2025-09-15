@@ -1,6 +1,7 @@
 const {chromium, firefox, webkit} = require('playwright');
 const { logger, ErrorHandler, LspFraming, sendFramedResponse, CommandRegistry, BaseHandler } = require('./lib/core');
 const { ContextHandler, PageHandler, LocatorHandler, InteractionHandler, FrameHandler } = require('./lib/handlers');
+const { globalCoordinator } = require('./lib/coordination');
 
 class PlaywrightServer extends BaseHandler {
   constructor() {
@@ -49,6 +50,12 @@ class PlaywrightServer extends BaseHandler {
 
   async dispatch(command) {
     logger.info('Dispatching command', { action: command.action, pageId: command.pageId, selector: command.selector });
+    
+    // Check if this is a callback continuation
+    if (command.action === 'callback.continue') {
+      return await this.handleCallbackContinuation(command);
+    }
+    
     const [actionPrefix, actionMethod] = command.action.split('.');
 
     const handlerRegistry = CommandRegistry.create({
@@ -206,6 +213,29 @@ class PlaywrightServer extends BaseHandler {
       try {
         if (page.context().browser() === this.browsers.get(browserId)) this.pages.delete(pageId);
       } catch { this.pages.delete(pageId); }
+    }
+  }
+
+  async handleCallbackContinuation(command) {
+    const { requestId, callbackResult } = command;
+    
+    logger.info('Handling callback continuation', { requestId, callbackResult });
+    
+    try {
+      const result = await globalCoordinator.continueAfterCallback(requestId, callbackResult || {});
+      
+      if (result.completed) {
+        logger.info('Callback continuation completed', { requestId });
+        return result.result;
+      }
+      
+      // Should not happen - continuation should always complete or error
+      logger.warn('Callback continuation did not complete', { requestId });
+      return { error: 'Callback continuation did not complete' };
+      
+    } catch (error) {
+      logger.error('Callback continuation failed', { requestId, error: error.message });
+      return { error: error.message };
     }
   }
 

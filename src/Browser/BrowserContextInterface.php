@@ -111,4 +111,14 @@ interface BrowserContextInterface
      * Disable network throttling.
      */
     public function disableNetworkThrottling(): void;
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function waitForEvent(string $event, ?callable $predicate = null, ?int $timeout = null): array;
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function waitForPopup(callable $action, array $options = []): PageInterface;
 }

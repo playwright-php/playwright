@@ -13,6 +13,7 @@ namespace PlaywrightPHP\Browser;
 use PlaywrightPHP\Configuration\PlaywrightConfig;
 use PlaywrightPHP\Event\EventDispatcherInterface;
 use PlaywrightPHP\Exception\ProtocolErrorException;
+use PlaywrightPHP\Exception\TimeoutException;
 use PlaywrightPHP\Exception\TransportException;
 use PlaywrightPHP\Network\NetworkThrottling;
 use PlaywrightPHP\Network\Route;
@@ -476,6 +477,40 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
     public function disableNetworkThrottling(): void
     {
         $this->setNetworkThrottling(NetworkThrottling::none());
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function waitForPopup(callable $action, array $options = []): PageInterface
+    {
+        $timeout = $options['timeout'] ?? 30000;
+        $requestId = uniqid('popup_', true);
+        
+        // Store the action for callback execution via transport
+        if (method_exists($this->transport, 'storePendingCallback')) {
+            $this->transport->storePendingCallback($requestId, $action);
+        } else {
+            // Fallback for transports that don't support callbacks
+            $action();
+        }
+
+        $response = $this->transport->send([
+            'action' => 'context.waitForPopup',
+            'contextId' => $this->contextId,
+            'timeout' => $timeout,
+            'requestId' => $requestId
+        ]);
+
+        $popupPageId = $response['popupPageId'] ?? null;
+        if (!is_string($popupPageId)) {
+            throw new TimeoutException('No popup was created within the timeout period');
+        }
+
+        $page = new Page($this->transport, $this, $popupPageId, $this->config);
+        $this->pages[$popupPageId] = $page;
+
+        return $page;
     }
 
     /**
