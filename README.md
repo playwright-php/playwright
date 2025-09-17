@@ -23,7 +23,7 @@ Playwright for PHP lets you launch real browsers (Chromium, Firefox, WebKit), dr
 - No separate server to manage — a lightweight Node server is started for you
 
 Requirements:
-- PHP 8.3+
+- PHP 8.2+
 - Node.js 20+ (used by the bundled Playwright server and browsers)
 
 ## Install
