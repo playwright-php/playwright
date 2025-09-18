@@ -3,20 +3,24 @@
 declare(strict_types=1);
 
 /*
- * This file is part of the playwright-php/playwright package.
- * For the full copyright and license information, please view
- * the LICENSE file that was distributed with this source code.
+ * This file is part of the community-maintained Playwright PHP project.
+ * It is not affiliated with or endorsed by Microsoft.
+ *
+ * (c) 2025-Present - Playwright PHP - https://github.com/playwright-php
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
 
-namespace PlaywrightPHP\Tests\Integration\Console;
+namespace Playwright\Tests\Integration\Console;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use PlaywrightPHP\Console\ConsoleMessage;
-use PlaywrightPHP\Testing\PlaywrightTestCaseTrait;
-use PlaywrightPHP\Tests\Mocks\TestLogger;
-use PlaywrightPHP\Tests\Support\RouteServerTestTrait;
+use Playwright\Console\ConsoleMessage;
+use Playwright\Testing\PlaywrightTestCaseTrait;
+use Playwright\Tests\Mocks\TestLogger;
+use Playwright\Tests\Support\RouteServerTestTrait;
 
 #[CoversClass(ConsoleMessage::class)]
 class CleanConsoleTest extends TestCase
@@ -62,7 +66,7 @@ class CleanConsoleTest extends TestCase
 
         $this->page->goto($this->routeUrl('/index.html'));
 
-        $this->assertInstanceOf('PlaywrightPHP\Page\Page', $this->page);
+        $this->assertInstanceOf('Playwright\Page\Page', $this->page);
     }
 
     private static function findFreePort(): int

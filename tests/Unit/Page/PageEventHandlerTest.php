@@ -3,22 +3,26 @@
 declare(strict_types=1);
 
 /*
- * This file is part of the playwright-php/playwright package.
- * For the full copyright and license information, please view
- * the LICENSE file that was distributed with this source code.
+ * This file is part of the community-maintained Playwright PHP project.
+ * It is not affiliated with or endorsed by Microsoft.
+ *
+ * (c) 2025-Present - Playwright PHP - https://github.com/playwright-php
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
 
-namespace PlaywrightPHP\Tests\Unit\Page;
+namespace Playwright\Tests\Unit\Page;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use PlaywrightPHP\Dialog\Dialog;
-use PlaywrightPHP\Network\Request;
-use PlaywrightPHP\Network\Response;
-use PlaywrightPHP\Page\PageEventHandler;
-use PlaywrightPHP\Page\PageInterface;
-use PlaywrightPHP\Transport\TransportInterface;
+use Playwright\Dialog\Dialog;
+use Playwright\Network\Request;
+use Playwright\Network\Response;
+use Playwright\Page\PageEventHandler;
+use Playwright\Page\PageInterface;
+use Playwright\Transport\TransportInterface;
 
 #[CoversClass(PageEventHandler::class)]
 final class PageEventHandlerTest extends TestCase

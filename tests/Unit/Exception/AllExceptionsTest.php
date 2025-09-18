@@ -3,23 +3,27 @@
 declare(strict_types=1);
 
 /*
- * This file is part of the playwright-php/playwright package.
- * For the full copyright and license information, please view
- * the LICENSE file that was distributed with this source code.
+ * This file is part of the community-maintained Playwright PHP project.
+ * It is not affiliated with or endorsed by Microsoft.
+ *
+ * (c) 2025-Present - Playwright PHP - https://github.com/playwright-php
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
 
-namespace PlaywrightPHP\Tests\Unit\Exception;
+namespace Playwright\Tests\Unit\Exception;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use PlaywrightPHP\Exception\DisconnectedException;
-use PlaywrightPHP\Exception\NetworkException;
-use PlaywrightPHP\Exception\ProcessCrashedException;
-use PlaywrightPHP\Exception\ProcessLaunchException;
-use PlaywrightPHP\Exception\ProtocolErrorException;
-use PlaywrightPHP\Exception\TransportException;
-use PlaywrightPHP\Node\Exception\NodeBinaryNotFoundException;
-use PlaywrightPHP\Node\Exception\NodeVersionTooLowException;
+use Playwright\Exception\DisconnectedException;
+use Playwright\Exception\NetworkException;
+use Playwright\Exception\ProcessCrashedException;
+use Playwright\Exception\ProcessLaunchException;
+use Playwright\Exception\ProtocolErrorException;
+use Playwright\Exception\TransportException;
+use Playwright\Node\Exception\NodeBinaryNotFoundException;
+use Playwright\Node\Exception\NodeVersionTooLowException;
 
 #[CoversClass(NetworkException::class)]
 #[CoversClass(TransportException::class)]

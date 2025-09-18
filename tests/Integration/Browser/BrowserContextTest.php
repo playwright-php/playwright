@@ -3,20 +3,24 @@
 declare(strict_types=1);
 
 /*
- * This file is part of the playwright-php/playwright package.
- * For the full copyright and license information, please view
- * the LICENSE file that was distributed with this source code.
+ * This file is part of the community-maintained Playwright PHP project.
+ * It is not affiliated with or endorsed by Microsoft.
+ *
+ * (c) 2025-Present - Playwright PHP - https://github.com/playwright-php
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
 
-namespace PlaywrightPHP\Tests\Integration\Browser;
+namespace Playwright\Tests\Integration\Browser;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use PlaywrightPHP\Browser\BrowserContext;
-use PlaywrightPHP\Page\PageInterface;
-use PlaywrightPHP\Testing\PlaywrightTestCaseTrait;
-use PlaywrightPHP\Tests\Support\RouteServerTestTrait;
+use Playwright\Browser\BrowserContext;
+use Playwright\Page\PageInterface;
+use Playwright\Testing\PlaywrightTestCaseTrait;
+use Playwright\Tests\Support\RouteServerTestTrait;
 
 #[CoversClass(BrowserContext::class)]
 class BrowserContextTest extends TestCase
@@ -119,7 +123,7 @@ class BrowserContextTest extends TestCase
         $page = $this->context->newPage();
         $page->goto('data:text/html,<h1>Test Page</h1>');
 
-        $this->assertInstanceOf('PlaywrightPHP\Page\Page', $page);
+        $this->assertInstanceOf('Playwright\Page\Page', $page);
 
         $page->close();
     }

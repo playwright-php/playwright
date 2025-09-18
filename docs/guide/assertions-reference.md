@@ -12,7 +12,7 @@ The `expect()` function can be passed either a `Locator` or a `Page` object. It 
 use to make claims about the state of your application.
 
 ```php
-use function PlaywrightPHP\Testing\expect;
+use function Playwright\Testing\expect;
 
 // Make an assertion about a locator
 expect($this->page->locator('h1'))->toHaveText('Welcome!');

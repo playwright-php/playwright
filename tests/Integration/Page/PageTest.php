@@ -3,19 +3,23 @@
 declare(strict_types=1);
 
 /*
- * This file is part of the playwright-php/playwright package.
- * For the full copyright and license information, please view
- * the LICENSE file that was distributed with this source code.
+ * This file is part of the community-maintained Playwright PHP project.
+ * It is not affiliated with or endorsed by Microsoft.
+ *
+ * (c) 2025-Present - Playwright PHP - https://github.com/playwright-php
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
 
-namespace PlaywrightPHP\Tests\Integration\Page;
+namespace Playwright\Tests\Integration\Page;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use PlaywrightPHP\Page\Page;
-use PlaywrightPHP\Testing\PlaywrightTestCaseTrait;
-use PlaywrightPHP\Tests\Support\RouteServerTestTrait;
+use Playwright\Page\Page;
+use Playwright\Testing\PlaywrightTestCaseTrait;
+use Playwright\Tests\Support\RouteServerTestTrait;
 
 #[CoversClass(Page::class)]
 class PageTest extends TestCase
@@ -147,7 +151,7 @@ class PageTest extends TestCase
     {
         $response = $this->page->waitForResponse('**/page2.html', ['action' => "document.querySelector('a').click()"]);
 
-        $this->assertInstanceOf(\PlaywrightPHP\Network\ResponseInterface::class, $response);
+        $this->assertInstanceOf(\Playwright\Network\ResponseInterface::class, $response);
         $this->assertStringContainsString('/page2.html', $response->url());
         $this->assertEquals(200, $response->status());
     }

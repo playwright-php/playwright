@@ -3,16 +3,20 @@
 declare(strict_types=1);
 
 /*
- * This file is part of the playwright-php/playwright package.
- * For the full copyright and license information, please view
- * the LICENSE file that was distributed with this source code.
+ * This file is part of the community-maintained Playwright PHP project.
+ * It is not affiliated with or endorsed by Microsoft.
+ *
+ * (c) 2025-Present - Playwright PHP - https://github.com/playwright-php
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
 
-namespace PlaywrightPHP\Browser;
+namespace Playwright\Browser;
 
-use PlaywrightPHP\Configuration\PlaywrightConfig;
-use PlaywrightPHP\Exception\PlaywrightException;
-use PlaywrightPHP\Transport\TransportInterface;
+use Playwright\Configuration\PlaywrightConfig;
+use Playwright\Exception\PlaywrightException;
+use Playwright\Transport\TransportInterface;
 use Psr\Log\LoggerInterface;
 
 /**

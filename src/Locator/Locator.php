@@ -3,19 +3,23 @@
 declare(strict_types=1);
 
 /*
- * This file is part of the playwright-php/playwright package.
- * For the full copyright and license information, please view
- * the LICENSE file that was distributed with this source code.
+ * This file is part of the community-maintained Playwright PHP project.
+ * It is not affiliated with or endorsed by Microsoft.
+ *
+ * (c) 2025-Present - Playwright PHP - https://github.com/playwright-php
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
 
-namespace PlaywrightPHP\Locator;
+namespace Playwright\Locator;
 
-use PlaywrightPHP\Exception\PlaywrightException;
-use PlaywrightPHP\Exception\ProtocolErrorException;
-use PlaywrightPHP\Exception\TimeoutException;
-use PlaywrightPHP\Frame\FrameLocator;
-use PlaywrightPHP\Frame\FrameLocatorInterface;
-use PlaywrightPHP\Transport\TransportInterface;
+use Playwright\Exception\PlaywrightException;
+use Playwright\Exception\ProtocolErrorException;
+use Playwright\Exception\TimeoutException;
+use Playwright\Frame\FrameLocator;
+use Playwright\Frame\FrameLocatorInterface;
+use Playwright\Transport\TransportInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 

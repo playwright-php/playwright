@@ -9,7 +9,7 @@ on writing your test logic.
 
 ## Setup
 
-The easiest way to get started is by extending the `PlaywrightPHP\Testing\PlaywrightTestCase` class in your test files.
+The easiest way to get started is by extending the `Playwright\Testing\PlaywrightTestCase` class in your test files.
 This base class automatically manages the entire lifecycle of the browser and page for you.
 
 ```php
@@ -17,8 +17,8 @@ This base class automatically manages the entire lifecycle of the browser and pa
 
 namespace App\Tests;
 
-use PlaywrightPHP\Testing\PlaywrightTestCase;
-use function PlaywrightPHP\Testing\expect;
+use Playwright\Testing\PlaywrightTestCase;
+use function Playwright\Testing\expect;
 
 class MyWebAppTest extends PlaywrightTestCase
 {
@@ -45,8 +45,8 @@ Here is a complete example of a test that verifies a login form.
 
 namespace App\Tests;
 
-use PlaywrightPHP\Testing\PlaywrightTestCase;
-use function PlaywrightPHP\Testing\expect;
+use Playwright\Testing\PlaywrightTestCase;
+use function Playwright\Testing\expect;
 
 class MyWebAppTest extends PlaywrightTestCase
 {

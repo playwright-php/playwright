@@ -1,4 +1,4 @@
-# PlaywrightPHP Testing
+# Playwright Testing
 
 This short guide summarizes the current test runtime patterns used by the integration suite.
 
@@ -10,7 +10,7 @@ This short guide summarizes the current test runtime patterns used by the integr
 Example
 
 ```php
-use PlaywrightPHP\Tests\Support\RouteServerTestTrait;
+use Playwright\Tests\Support\RouteServerTestTrait;
 
 // Inside a test case using PlaywrightTestCaseTrait
 $this->installRouteServer($this->page, [

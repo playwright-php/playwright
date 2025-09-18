@@ -3,25 +3,29 @@
 declare(strict_types=1);
 
 /*
- * This file is part of the playwright-php/playwright package.
- * For the full copyright and license information, please view
- * the LICENSE file that was distributed with this source code.
+ * This file is part of the community-maintained Playwright PHP project.
+ * It is not affiliated with or endorsed by Microsoft.
+ *
+ * (c) 2025-Present - Playwright PHP - https://github.com/playwright-php
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
 
-namespace PlaywrightPHP\Browser;
+namespace Playwright\Browser;
 
-use PlaywrightPHP\Configuration\PlaywrightConfig;
-use PlaywrightPHP\Exception\ProtocolErrorException;
-use PlaywrightPHP\Exception\RuntimeException;
-use PlaywrightPHP\Page\PageInterface;
-use PlaywrightPHP\Transport\TransportInterface;
+use Playwright\Configuration\PlaywrightConfig;
+use Playwright\Exception\ProtocolErrorException;
+use Playwright\Exception\RuntimeException;
+use Playwright\Page\PageInterface;
+use Playwright\Transport\TransportInterface;
 
 /**
  * @author Simon André <smn.andre@gmail.com>
  */
 final class Browser implements BrowserInterface
 {
-    private ?BrowserContextInterface $defaultContext = null;
+    private ?BrowserContextInterface $defaultContext;
 
     /**
      * @var array<BrowserContextInterface>

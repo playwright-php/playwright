@@ -3,15 +3,19 @@
 declare(strict_types=1);
 
 /*
- * This file is part of the playwright-php/playwright package.
- * For the full copyright and license information, please view
- * the LICENSE file that was distributed with this source code.
+ * This file is part of the community-maintained Playwright PHP project.
+ * It is not affiliated with or endorsed by Microsoft.
+ *
+ * (c) 2025-Present - Playwright PHP - https://github.com/playwright-php
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
 
 require_once __DIR__.'/../../vendor/autoload.php';
 
-use PlaywrightPHP\Browser\BrowserInterface;
-use PlaywrightPHP\PlaywrightFactory;
+use Playwright\Browser\BrowserInterface;
+use Playwright\PlaywrightFactory;
 
 $playwright = PlaywrightFactory::create();
 $browsers = [

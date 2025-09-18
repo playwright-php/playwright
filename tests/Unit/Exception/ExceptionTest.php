@@ -3,22 +3,26 @@
 declare(strict_types=1);
 
 /*
- * This file is part of the playwright-php/playwright package.
- * For the full copyright and license information, please view
- * the LICENSE file that was distributed with this source code.
+ * This file is part of the community-maintained Playwright PHP project.
+ * It is not affiliated with or endorsed by Microsoft.
+ *
+ * (c) 2025-Present - Playwright PHP - https://github.com/playwright-php
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
 
-namespace PlaywrightPHP\Tests\Unit\Exception;
+namespace Playwright\Tests\Unit\Exception;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use PlaywrightPHP\Exception\DisconnectedException;
-use PlaywrightPHP\Exception\NetworkException;
-use PlaywrightPHP\Exception\PlaywrightException;
-use PlaywrightPHP\Exception\PlaywrightExceptionInterface;
-use PlaywrightPHP\Exception\ProtocolErrorException;
-use PlaywrightPHP\Exception\TimeoutException;
+use Playwright\Exception\DisconnectedException;
+use Playwright\Exception\NetworkException;
+use Playwright\Exception\PlaywrightException;
+use Playwright\Exception\PlaywrightExceptionInterface;
+use Playwright\Exception\ProtocolErrorException;
+use Playwright\Exception\TimeoutException;
 
 #[CoversClass(PlaywrightException::class)]
 #[CoversClass(NetworkException::class)]

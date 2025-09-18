@@ -3,16 +3,20 @@
 declare(strict_types=1);
 
 /*
- * This file is part of the playwright-php/playwright package.
- * For the full copyright and license information, please view
- * the LICENSE file that was distributed with this source code.
+ * This file is part of the community-maintained Playwright PHP project.
+ * It is not affiliated with or endorsed by Microsoft.
+ *
+ * (c) 2025-Present - Playwright PHP - https://github.com/playwright-php
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
 
-namespace PlaywrightPHP\Transport\JsonRpc;
+namespace Playwright\Transport\JsonRpc;
 
-use PlaywrightPHP\Exception\ProcessCrashedException;
-use PlaywrightPHP\Exception\ProcessLaunchException;
-use PlaywrightPHP\Transport\RingBuffer;
+use Playwright\Exception\ProcessCrashedException;
+use Playwright\Exception\ProcessLaunchException;
+use Playwright\Transport\RingBuffer;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use Symfony\Component\Process\ExecutableFinder;
@@ -21,8 +25,6 @@ use Symfony\Component\Process\Process;
 
 /**
  * Launches and supervises Node.js bridge processes with enhanced diagnostics.
- *
- * @experimental
  *
  * @author Simon André <smn.andre@gmail.com>
  */

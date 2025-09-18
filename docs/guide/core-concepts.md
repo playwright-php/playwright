@@ -13,7 +13,7 @@ While you can interact with the `Browser` object directly, most of your work wil
 
 ```php
 <?php
-use PlaywrightPHP\Playwright;
+use Playwright\Playwright;
 
 // The Playwright static class is the easiest way to get started.
 // This launches a Chromium browser and returns a default BrowserContext.

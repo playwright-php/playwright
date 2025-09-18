@@ -3,18 +3,22 @@
 declare(strict_types=1);
 
 /*
- * This file is part of the playwright-php/playwright package.
- * For the full copyright and license information, please view
- * the LICENSE file that was distributed with this source code.
+ * This file is part of the community-maintained Playwright PHP project.
+ * It is not affiliated with or endorsed by Microsoft.
+ *
+ * (c) 2025-Present - Playwright PHP - https://github.com/playwright-php
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
 
-namespace PlaywrightPHP\Tests\Unit;
+namespace Playwright\Tests\Unit;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use PlaywrightPHP\Configuration\PlaywrightConfig;
-use PlaywrightPHP\PlaywrightClient;
-use PlaywrightPHP\PlaywrightFactory;
+use Playwright\Configuration\PlaywrightConfig;
+use Playwright\PlaywrightClient;
+use Playwright\PlaywrightFactory;
 use Psr\Log\LoggerInterface;
 
 #[CoversClass(PlaywrightFactory::class)]

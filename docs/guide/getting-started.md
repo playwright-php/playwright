@@ -44,7 +44,7 @@ You're now ready to write your first script. Create a new file named `example.ph
 
 require __DIR__.'/vendor/autoload.php';
 
-use PlaywrightPHP\Playwright;
+use Playwright\Playwright;
 
 // Start a new Playwright client and launch a browser.
 // By default, it launches a headless Chromium instance.

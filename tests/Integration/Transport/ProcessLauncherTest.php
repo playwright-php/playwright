@@ -3,20 +3,24 @@
 declare(strict_types=1);
 
 /*
- * This file is part of the playwright-php/playwright package.
- * For the full copyright and license information, please view
- * the LICENSE file that was distributed with this source code.
+ * This file is part of the community-maintained Playwright PHP project.
+ * It is not affiliated with or endorsed by Microsoft.
+ *
+ * (c) 2025-Present - Playwright PHP - https://github.com/playwright-php
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
 
-namespace PlaywrightPHP\Tests\Integration\Transport;
+namespace Playwright\Tests\Integration\Transport;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use PlaywrightPHP\Exception\ProcessCrashedException;
-use PlaywrightPHP\Exception\ProcessLaunchException;
-use PlaywrightPHP\Tests\Mocks\TestLogger;
-use PlaywrightPHP\Transport\JsonRpc\ProcessLauncher;
+use Playwright\Exception\ProcessCrashedException;
+use Playwright\Exception\ProcessLaunchException;
+use Playwright\Tests\Mocks\TestLogger;
+use Playwright\Transport\JsonRpc\ProcessLauncher;
 use Symfony\Component\Process\Exception\ProcessTimedOutException;
 
 #[CoversClass(ProcessLauncher::class)]

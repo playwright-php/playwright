@@ -3,20 +3,24 @@
 declare(strict_types=1);
 
 /*
- * This file is part of the playwright-php/playwright package.
- * For the full copyright and license information, please view
- * the LICENSE file that was distributed with this source code.
+ * This file is part of the community-maintained Playwright PHP project.
+ * It is not affiliated with or endorsed by Microsoft.
+ *
+ * (c) 2025-Present - Playwright PHP - https://github.com/playwright-php
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
 
-namespace PlaywrightPHP\Page;
+namespace Playwright\Page;
 
-use PlaywrightPHP\Browser\BrowserContextInterface;
-use PlaywrightPHP\Frame\FrameInterface;
-use PlaywrightPHP\Frame\FrameLocatorInterface;
-use PlaywrightPHP\Input\KeyboardInterface;
-use PlaywrightPHP\Input\MouseInterface;
-use PlaywrightPHP\Locator\LocatorInterface;
-use PlaywrightPHP\Network\ResponseInterface;
+use Playwright\Browser\BrowserContextInterface;
+use Playwright\Frame\FrameInterface;
+use Playwright\Frame\FrameLocatorInterface;
+use Playwright\Input\KeyboardInterface;
+use Playwright\Input\MouseInterface;
+use Playwright\Locator\LocatorInterface;
+use Playwright\Network\ResponseInterface;
 
 /**
  * @author Simon André <smn.andre@gmail.com>

@@ -3,23 +3,27 @@
 declare(strict_types=1);
 
 /*
- * This file is part of the playwright-php/playwright package.
- * For the full copyright and license information, please view
- * the LICENSE file that was distributed with this source code.
+ * This file is part of the community-maintained Playwright PHP project.
+ * It is not affiliated with or endorsed by Microsoft.
+ *
+ * (c) 2025-Present - Playwright PHP - https://github.com/playwright-php
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
 
-namespace PlaywrightPHP\Browser;
+namespace Playwright\Browser;
 
-use PlaywrightPHP\Configuration\PlaywrightConfig;
-use PlaywrightPHP\Event\EventDispatcherInterface;
-use PlaywrightPHP\Exception\ProtocolErrorException;
-use PlaywrightPHP\Exception\TimeoutException;
-use PlaywrightPHP\Exception\TransportException;
-use PlaywrightPHP\Network\NetworkThrottling;
-use PlaywrightPHP\Network\Route;
-use PlaywrightPHP\Page\Page;
-use PlaywrightPHP\Page\PageInterface;
-use PlaywrightPHP\Transport\TransportInterface;
+use Playwright\Configuration\PlaywrightConfig;
+use Playwright\Event\EventDispatcherInterface;
+use Playwright\Exception\ProtocolErrorException;
+use Playwright\Exception\TimeoutException;
+use Playwright\Exception\TransportException;
+use Playwright\Network\NetworkThrottling;
+use Playwright\Network\Route;
+use Playwright\Page\Page;
+use Playwright\Page\PageInterface;
+use Playwright\Transport\TransportInterface;
 
 /**
  * @author Simon André <smn.andre@gmail.com>
