@@ -347,4 +347,24 @@ class PlaywrightConfigBuilderTest extends TestCase
         $this->assertTrue($config->headless);
         $this->assertEquals(45000, $config->timeoutMs);
     }
+
+    #[Test]
+    public function itReadsChannelFromEnvironment(): void
+    {
+        putenv('PW_CHANNEL=msedge');
+
+        $config = PlaywrightConfigBuilder::fromEnv()->build();
+
+        $this->assertEquals('msedge', $config->channel);
+    }
+
+    #[Test]
+    public function itHandlesEmptyChannelFromEnvironment(): void
+    {
+        putenv('PW_CHANNEL=');
+
+        $config = PlaywrightConfigBuilder::fromEnv()->build();
+
+        $this->assertNull($config->channel);
+    }
 }

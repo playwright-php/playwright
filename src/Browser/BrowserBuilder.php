@@ -57,6 +57,15 @@ final class BrowserBuilder
         return $this;
     }
 
+    public function withChannel(?string $channel): self
+    {
+        if (!empty($channel)) {
+            $this->launchOptions['channel'] = $channel;
+        }
+
+        return $this;
+    }
+
     public function withInspector(): self
     {
         if (!isset($this->launchOptions['env'])) {

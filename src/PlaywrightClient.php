@@ -125,6 +125,10 @@ class PlaywrightClient
             $builder->withArgs($this->config->args);
         }
 
+        if (!empty($this->config->channel)) {
+            $builder->withChannel($this->config->channel);
+        }
+
         return $builder;
     }
 

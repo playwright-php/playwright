@@ -135,4 +135,51 @@ class BrowserBuilderTest extends TestCase
         $this->assertInstanceOf(BrowserBuilder::class, $firefoxBuilder);
         $this->assertInstanceOf(BrowserBuilder::class, $webkitBuilder);
     }
+
+    #[Test]
+    public function itCanSetChannel(): void
+    {
+        $result = $this->builder->withChannel('msedge');
+
+        $this->assertSame($this->builder, $result);
+    }
+
+    #[Test]
+    public function itPassesChannelOptionToTransport(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with($this->callback(function (array $message) {
+                return 'launch' === $message['action']
+                       && 'chromium' === $message['browser']
+                       && isset($message['options']['channel'])
+                       && 'msedge' === $message['options']['channel'];
+            }))
+            ->willReturn(['browserId' => 'browser-123', 'defaultContextId' => 'context-123', 'version' => '1.0']);
+
+        $browser = $this->builder
+            ->withChannel('msedge')
+            ->launch();
+
+        $this->assertInstanceOf(Browser::class, $browser);
+    }
+
+    #[Test]
+    public function itIgnoresEmptyChannel(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with($this->callback(function (array $message) {
+                return 'launch' === $message['action']
+                       && 'chromium' === $message['browser']
+                       && !isset($message['options']['channel']);
+            }))
+            ->willReturn(['browserId' => 'browser-123', 'defaultContextId' => 'context-123', 'version' => '1.0']);
+
+        $browser = $this->builder
+            ->withChannel('')
+            ->launch();
+
+        $this->assertInstanceOf(Browser::class, $browser);
+    }
 }
