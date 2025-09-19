@@ -15,6 +15,8 @@ use PlaywrightPHP\Event\EventDispatcherInterface;
 use PlaywrightPHP\Exception\ProtocolErrorException;
 use PlaywrightPHP\Exception\TimeoutException;
 use PlaywrightPHP\Exception\TransportException;
+use PlaywrightPHP\Internal\OwnershipRegistry;
+use PlaywrightPHP\Internal\RemoteObject;
 use PlaywrightPHP\Network\NetworkThrottling;
 use PlaywrightPHP\Network\Route;
 use PlaywrightPHP\Page\Page;
@@ -46,11 +48,16 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
      */
     private array $functions = [];
 
+    private RemoteObject $remoteObject;
+
     public function __construct(
         private readonly TransportInterface $transport,
         private readonly string $contextId,
         private readonly ?PlaywrightConfig $config = null,
     ) {
+        $this->remoteObject = new BrowserContextRemoteObject($this->transport, $this->contextId, 'context');
+        OwnershipRegistry::register($this->remoteObject);
+        
         if (method_exists($this->transport, 'addEventDispatcher')) {
             $this->transport->addEventDispatcher($this->contextId, $this);
         }
@@ -86,7 +93,13 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
         if (in_array($eventName, ['page', 'popup', 'pageCreated'], true)) {
             $pageId = $params['pageId'] ?? null;
             if (is_string($pageId) && !isset($this->pages[$pageId])) {
-                $this->pages[$pageId] = new Page($this->transport, $this, $pageId, $this->config);
+                $page = new Page($this->transport, $this, $pageId, $this->config);
+                $this->pages[$pageId] = $page;
+                
+                // Link page as child (use instanceof check to be safe)
+                if ($page instanceof Page && method_exists($page, 'getRemoteObject')) {
+                    OwnershipRegistry::linkParentChild($this->remoteObject, $page->getRemoteObject());
+                }
             }
 
             return;
@@ -160,6 +173,11 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
         $page = new Page($this->transport, $this, $response['pageId'], $this->config);
         $this->pages[$response['pageId']] = $page;
 
+        // Link page as child (use instanceof check to be safe)
+        if ($page instanceof Page && method_exists($page, 'getRemoteObject')) {
+            OwnershipRegistry::linkParentChild($this->remoteObject, $page->getRemoteObject());
+        }
+
         return $page;
     }
 
@@ -179,10 +197,17 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
 
     public function close(): void
     {
-        $this->transport->send([
-            'action' => 'context.close',
-            'contextId' => $this->contextId,
-        ]);
+        $this->remoteObject->dispose();
+    }
+
+    public function isDisposed(): bool
+    {
+        return $this->remoteObject->isDisposed();
+    }
+
+    public function getRemoteObject(): RemoteObject
+    {
+        return $this->remoteObject;
     }
 
     /**
@@ -508,6 +533,11 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
         $page = new Page($this->transport, $this, $popupPageId, $this->config);
         $this->pages[$popupPageId] = $page;
 
+        // Link page as child (use instanceof check to be safe)
+        if ($page instanceof Page && method_exists($page, 'getRemoteObject')) {
+            OwnershipRegistry::linkParentChild($this->remoteObject, $page->getRemoteObject());
+        }
+
         return $page;
     }
 
@@ -531,5 +561,19 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
         }
 
         return $result;
+    }
+}
+
+/**
+ * RemoteObject implementation for BrowserContext.
+ */
+class BrowserContextRemoteObject extends RemoteObject
+{
+    protected function onDispose(): void
+    {
+        $this->transport->send([
+            'action' => 'context.close',
+            'contextId' => $this->remoteId,
+        ]);
     }
 }

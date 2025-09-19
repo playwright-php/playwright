@@ -29,6 +29,8 @@ use PlaywrightPHP\Input\KeyboardInterface;
 use PlaywrightPHP\Input\ModifierKey;
 use PlaywrightPHP\Input\Mouse;
 use PlaywrightPHP\Input\MouseInterface;
+use PlaywrightPHP\Internal\OwnershipRegistry;
+use PlaywrightPHP\Internal\RemoteObject;
 use PlaywrightPHP\Locator\Locator;
 use PlaywrightPHP\Locator\LocatorInterface;
 use PlaywrightPHP\Network\Request;
@@ -53,6 +55,8 @@ final class Page implements PageInterface, EventDispatcherInterface
 
     private LoggerInterface $logger;
 
+    private RemoteObject $remoteObject;
+
     public function __construct(
         private readonly TransportInterface $transport,
         private readonly BrowserContextInterface $context,
@@ -64,6 +68,8 @@ final class Page implements PageInterface, EventDispatcherInterface
         $this->keyboard = new Keyboard($this->transport, $this->pageId);
         $this->mouse = new Mouse($this->transport, $this->pageId);
         $this->eventHandler = new PageEventHandler();
+        $this->remoteObject = new PageRemoteObject($this->transport, $this->pageId, 'page');
+        OwnershipRegistry::register($this->remoteObject);
 
         if (method_exists($this->transport, 'addEventDispatcher')) {
             $this->transport->addEventDispatcher($this->pageId, $this);
@@ -277,7 +283,17 @@ final class Page implements PageInterface, EventDispatcherInterface
 
     public function close(): void
     {
-        $this->sendCommand('close');
+        $this->remoteObject->dispose();
+    }
+
+    public function isDisposed(): bool
+    {
+        return $this->remoteObject->isDisposed();
+    }
+
+    public function getRemoteObject(): RemoteObject
+    {
+        return $this->remoteObject;
     }
 
     /**
@@ -848,5 +864,19 @@ final class Page implements PageInterface, EventDispatcherInterface
         }
 
         return $result;
+    }
+}
+
+/**
+ * RemoteObject implementation for Page.
+ */
+class PageRemoteObject extends RemoteObject
+{
+    protected function onDispose(): void
+    {
+        $this->transport->send([
+            'action' => 'page.close',
+            'pageId' => $this->remoteId,
+        ]);
     }
 }

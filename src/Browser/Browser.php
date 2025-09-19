@@ -13,6 +13,8 @@ namespace PlaywrightPHP\Browser;
 use PlaywrightPHP\Configuration\PlaywrightConfig;
 use PlaywrightPHP\Exception\ProtocolErrorException;
 use PlaywrightPHP\Exception\RuntimeException;
+use PlaywrightPHP\Internal\OwnershipRegistry;
+use PlaywrightPHP\Internal\RemoteObject;
 use PlaywrightPHP\Page\PageInterface;
 use PlaywrightPHP\Transport\TransportInterface;
 
@@ -29,6 +31,7 @@ final class Browser implements BrowserInterface
     private array $contexts = [];
 
     private bool $isConnected = true;
+    private RemoteObject $remoteObject;
 
     public function __construct(
         private readonly TransportInterface $transport,
@@ -37,8 +40,16 @@ final class Browser implements BrowserInterface
         private readonly string $version,
         private readonly ?PlaywrightConfig $config = null,
     ) {
+        $this->remoteObject = new BrowserRemoteObject($this->transport, $this->browserId, 'browser');
+        OwnershipRegistry::register($this->remoteObject);
+        
         $this->defaultContext = new BrowserContext($this->transport, $this->defaultContextId, $this->config);
         $this->contexts[] = $this->defaultContext;
+        
+        // Link default context as child (use instanceof check to be safe)
+        if ($this->defaultContext instanceof BrowserContext && method_exists($this->defaultContext, 'getRemoteObject')) {
+            OwnershipRegistry::linkParentChild($this->remoteObject, $this->defaultContext->getRemoteObject());
+        }
     }
 
     public function context(): BrowserContextInterface
@@ -68,6 +79,11 @@ final class Browser implements BrowserInterface
         $context = new BrowserContext($this->transport, $response['contextId'], $this->config);
         $this->contexts[] = $context;
 
+        // Link context as child (use instanceof check to be safe)
+        if ($context instanceof BrowserContext && method_exists($context, 'getRemoteObject')) {
+            OwnershipRegistry::linkParentChild($this->remoteObject, $context->getRemoteObject());
+        }
+
         return $context;
     }
 
@@ -82,12 +98,21 @@ final class Browser implements BrowserInterface
 
     public function close(): void
     {
-        $this->transport->send([
-            'action' => 'close',
-            'browserId' => $this->browserId,
-        ]);
+        if (!$this->isConnected) {
+            return; // Already closed
+        }
 
-        $this->isConnected = false;
+        $this->remoteObject->dispose();
+    }
+
+    public function isDisposed(): bool
+    {
+        return $this->remoteObject->isDisposed();
+    }
+
+    public function getRemoteObject(): RemoteObject
+    {
+        return $this->remoteObject;
     }
 
     public function contexts(): array
@@ -97,11 +122,25 @@ final class Browser implements BrowserInterface
 
     public function isConnected(): bool
     {
-        return $this->isConnected && $this->transport->isConnected();
+        return !$this->remoteObject->isDisposed() && $this->transport->isConnected();
     }
 
     public function version(): string
     {
         return $this->version;
+    }
+}
+
+/**
+ * RemoteObject implementation for Browser.
+ */
+class BrowserRemoteObject extends RemoteObject
+{
+    protected function onDispose(): void
+    {
+        $this->transport->send([
+            'action' => 'close',
+            'browserId' => $this->remoteId,
+        ]);
     }
 }
