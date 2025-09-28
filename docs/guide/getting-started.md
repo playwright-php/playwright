@@ -26,14 +26,22 @@ composer require playwright-php/playwright
 
 ### Step 2: Install Browsers
 
-Playwright needs to download browser binaries (for Chromium, Firefox, and WebKit) to work. The library provides a
-convenient script to handle this for you. Run the following command from your project's root:
+Playwright needs to download browser binaries (for Chromium, Firefox, and WebKit) to work. The library ships with a PHP
+installer that works the same for applications and for this repository. Run the following command from your project's
+root:
 
 ```bash
-composer run install-browsers
+vendor/bin/playwright-install --browsers
 ```
 
-This will install the Node.js dependencies for the server and download the latest browser versions into a local cache.
+Need Playwright to pull in recommended system dependencies as well (handy on fresh CI runners)?
+
+```bash
+vendor/bin/playwright-install --with-deps
+```
+
+Both commands ensure the bundled Playwright server is up to date and then download the latest browser versions into the
+local Playwright cache.
 
 ## Your First Script
 
