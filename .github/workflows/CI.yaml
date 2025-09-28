@@ -119,7 +119,7 @@ jobs:
           fi
 
       - name: "Playwright: install browsers"
-        run: php bin/playwright-install
+        run: php bin/playwright-install --browsers
 
       - name: "PHPUnit: version"
         run: vendor/bin/phpunit --version
