@@ -25,8 +25,8 @@ require_once $file;
 
 use Symfony\Component\Console\Output\ConsoleOutput;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Process\Process;
 use Symfony\Component\Process\Exception\ProcessFailedException;
+use Symfony\Component\Process\Process;
 
 final class PlaywrightServerInstaller
 {
@@ -36,12 +36,24 @@ final class PlaywrightServerInstaller
 
     private bool $verbose;
 
-    public function __construct()
+    private bool $shouldInstallBrowsers;
+
+    private bool $withDeps;
+
+    /**
+     * Cache of command availability checks.
+     *
+     * @var array<string, bool>
+     */
+    private array $commandAvailability = [];
+
+    public function __construct(bool $verbose, bool $installBrowsers, bool $withDeps)
     {
         $this->serverDir = __DIR__;
         $this->output = new ConsoleOutput();
-        $this->verbose = \in_array('-v', $_SERVER['argv'] ?? [], true)
-                || \in_array('--verbose', $_SERVER['argv'] ?? [], true);
+        $this->verbose = $verbose;
+        $this->shouldInstallBrowsers = $installBrowsers;
+        $this->withDeps = $withDeps;
 
         if ($this->verbose) {
             $this->output->setVerbosity(OutputInterface::VERBOSITY_VERBOSE);
@@ -57,6 +69,10 @@ final class PlaywrightServerInstaller
             $this->ensureServerDirectory();
             $this->installNodeDependencies();
             $this->verifyInstallation();
+
+            if ($this->shouldInstallBrowsers) {
+                $this->installBrowserBinaries();
+            }
 
             $this->output->writeln('✅ <info>Playwright Server installed successfully!</info>');
 
@@ -109,19 +125,13 @@ final class PlaywrightServerInstaller
 
     private function checkPackageManager(): void
     {
-        $pnpmProcess = new Process(['pnpm', '--version']);
-        $pnpmProcess->run();
-
-        if ($pnpmProcess->isSuccessful()) {
+        if ($this->isCommandAvailable('pnpm')) {
             $this->output->writeln('✓ pnpm detected - using for faster installs', OutputInterface::VERBOSITY_VERBOSE);
 
             return;
         }
 
-        $yarnProcess = new Process(['yarn', '--version']);
-        $yarnProcess->run();
-
-        if ($yarnProcess->isSuccessful()) {
+        if ($this->isCommandAvailable('yarn')) {
             $this->output->writeln('✓ yarn detected', OutputInterface::VERBOSITY_VERBOSE);
 
             return;
@@ -205,25 +215,33 @@ final class PlaywrightServerInstaller
 
     private function detectPackageManager(): string
     {
-        if (is_file($this->serverDir.'/pnpm-lock.yaml')) {
+        $pnpmLock = is_file($this->serverDir.'/pnpm-lock.yaml');
+        $yarnLock = is_file($this->serverDir.'/yarn.lock');
+
+        $pnpmAvailable = $this->isCommandAvailable('pnpm');
+        $yarnAvailable = $this->isCommandAvailable('yarn');
+
+        if ($pnpmLock && $pnpmAvailable) {
             return 'pnpm';
         }
 
-        if (is_file($this->serverDir.'/yarn.lock')) {
+        if ($pnpmLock && !$pnpmAvailable) {
+            $this->output->writeln('⚠️ pnpm-lock.yaml detected but pnpm is not available; falling back to npm');
+        }
+
+        if ($yarnLock && $yarnAvailable) {
             return 'yarn';
         }
 
-        $pnpmProcess = new Process(['pnpm', '--version']);
-        $pnpmProcess->run();
+        if ($yarnLock && !$yarnAvailable) {
+            $this->output->writeln('⚠️ yarn.lock detected but yarn is not available; falling back to npm');
+        }
 
-        if ($pnpmProcess->isSuccessful()) {
+        if ($pnpmAvailable) {
             return 'pnpm';
         }
 
-        $yarnProcess = new Process(['yarn', '--version']);
-        $yarnProcess->run();
-
-        if ($yarnProcess->isSuccessful()) {
+        if ($yarnAvailable) {
             return 'yarn';
         }
 
@@ -267,19 +285,100 @@ final class PlaywrightServerInstaller
 
         $this->output->writeln('✓ Server verified');
     }
+
+    private function installBrowserBinaries(): void
+    {
+        $this->output->writeln('Installing Playwright browsers...');
+
+        $packageManager = $this->detectPackageManager();
+        $command = $this->getBrowserInstallCommand($packageManager);
+
+        $process = new Process($command, $this->serverDir);
+        $process->setTimeout(null);
+
+        if ($this->verbose) {
+            $process->run(function ($type, $buffer) {
+                $this->output->write($buffer);
+            });
+        } else {
+            $process->run();
+        }
+
+        if (!$process->isSuccessful()) {
+            throw new ProcessFailedException($process);
+        }
+
+        $this->output->writeln('✓ Browsers installed');
+    }
+
+    private function getBrowserInstallCommand(string $packageManager): array
+    {
+        $args = ['install'];
+
+        if ($this->withDeps) {
+            $args[] = '--with-deps';
+        }
+
+        return match ($packageManager) {
+            'pnpm' => array_merge(['pnpm', 'exec', 'playwright'], $args),
+            'yarn' => array_merge(['yarn', 'playwright'], $args),
+            default => array_merge(['npx', 'playwright'], $args),
+        };
+    }
+
+    private function isCommandAvailable(string $command): bool
+    {
+        if (array_key_exists($command, $this->commandAvailability)) {
+            return $this->commandAvailability[$command];
+        }
+
+        $process = new Process([$command, '--version']);
+        $process->run();
+
+        return $this->commandAvailability[$command] = $process->isSuccessful();
+    }
 }
 
-$help = \in_array('-h', $_SERVER['argv'] ?? [], true)
-        || \in_array('--help', $_SERVER['argv'] ?? [], true);
+$argv = $_SERVER['argv'] ?? [];
+$args = array_slice($argv, 1);
+
+$verbose = false;
+$installBrowsers = false;
+$withDeps = false;
+$help = false;
+
+foreach ($args as $arg) {
+    switch ($arg) {
+        case '-v':
+        case '--verbose':
+            $verbose = true;
+            break;
+        case '-h':
+        case '--help':
+            $help = true;
+            break;
+        case '--browsers':
+            $installBrowsers = true;
+            break;
+        case '--with-deps':
+            $installBrowsers = true;
+            $withDeps = true;
+            break;
+        default:
+            throw new \InvalidArgumentException(sprintf('Unknown option: %s', $arg));
+    }
+}
 
 if ($help) {
     echo "Playwright Server Installer\n";
     echo "\n";
-    echo "Usage: bin/playwright-install [options]\n";
+    echo "Usage: playwright-install [options]\n";
     echo "\n";
     echo "Options:\n";
-    echo "  -v, --verbose    Show detailed output\n";
-    echo "  -h, --help       Show this help message\n";
+    echo "  -v, --verbose     Show detailed output\n";
+    echo "  -h, --help        Show this help message\n";
+    echo "  --browsers        Install Playwright browser binaries\n";
+    echo "  --with-deps       Install browsers and system dependencies (implies --browsers)\n";
     echo "\n";
     echo "Requirements:\n";
     echo "  - Node.js 20+ (for optimal performance and security)\n";
@@ -290,5 +389,5 @@ if ($help) {
     exit(0);
 }
 
-$installer = new PlaywrightServerInstaller();
+$installer = new PlaywrightServerInstaller($verbose, $installBrowsers, $withDeps);
 exit($installer->install());

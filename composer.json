@@ -71,5 +71,13 @@
     },
     "bin": [
         "bin/playwright-install"
-    ]
+    ],
+    "scripts": {
+        "post-install-cmd": [
+            "@php bin/playwright-install"
+        ],
+        "post-update-cmd": [
+            "@php bin/playwright-install"
+        ]
+    }
 }
