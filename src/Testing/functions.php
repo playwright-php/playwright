@@ -3,15 +3,19 @@
 declare(strict_types=1);
 
 /*
- * This file is part of the playwright-php/playwright package.
- * For the full copyright and license information, please view
- * the LICENSE file that was distributed with this source code.
+ * This file is part of the community-maintained Playwright PHP project.
+ * It is not affiliated with or endorsed by Microsoft.
+ *
+ * (c) 2025-Present - Playwright PHP - https://github.com/playwright-php
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
 
-namespace PlaywrightPHP\Testing;
+namespace Playwright\Testing;
 
-use PlaywrightPHP\Locator\LocatorInterface;
-use PlaywrightPHP\Page\PageInterface;
+use Playwright\Locator\LocatorInterface;
+use Playwright\Page\PageInterface;
 
 function expect(LocatorInterface|PageInterface $subject): ExpectInterface
 {

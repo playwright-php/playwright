@@ -3,16 +3,20 @@
 declare(strict_types=1);
 
 /*
- * This file is part of the playwright-php/playwright package.
- * For the full copyright and license information, please view
- * the LICENSE file that was distributed with this source code.
+ * This file is part of the community-maintained Playwright PHP project.
+ * It is not affiliated with or endorsed by Microsoft.
+ *
+ * (c) 2025-Present - Playwright PHP - https://github.com/playwright-php
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
 
-namespace PlaywrightPHP\Transport;
+namespace Playwright\Transport;
 
-use PlaywrightPHP\Exception\NetworkException;
-use PlaywrightPHP\Node\NodeBinaryResolver;
-use PlaywrightPHP\Node\NodeBinaryResolverInterface;
+use Playwright\Exception\NetworkException;
+use Playwright\Node\NodeBinaryResolver;
+use Playwright\Node\NodeBinaryResolverInterface;
 
 /**
  * Finds Playwright server installation and configuration.
@@ -83,12 +87,12 @@ final class ServerFinder
                 return null;
             }
 
-            $playwrightPhp = $extra['playwright-php'] ?? null;
-            if (!is_array($playwrightPhp)) {
+            $Playwright = $extra['playwright-php'] ?? null;
+            if (!is_array($Playwright)) {
                 return null;
             }
 
-            $playwrightPath = $playwrightPhp['playwright-path'] ?? null;
+            $playwrightPath = $Playwright['playwright-path'] ?? null;
 
             return is_string($playwrightPath) ? $playwrightPath : null;
         }

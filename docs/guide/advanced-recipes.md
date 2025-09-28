@@ -96,8 +96,8 @@ For advanced browser setups, such as using a proxy server or setting custom laun
 This is typically done outside of the test case itself, when you are creating your `PlaywrightClient` instance.
 
 ```php
-use PlaywrightPHP\PlaywrightFactory;
-use PlaywrightPHP\Configuration\PlaywrightConfigBuilder;
+use Playwright\PlaywrightFactory;
+use Playwright\Configuration\PlaywrightConfigBuilder;
 
 // Create a custom configuration
 $config = PlaywrightConfigBuilder::create()

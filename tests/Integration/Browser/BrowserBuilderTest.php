@@ -3,19 +3,23 @@
 declare(strict_types=1);
 
 /*
- * This file is part of the playwright-php/playwright package.
- * For the full copyright and license information, please view
- * the LICENSE file that was distributed with this source code.
+ * This file is part of the community-maintained Playwright PHP project.
+ * It is not affiliated with or endorsed by Microsoft.
+ *
+ * (c) 2025-Present - Playwright PHP - https://github.com/playwright-php
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
 
-namespace PlaywrightPHP\Tests\Integration\Browser;
+namespace Playwright\Tests\Integration\Browser;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use PlaywrightPHP\Browser\Browser;
-use PlaywrightPHP\Browser\BrowserBuilder;
-use PlaywrightPHP\Transport\TransportInterface;
+use Playwright\Browser\Browser;
+use Playwright\Browser\BrowserBuilder;
+use Playwright\Transport\TransportInterface;
 use Psr\Log\NullLogger;
 
 #[CoversClass(BrowserBuilder::class)]

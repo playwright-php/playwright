@@ -3,40 +3,44 @@
 declare(strict_types=1);
 
 /*
- * This file is part of the playwright-php/playwright package.
- * For the full copyright and license information, please view
- * the LICENSE file that was distributed with this source code.
+ * This file is part of the community-maintained Playwright PHP project.
+ * It is not affiliated with or endorsed by Microsoft.
+ *
+ * (c) 2025-Present - Playwright PHP - https://github.com/playwright-php
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
 
-namespace PlaywrightPHP\Page;
+namespace Playwright\Page;
 
-use PlaywrightPHP\Browser\BrowserContextInterface;
-use PlaywrightPHP\Configuration\PlaywrightConfig;
-use PlaywrightPHP\Console\ConsoleMessage;
-use PlaywrightPHP\Dialog\Dialog;
-use PlaywrightPHP\Event\EventDispatcherInterface;
-use PlaywrightPHP\Exception\NetworkException;
-use PlaywrightPHP\Exception\PlaywrightException;
-use PlaywrightPHP\Exception\ProtocolErrorException;
-use PlaywrightPHP\Exception\RuntimeException;
-use PlaywrightPHP\Exception\TimeoutException;
-use PlaywrightPHP\Frame\Frame;
-use PlaywrightPHP\Frame\FrameInterface;
-use PlaywrightPHP\Frame\FrameLocator;
-use PlaywrightPHP\Frame\FrameLocatorInterface;
-use PlaywrightPHP\Input\Keyboard;
-use PlaywrightPHP\Input\KeyboardInterface;
-use PlaywrightPHP\Input\ModifierKey;
-use PlaywrightPHP\Input\Mouse;
-use PlaywrightPHP\Input\MouseInterface;
-use PlaywrightPHP\Locator\Locator;
-use PlaywrightPHP\Locator\LocatorInterface;
-use PlaywrightPHP\Network\Request;
-use PlaywrightPHP\Network\Response;
-use PlaywrightPHP\Network\ResponseInterface;
-use PlaywrightPHP\Network\Route;
-use PlaywrightPHP\Screenshot\ScreenshotHelper;
-use PlaywrightPHP\Transport\TransportInterface;
+use Playwright\Browser\BrowserContextInterface;
+use Playwright\Configuration\PlaywrightConfig;
+use Playwright\Console\ConsoleMessage;
+use Playwright\Dialog\Dialog;
+use Playwright\Event\EventDispatcherInterface;
+use Playwright\Exception\NetworkException;
+use Playwright\Exception\PlaywrightException;
+use Playwright\Exception\ProtocolErrorException;
+use Playwright\Exception\RuntimeException;
+use Playwright\Exception\TimeoutException;
+use Playwright\Frame\Frame;
+use Playwright\Frame\FrameInterface;
+use Playwright\Frame\FrameLocator;
+use Playwright\Frame\FrameLocatorInterface;
+use Playwright\Input\Keyboard;
+use Playwright\Input\KeyboardInterface;
+use Playwright\Input\ModifierKey;
+use Playwright\Input\Mouse;
+use Playwright\Input\MouseInterface;
+use Playwright\Locator\Locator;
+use Playwright\Locator\LocatorInterface;
+use Playwright\Network\Request;
+use Playwright\Network\Response;
+use Playwright\Network\ResponseInterface;
+use Playwright\Network\Route;
+use Playwright\Screenshot\ScreenshotHelper;
+use Playwright\Transport\TransportInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 

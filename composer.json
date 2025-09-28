@@ -25,8 +25,8 @@
             "homepage": "https://github.com/smnandre"
         },
         {
-            "name": "PlaywrightPHP Contributors",
-            "homepage": "https://github.com/playwright-php/playwright"
+            "name": "Playwright PHP Contributors",
+            "homepage": "https://github.com/playwright-php"
         }
     ],
     "require": {
@@ -47,7 +47,7 @@
     "prefer-stable": true,
     "autoload": {
         "psr-4": {
-            "PlaywrightPHP\\": "src/"
+            "Playwright\\": "src/"
         },
         "files": [
             "src/Testing/functions.php"
@@ -55,7 +55,7 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "PlaywrightPHP\\Tests\\": "tests/"
+            "Playwright\\Tests\\": "tests/"
         }
     },
     "config": {
@@ -68,11 +68,6 @@
         "branch-alias": {
             "dev-main": "0.x-dev"
         }
-    },
-    "scripts": {
-        "post-install-cmd": "bin/playwright-install",
-        "install-browsers": "bin/playwright-install -v && npm run install-browsers --prefix bin",
-        "install-browsers-with-deps": "bin/playwright-install -v && npm run install-browsers-with-deps --prefix bin"
     },
     "bin": [
         "bin/playwright-install"

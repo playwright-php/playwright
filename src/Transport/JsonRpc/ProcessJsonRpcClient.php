@@ -3,16 +3,20 @@
 declare(strict_types=1);
 
 /*
- * This file is part of the playwright-php/playwright package.
- * For the full copyright and license information, please view
- * the LICENSE file that was distributed with this source code.
+ * This file is part of the community-maintained Playwright PHP project.
+ * It is not affiliated with or endorsed by Microsoft.
+ *
+ * (c) 2025-Present - Playwright PHP - https://github.com/playwright-php
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
 
-namespace PlaywrightPHP\Transport\JsonRpc;
+namespace Playwright\Transport\JsonRpc;
 
-use PlaywrightPHP\Exception\DisconnectedException;
-use PlaywrightPHP\Exception\NetworkException;
-use PlaywrightPHP\Exception\TimeoutException;
+use Playwright\Exception\DisconnectedException;
+use Playwright\Exception\NetworkException;
+use Playwright\Exception\TimeoutException;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use Symfony\Component\Clock\Clock;
@@ -22,8 +26,6 @@ use Symfony\Component\Process\Process;
 
 /**
  * JSON-RPC client that communicates with a Playwright process via stdin/stdout.
- *
- * @experimental
  *
  * @author Simon André <smn.andre@gmail.com>
  */

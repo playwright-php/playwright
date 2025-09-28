@@ -3,18 +3,22 @@
 declare(strict_types=1);
 
 /*
- * This file is part of the playwright-php/playwright package.
- * For the full copyright and license information, please view
- * the LICENSE file that was distributed with this source code.
+ * This file is part of the community-maintained Playwright PHP project.
+ * It is not affiliated with or endorsed by Microsoft.
+ *
+ * (c) 2025-Present - Playwright PHP - https://github.com/playwright-php
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
 
-namespace PlaywrightPHP\Transport;
+namespace Playwright\Transport;
 
-use PlaywrightPHP\Configuration\PlaywrightConfig;
-use PlaywrightPHP\Exception\RuntimeException;
-use PlaywrightPHP\Node\NodeBinaryResolver;
-use PlaywrightPHP\Transport\JsonRpc\JsonRpcTransport;
-use PlaywrightPHP\Transport\JsonRpc\ProcessLauncher;
+use Playwright\Configuration\PlaywrightConfig;
+use Playwright\Exception\RuntimeException;
+use Playwright\Node\NodeBinaryResolver;
+use Playwright\Transport\JsonRpc\JsonRpcTransport;
+use Playwright\Transport\JsonRpc\ProcessLauncher;
 use Psr\Log\LoggerInterface;
 
 /**

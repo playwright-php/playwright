@@ -41,7 +41,7 @@ about:
 	echo " ╰$${bar}╯ \n";
 
 warning:
-	@echo "  \033[33m⚠︎\033[0m \033[2mThis Makefile is intended for \033[0;0mPlaywrightPHP \033[38;5;110mdevelopment\033[2m.\033[0m"
+	@echo "  \033[33m⚠︎\033[0m \033[2mThis Makefile is intended for \033[0;0mPlaywright \033[38;5;110mdevelopment\033[2m.\033[0m"
 	@echo "  \033[2mIt includes tools and commands for quality checks and tests.\033[0m"
 	@echo "  \033[2mEnd users \033[0mdo not\033[2m need to run these commands.\033[0m"
 

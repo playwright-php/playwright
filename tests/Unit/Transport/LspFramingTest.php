@@ -3,16 +3,20 @@
 declare(strict_types=1);
 
 /*
- * This file is part of the playwright-php/playwright package.
- * For the full copyright and license information, please view
- * the LICENSE file that was distributed with this source code.
+ * This file is part of the community-maintained Playwright PHP project.
+ * It is not affiliated with or endorsed by Microsoft.
+ *
+ * (c) 2025-Present - Playwright PHP - https://github.com/playwright-php
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
 
-namespace PlaywrightPHP\Tests\Unit\Transport;
+namespace Playwright\Tests\Unit\Transport;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use PlaywrightPHP\Transport\JsonRpc\LspFraming;
+use Playwright\Transport\JsonRpc\LspFraming;
 
 #[CoversClass(LspFraming::class)]
 final class LspFramingTest extends TestCase

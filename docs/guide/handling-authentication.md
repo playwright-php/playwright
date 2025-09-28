@@ -48,7 +48,7 @@ to run this script once, or whenever your login credentials change.
 ```php
 <?php
 require __DIR__.'/vendor/autoload.php';
-use PlaywrightPHP\Playwright;
+use Playwright\Playwright;
 
 $context = Playwright::chromium();
 $page = $context->newPage();
@@ -82,7 +82,7 @@ for your authenticated tests that overrides the `setUp` method.
 <?php
 namespace App\Tests;
 
-use PlaywrightPHP\Testing\PlaywrightTestCase;
+use Playwright\Testing\PlaywrightTestCase;
 
 abstract class AuthenticatedTestCase extends PlaywrightTestCase
 {
@@ -104,7 +104,7 @@ Now, any test that extends `AuthenticatedTestCase` will start as a logged-in use
 <?php
 namespace App\Tests;
 
-use function PlaywrightPHP\Testing\expect;
+use function Playwright\Testing\expect;
 
 class ProfilePageTest extends AuthenticatedTestCase
 {
