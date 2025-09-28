@@ -37,11 +37,14 @@ composer require playwright-php/playwright
 Install the Playwright browsers (Chromium, Firefox, WebKit):
 
 ```bash
-# Always run this from your app after composer install
-vendor/bin/playwright-install
+# Run after composer install in your application or in this repository
+vendor/bin/playwright-install --browsers
 
-# If your environment needs extra OS dependencies, add:
+# On fresh machines/CI where you need Playwright's OS dependencies too
 vendor/bin/playwright-install --with-deps
+
+# The same commands apply when you work on this repository
+# (the script lives in vendor/bin/playwright-install here too)
 ```
 
 
@@ -188,7 +191,14 @@ Tips:
 
 ## Contributing
 
-Contributions are welcome. Please use Conventional Commits, include tests for behavior changes, and ensure docs/examples are updated when relevant. See `docs/contributing/testing.md` for local workflow.
+Contributions are welcome. Please use Conventional Commits, include tests for behavior changes, and ensure docs/examples are updated when relevant. A typical first run inside the repository is:
+
+```bash
+composer install                                # installs PHP deps and the bundled Playwright server
+vendor/bin/playwright-install --with-deps       # downloads browsers + optional system deps
+```
+
+See `docs/contributing/testing.md` for more details on the local workflow.
 
 ## License
 
