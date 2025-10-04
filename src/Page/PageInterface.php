@@ -32,6 +32,38 @@ interface PageInterface
     /**
      * @param array<string, mixed> $options
      */
+    public function getByAltText(string $text, array $options = []): LocatorInterface;
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function getByLabel(string $text, array $options = []): LocatorInterface;
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function getByPlaceholder(string $text, array $options = []): LocatorInterface;
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function getByRole(string $role, array $options = []): LocatorInterface;
+
+    public function getByTestId(string $testId): LocatorInterface;
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function getByText(string $text, array $options = []): LocatorInterface;
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function getByTitle(string $text, array $options = []): LocatorInterface;
+
+    /**
+     * @param array<string, mixed> $options
+     */
     public function goto(string $url, array $options = []): ?ResponseInterface;
 
     /**
@@ -75,6 +107,8 @@ interface PageInterface
 
     public function close(): void;
 
+    public function isClosed(): bool;
+
     public function bringToFront(): self;
 
     public function context(): BrowserContextInterface;
@@ -117,6 +151,10 @@ interface PageInterface
     public function viewportSize(): ?array;
 
     public function setViewportSize(int $width, int $height): self;
+
+    public function setDefaultNavigationTimeout(int $timeout): self;
+
+    public function setDefaultTimeout(int $timeout): self;
 
     /**
      * @param array<string, mixed> $options

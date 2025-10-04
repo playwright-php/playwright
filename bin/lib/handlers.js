@@ -493,7 +493,10 @@ class InteractionHandler extends BaseHandler {
     const page = this.validateResource(this.pages, command.pageId, 'Page');
     const registry = CommandRegistry.create({
       click: () => page.mouse.click(command.x, command.y, command.options),
+      dblclick: () => page.mouse.dblclick(command.x, command.y, command.options),
+      down: () => page.mouse.down(command.options),
       move: () => page.mouse.move(command.x, command.y, command.options),
+      up: () => page.mouse.up(command.options),
       wheel: () => page.mouse.wheel(command.deltaX, command.deltaY)
     });
     await this.executeWithRegistry(registry, method);
@@ -502,9 +505,11 @@ class InteractionHandler extends BaseHandler {
   async handleKeyboard(command, method) {
     const page = this.validateResource(this.pages, command.pageId, 'Page');
     const registry = CommandRegistry.create({
+      down: () => page.keyboard.down(command.key),
       insertText: () => page.keyboard.insertText(command.text),
       press: () => page.keyboard.press(command.key, command.options),
-      type: () => page.keyboard.type(command.text, command.options)
+      type: () => page.keyboard.type(command.text, command.options),
+      up: () => page.keyboard.up(command.key)
     });
     await this.executeWithRegistry(registry, method);
   }
@@ -573,4 +578,26 @@ class FrameHandler extends BaseHandler {
   }
 }
 
-module.exports = { ContextHandler, PageHandler, LocatorHandler, InteractionHandler, FrameHandler };
+class SelectorsHandler extends BaseHandler {
+  async handle(command, method) {
+    const { playwright } = require('playwright');
+
+    const registry = CommandRegistry.create({
+      register: async () => {
+        const script = command.script;
+        const options = command.options || {};
+        await playwright.selectors.register(command.name, script, options);
+        return {};
+      },
+      setTestIdAttribute: async () => {
+        playwright.selectors.setTestIdAttribute(command.attributeName);
+        return {};
+      }
+    });
+
+    const result = await ErrorHandler.safeExecute(() => this.executeWithRegistry(registry, method), { method });
+    return this.wrapResult(result);
+  }
+}
+
+module.exports = { ContextHandler, PageHandler, LocatorHandler, InteractionHandler, FrameHandler, SelectorsHandler };

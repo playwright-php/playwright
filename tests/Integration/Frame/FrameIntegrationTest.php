@@ -46,6 +46,11 @@ class FrameIntegrationTest extends TestCase
             '/inner.html' => <<<'HTML'
                 <h4>Inner</h4>
                 <button id="btn" onclick="this.textContent='Clicked'">Click</button>
+                <input type="text" placeholder="Frame Input" />
+                <img src="/logo.png" alt="Frame Logo" />
+                <div title="Frame Tooltip">Hover me</div>
+                <span data-testid="frame-span">Test</span>
+                <p>Frame Text</p>
             HTML,
         ]);
         $this->page->goto($this->routeUrl('/index.html'));
@@ -79,5 +84,75 @@ class FrameIntegrationTest extends TestCase
         $button = $frame->locator('#btn');
         $button->click();
         $this->assertSame('Clicked', $button->textContent());
+    }
+
+    #[Test]
+    public function itUsesGetByTextInFrame(): void
+    {
+        $frame = $this->page->frame(['urlRegex' => '/inner\.html$/']);
+        $this->assertNotNull($frame);
+
+        $locator = $frame->getByText('Frame Text');
+        $this->assertSame('Frame Text', $locator->textContent());
+    }
+
+    #[Test]
+    public function itUsesGetByPlaceholderInFrame(): void
+    {
+        $frame = $this->page->frame(['urlRegex' => '/inner\.html$/']);
+        $this->assertNotNull($frame);
+
+        $locator = $frame->getByPlaceholder('Frame Input');
+        $placeholder = $locator->getAttribute('placeholder');
+        $this->assertSame('Frame Input', $placeholder);
+    }
+
+    #[Test]
+    public function itUsesGetByAltTextInFrame(): void
+    {
+        $frame = $this->page->frame(['urlRegex' => '/inner\.html$/']);
+        $this->assertNotNull($frame);
+
+        $locator = $frame->getByAltText('Frame Logo');
+        $alt = $locator->getAttribute('alt');
+        $this->assertSame('Frame Logo', $alt);
+    }
+
+    #[Test]
+    public function itUsesGetByTitleInFrame(): void
+    {
+        $frame = $this->page->frame(['urlRegex' => '/inner\.html$/']);
+        $this->assertNotNull($frame);
+
+        $locator = $frame->getByTitle('Frame Tooltip');
+        $title = $locator->getAttribute('title');
+        $this->assertSame('Frame Tooltip', $title);
+    }
+
+    #[Test]
+    public function itUsesGetByTestIdInFrame(): void
+    {
+        $frame = $this->page->frame(['urlRegex' => '/inner\.html$/']);
+        $this->assertNotNull($frame);
+
+        $locator = $frame->getByTestId('frame-span');
+        $this->assertSame('Test', $locator->textContent());
+    }
+
+    #[Test]
+    public function itUsesFrameLocatorGetByText(): void
+    {
+        $frameLocator = $this->page->frameLocator('iframe#outer >> iframe#middle >> iframe#inner');
+        $locator = $frameLocator->getByText('Frame Text');
+        $this->assertSame('Frame Text', $locator->textContent());
+    }
+
+    #[Test]
+    public function itUsesFrameLocatorGetByPlaceholder(): void
+    {
+        $frameLocator = $this->page->frameLocator('iframe#outer >> iframe#middle >> iframe#inner');
+        $locator = $frameLocator->getByPlaceholder('Frame Input');
+        $locator->fill('test value');
+        $this->assertSame('test value', $locator->inputValue());
     }
 }

@@ -124,4 +124,60 @@ class FrameTest extends TestCase
         $this->assertInstanceOf(FrameInterface::class, $children[0]);
         $this->assertSame('Frame(selector="iframe#parent >> iframe#child1")', (string) $children[0]);
     }
+
+    public function testGetByText(): void
+    {
+        $frame = new Frame($this->transport, $this->pageId, 'iframe#auth', $this->logger);
+        $locator = $frame->getByText('Hello');
+        $this->assertInstanceOf(LocatorInterface::class, $locator);
+        $this->assertSame('text="Hello"', $locator->getSelector());
+    }
+
+    public function testGetByRole(): void
+    {
+        $frame = new Frame($this->transport, $this->pageId, 'iframe#auth', $this->logger);
+        $locator = $frame->getByRole('button');
+        $this->assertInstanceOf(LocatorInterface::class, $locator);
+        $this->assertSame('button', $locator->getSelector());
+    }
+
+    public function testGetByPlaceholder(): void
+    {
+        $frame = new Frame($this->transport, $this->pageId, 'iframe#auth', $this->logger);
+        $locator = $frame->getByPlaceholder('Username');
+        $this->assertInstanceOf(LocatorInterface::class, $locator);
+        $this->assertSame('[placeholder="Username"]', $locator->getSelector());
+    }
+
+    public function testGetByTestId(): void
+    {
+        $frame = new Frame($this->transport, $this->pageId, 'iframe#auth', $this->logger);
+        $locator = $frame->getByTestId('submit-btn');
+        $this->assertInstanceOf(LocatorInterface::class, $locator);
+        $this->assertSame('[data-testid="submit-btn"]', $locator->getSelector());
+    }
+
+    public function testGetByAltText(): void
+    {
+        $frame = new Frame($this->transport, $this->pageId, 'iframe#auth', $this->logger);
+        $locator = $frame->getByAltText('Logo');
+        $this->assertInstanceOf(LocatorInterface::class, $locator);
+        $this->assertSame('[alt="Logo"]', $locator->getSelector());
+    }
+
+    public function testGetByTitle(): void
+    {
+        $frame = new Frame($this->transport, $this->pageId, 'iframe#auth', $this->logger);
+        $locator = $frame->getByTitle('Tooltip');
+        $this->assertInstanceOf(LocatorInterface::class, $locator);
+        $this->assertSame('[title="Tooltip"]', $locator->getSelector());
+    }
+
+    public function testGetByLabel(): void
+    {
+        $frame = new Frame($this->transport, $this->pageId, 'iframe#auth', $this->logger);
+        $locator = $frame->getByLabel('Email');
+        $this->assertInstanceOf(LocatorInterface::class, $locator);
+        $this->assertSame('label:text-is("Email") >> nth=0', $locator->getSelector());
+    }
 }
