@@ -19,7 +19,7 @@ use Playwright\Page\PageInterface;
 /**
  * @author Simon André <smn.andre@gmail.com>
  */
-class Dialog
+final class Dialog implements DialogInterface
 {
     public function __construct(
         private readonly PageInterface $page,
