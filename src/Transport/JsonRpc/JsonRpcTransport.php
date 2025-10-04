@@ -446,7 +446,6 @@ final class JsonRpcTransport implements TransportInterface
             $stringCommand[] = $part;
         }
 
-        /* @phpstan-var list<string> $stringCommand */
         return $stringCommand;
     }
 
@@ -464,7 +463,6 @@ final class JsonRpcTransport implements TransportInterface
             }
         }
 
-        /* @phpstan-var array<string, string> $stringEnv */
         return $stringEnv;
     }
 

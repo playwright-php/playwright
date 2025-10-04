@@ -97,7 +97,6 @@ final class Playwright
             $contextOptions = [];
         }
 
-        /** @phpstan-var array<string, mixed> $contextOptions */
         $context = empty($contextOptions) ? $browser->context() : $browser->newContext($contextOptions);
 
         self::$clients[] = $client;

@@ -283,10 +283,7 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
             throw new ProtocolErrorException('Invalid cookies response', 0);
         }
 
-        /** @phpstan-var array<array<string, mixed>> $cookies */
-        $cookies = $response['cookies'];
-
-        return $cookies;
+        return $response['cookies'];
     }
 
     public function exposeBinding(string $name, callable $callback): void
@@ -344,7 +341,6 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
             throw new ProtocolErrorException('Invalid storageState response', 0);
         }
 
-        /** @phpstan-var array<string, mixed> $storageState */
         $storageState = $response['storageState'];
 
         return $storageState;
