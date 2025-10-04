@@ -96,5 +96,30 @@ test-integration:
 test-coverage:
 	@$(MAKE) phpunit ARGS="--coverage-html coverage --colors=never"
 
+## List playwright server processes
+ps-server:
+	@ps aux | grep -i '[p]laywright-server.js' || true
+
+## Kill lingering playwright server processes
+kill-server:
+	@pkill -f 'playwright-server.js' 2>/dev/null || true
+	@echo "Killed (if any) playwright-server.js processes."
+
+##@ Setup
+
+## Install PHP deps & Playwright browsers
+setup:
+	@$(MAKE) install-deps
+	@$(MAKE) install-browsers
+
+## Install PHP & Node dependencies
+install:
+	$(call run_cmd,$(PHP_CMD) composer.phar install || composer install,)
+	$(call run_cmd,$(NPM) install,)
+
+## Install Playwright browsers
+install-browsers: install-browsers
+	$(call run_cmd,$(PLAYWRIGHT) install --with-deps,)
+
 %:
 	@:
