@@ -683,7 +683,7 @@ final class Locator implements LocatorInterface
     {
         $chain = clone $this->selectorChain;
 
-        if (isset($options['hasText'])) {
+        if (isset($options['hasText']) && is_scalar($options['hasText'])) {
             $chain = $chain->append(\sprintf(':has-text("%s")', $options['hasText']));
         }
 

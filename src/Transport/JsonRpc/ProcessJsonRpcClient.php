@@ -34,7 +34,7 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
     private string $outputBuffer = '';
     private ?InputStream $inputStream = null;
 
-    /** @var array<int, array<string, mixed>> */
+    /** @var array<int|string, array<string, mixed>> */
     private array $responses = [];
 
     private ?\Closure $eventHandler = null;
@@ -174,18 +174,20 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
                 return;
             }
 
-            if (isset($data['id'])) {
+            if (isset($data['id']) && (is_int($data['id']) || is_string($data['id']))) {
                 $this->logger->debug('Received JSON-RPC response', [
                     'id' => $data['id'],
                     'hasError' => isset($data['error']),
                     'hasResult' => isset($data['result']),
                 ]);
+                /* @var array<string, mixed> $data */
                 $this->responses[$data['id']] = $data;
-            } elseif (isset($data['requestId'])) {
+            } elseif (isset($data['requestId']) && (is_int($data['requestId']) || is_string($data['requestId']))) {
                 $this->logger->debug('Received raw response', [
                     'requestId' => $data['requestId'],
                     'hasError' => isset($data['error']),
                 ]);
+                /* @var array<string, mixed> $data */
                 $this->responses[$data['requestId']] = $data;
             }
 

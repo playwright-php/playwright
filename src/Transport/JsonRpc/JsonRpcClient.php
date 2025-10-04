@@ -98,7 +98,12 @@ class JsonRpcClient implements JsonRpcClientInterface
 
             $result = $response['result'] ?? [];
 
-            return is_array($result) ? $result : [];
+            if (!is_array($result)) {
+                return [];
+            }
+
+            /* @var array<string, mixed> $result */
+            return $result;
         } catch (\Throwable $e) {
             unset($this->pendingRequests[$id]);
             throw $e;
