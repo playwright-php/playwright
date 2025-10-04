@@ -93,7 +93,14 @@ final class Request implements RequestInterface
             return null;
         }
 
-        return $decoded;
+        $result = [];
+        foreach ($decoded as $key => $value) {
+            if (is_string($key)) {
+                $result[$key] = $value;
+            }
+        }
+
+        return $result;
     }
 
     public function resourceType(): string

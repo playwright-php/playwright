@@ -97,8 +97,13 @@ final class JsonRpcTransport implements TransportInterface
             );
 
             $this->client->setEventHandler(function (array $event): void {
-                /* @var array<string, mixed> $event */
-                $this->handleEvent($event);
+                $typedEvent = [];
+                foreach ($event as $k => $v) {
+                    if (is_string($k)) {
+                        $typedEvent[$k] = $v;
+                    }
+                }
+                $this->handleEvent($typedEvent);
             });
             $this->logger->debug('Event handler set up for JSON-RPC client');
 
@@ -473,7 +478,13 @@ final class JsonRpcTransport implements TransportInterface
      */
     private function validateEventParams(array $params): array
     {
-        /* @var array<string, mixed> */
-        return $params;
+        $typedParams = [];
+        foreach ($params as $key => $value) {
+            if (is_string($key)) {
+                $typedParams[$key] = $value;
+            }
+        }
+
+        return $typedParams;
     }
 }

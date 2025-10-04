@@ -180,15 +180,25 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
                     'hasError' => isset($data['error']),
                     'hasResult' => isset($data['result']),
                 ]);
-                /* @var array<string, mixed> $data */
-                $this->responses[$data['id']] = $data;
+                $typedData = [];
+                foreach ($data as $k => $v) {
+                    if (is_string($k)) {
+                        $typedData[$k] = $v;
+                    }
+                }
+                $this->responses[$data['id']] = $typedData;
             } elseif (isset($data['requestId']) && (is_int($data['requestId']) || is_string($data['requestId']))) {
                 $this->logger->debug('Received raw response', [
                     'requestId' => $data['requestId'],
                     'hasError' => isset($data['error']),
                 ]);
-                /* @var array<string, mixed> $data */
-                $this->responses[$data['requestId']] = $data;
+                $typedData = [];
+                foreach ($data as $k => $v) {
+                    if (is_string($k)) {
+                        $typedData[$k] = $v;
+                    }
+                }
+                $this->responses[$data['requestId']] = $typedData;
             }
 
             if (isset($data['event'])) {
