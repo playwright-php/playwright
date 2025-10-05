@@ -38,4 +38,9 @@ class SelectorChain
     {
         return implode(' >> ', $this->selectors);
     }
+
+    public function toString(): string
+    {
+        return (string) $this;
+    }
 }

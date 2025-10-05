@@ -114,4 +114,171 @@ final class MouseTest extends TestCase
 
         $this->mouse->wheel(10, -20);
     }
+
+    public function testDblclick(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with([
+                'action' => 'mouse.dblclick',
+                'pageId' => 'page1',
+                'x' => 100,
+                'y' => 200,
+                'options' => [],
+            ])
+            ->willReturn([]);
+
+        $this->transport
+            ->expects($this->once())
+            ->method('processEvents');
+
+        $this->mouse->dblclick(100, 200);
+    }
+
+    public function testDblclickWithOptions(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with([
+                'action' => 'mouse.dblclick',
+                'pageId' => 'page1',
+                'x' => 150,
+                'y' => 250,
+                'options' => ['button' => 'right', 'delay' => 100],
+            ])
+            ->willReturn([]);
+
+        $this->transport
+            ->expects($this->once())
+            ->method('processEvents');
+
+        $this->mouse->dblclick(150, 250, ['button' => 'right', 'delay' => 100]);
+    }
+
+    public function testDown(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with([
+                'action' => 'mouse.down',
+                'pageId' => 'page1',
+                'options' => [],
+            ])
+            ->willReturn([]);
+
+        $this->transport
+            ->expects($this->once())
+            ->method('processEvents');
+
+        $this->mouse->down();
+    }
+
+    public function testDownWithButton(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with([
+                'action' => 'mouse.down',
+                'pageId' => 'page1',
+                'options' => ['button' => 'right'],
+            ])
+            ->willReturn([]);
+
+        $this->transport
+            ->expects($this->once())
+            ->method('processEvents');
+
+        $this->mouse->down(['button' => 'right']);
+    }
+
+    public function testDownWithClickCount(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with([
+                'action' => 'mouse.down',
+                'pageId' => 'page1',
+                'options' => ['button' => 'left', 'clickCount' => 2],
+            ])
+            ->willReturn([]);
+
+        $this->transport
+            ->expects($this->once())
+            ->method('processEvents');
+
+        $this->mouse->down(['button' => 'left', 'clickCount' => 2]);
+    }
+
+    public function testUp(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with([
+                'action' => 'mouse.up',
+                'pageId' => 'page1',
+                'options' => [],
+            ])
+            ->willReturn([]);
+
+        $this->transport
+            ->expects($this->once())
+            ->method('processEvents');
+
+        $this->mouse->up();
+    }
+
+    public function testUpWithButton(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with([
+                'action' => 'mouse.up',
+                'pageId' => 'page1',
+                'options' => ['button' => 'middle'],
+            ])
+            ->willReturn([]);
+
+        $this->transport
+            ->expects($this->once())
+            ->method('processEvents');
+
+        $this->mouse->up(['button' => 'middle']);
+    }
+
+    public function testDownAndUpSequence(): void
+    {
+        $this->transport
+            ->expects($this->exactly(2))
+            ->method('send')
+            ->willReturnCallback(function (array $payload) {
+                static $callCount = 0;
+                ++$callCount;
+
+                if (1 === $callCount) {
+                    $this->assertSame('mouse.down', $payload['action']);
+                    $this->assertSame('page1', $payload['pageId']);
+                    $this->assertSame([], $payload['options']);
+                } elseif (2 === $callCount) {
+                    $this->assertSame('mouse.up', $payload['action']);
+                    $this->assertSame('page1', $payload['pageId']);
+                    $this->assertSame([], $payload['options']);
+                }
+
+                return [];
+            });
+
+        $this->transport
+            ->expects($this->exactly(2))
+            ->method('processEvents');
+
+        $this->mouse->down();
+        $this->mouse->up();
+    }
 }

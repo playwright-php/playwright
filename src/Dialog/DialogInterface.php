@@ -12,24 +12,20 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace Playwright\Input;
+namespace Playwright\Dialog;
 
 /**
  * @author Simon André <smn.andre@gmail.com>
  */
-interface KeyboardInterface
+interface DialogInterface
 {
-    public function down(string $key): void;
+    public function type(): string;
 
-    /**
-     * @param array<string, mixed> $options
-     */
-    public function press(string $key, array $options = []): void;
+    public function message(): string;
 
-    /**
-     * @param array<string, mixed> $options
-     */
-    public function type(string $text, array $options = []): void;
+    public function defaultValue(): ?string;
 
-    public function up(string $key): void;
+    public function accept(?string $promptText = null): void;
+
+    public function dismiss(): void;
 }

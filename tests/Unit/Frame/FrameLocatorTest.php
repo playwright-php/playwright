@@ -164,4 +164,53 @@ class FrameLocatorTest extends TestCase
         $this->assertSame($expectedString, (string) $this->frameLocator);
         $this->assertSame($expectedString, $this->frameLocator->__toString());
     }
+
+    public function testGetByText(): void
+    {
+        $locator = $this->frameLocator->getByText('Hello');
+        $this->assertInstanceOf(LocatorInterface::class, $locator);
+        $this->assertSame('text="Hello"', $locator->getSelector());
+    }
+
+    public function testGetByRole(): void
+    {
+        $locator = $this->frameLocator->getByRole('button');
+        $this->assertInstanceOf(LocatorInterface::class, $locator);
+        $this->assertSame('button', $locator->getSelector());
+    }
+
+    public function testGetByPlaceholder(): void
+    {
+        $locator = $this->frameLocator->getByPlaceholder('Search');
+        $this->assertInstanceOf(LocatorInterface::class, $locator);
+        $this->assertSame('[placeholder="Search"]', $locator->getSelector());
+    }
+
+    public function testGetByTestId(): void
+    {
+        $locator = $this->frameLocator->getByTestId('my-test-id');
+        $this->assertInstanceOf(LocatorInterface::class, $locator);
+        $this->assertSame('[data-testid="my-test-id"]', $locator->getSelector());
+    }
+
+    public function testGetByAltText(): void
+    {
+        $locator = $this->frameLocator->getByAltText('Image');
+        $this->assertInstanceOf(LocatorInterface::class, $locator);
+        $this->assertSame('[alt="Image"]', $locator->getSelector());
+    }
+
+    public function testGetByTitle(): void
+    {
+        $locator = $this->frameLocator->getByTitle('Help');
+        $this->assertInstanceOf(LocatorInterface::class, $locator);
+        $this->assertSame('[title="Help"]', $locator->getSelector());
+    }
+
+    public function testGetByLabel(): void
+    {
+        $locator = $this->frameLocator->getByLabel('Password');
+        $this->assertInstanceOf(LocatorInterface::class, $locator);
+        $this->assertSame('label:text-is("Password") >> nth=0', $locator->getSelector());
+    }
 }

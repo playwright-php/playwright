@@ -87,13 +87,20 @@ final class Request implements RequestInterface
             return null;
         }
 
-        $decoded = json_decode($postData, false, 512, JSON_THROW_ON_ERROR);
+        $decoded = json_decode($postData, true, 512, JSON_THROW_ON_ERROR);
 
-        if (!$decoded instanceof \stdClass) {
+        if (!is_array($decoded)) {
             return null;
         }
 
-        return (array) $decoded;
+        $result = [];
+        foreach ($decoded as $key => $value) {
+            if (is_string($key)) {
+                $result[$key] = $value;
+            }
+        }
+
+        return $result;
     }
 
     public function resourceType(): string

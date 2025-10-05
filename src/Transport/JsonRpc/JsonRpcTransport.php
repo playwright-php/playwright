@@ -97,7 +97,13 @@ final class JsonRpcTransport implements TransportInterface
             );
 
             $this->client->setEventHandler(function (array $event): void {
-                $this->handleEvent($event);
+                $typedEvent = [];
+                foreach ($event as $k => $v) {
+                    if (is_string($k)) {
+                        $typedEvent[$k] = $v;
+                    }
+                }
+                $this->handleEvent($typedEvent);
             });
             $this->logger->debug('Event handler set up for JSON-RPC client');
 
@@ -445,7 +451,6 @@ final class JsonRpcTransport implements TransportInterface
             $stringCommand[] = $part;
         }
 
-        /* @phpstan-var list<string> $stringCommand */
         return $stringCommand;
     }
 
@@ -463,7 +468,6 @@ final class JsonRpcTransport implements TransportInterface
             }
         }
 
-        /* @phpstan-var array<string, string> $stringEnv */
         return $stringEnv;
     }
 
@@ -474,7 +478,13 @@ final class JsonRpcTransport implements TransportInterface
      */
     private function validateEventParams(array $params): array
     {
-        /* @phpstan-var array<string, mixed> $params */
-        return $params;
+        $typedParams = [];
+        foreach ($params as $key => $value) {
+            if (is_string($key)) {
+                $typedParams[$key] = $value;
+            }
+        }
+
+        return $typedParams;
     }
 }

@@ -12,24 +12,16 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace Playwright\Input;
+namespace Playwright\Locator;
 
 /**
  * @author Simon André <smn.andre@gmail.com>
  */
-interface KeyboardInterface
+interface SelectorChainInterface
 {
-    public function down(string $key): void;
+    public function append(string $selector): self;
 
-    /**
-     * @param array<string, mixed> $options
-     */
-    public function press(string $key, array $options = []): void;
+    public function __toString(): string;
 
-    /**
-     * @param array<string, mixed> $options
-     */
-    public function type(string $text, array $options = []): void;
-
-    public function up(string $key): void;
+    public function toString(): string;
 }

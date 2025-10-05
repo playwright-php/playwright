@@ -283,8 +283,18 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
             throw new ProtocolErrorException('Invalid cookies response', 0);
         }
 
-        /** @phpstan-var array<array<string, mixed>> $cookies */
-        $cookies = $response['cookies'];
+        $cookies = [];
+        foreach ($response['cookies'] as $cookie) {
+            if (is_array($cookie)) {
+                $typedCookie = [];
+                foreach ($cookie as $key => $value) {
+                    if (is_string($key)) {
+                        $typedCookie[$key] = $value;
+                    }
+                }
+                $cookies[] = $typedCookie;
+            }
+        }
 
         return $cookies;
     }
@@ -344,8 +354,12 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
             throw new ProtocolErrorException('Invalid storageState response', 0);
         }
 
-        /** @phpstan-var array<string, mixed> $storageState */
-        $storageState = $response['storageState'];
+        $storageState = [];
+        foreach ($response['storageState'] as $key => $value) {
+            if (is_string($key)) {
+                $storageState[$key] = $value;
+            }
+        }
 
         return $storageState;
     }

@@ -12,24 +12,27 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace Playwright\Input;
+namespace Playwright\Selector;
 
 /**
  * @author Simon André <smn.andre@gmail.com>
  */
-interface KeyboardInterface
+interface SelectorsInterface
 {
-    public function down(string $key): void;
-
     /**
+     * Register a custom selector engine.
+     *
      * @param array<string, mixed> $options
      */
-    public function press(string $key, array $options = []): void;
+    public function register(string $name, string $script, array $options = []): void;
 
     /**
-     * @param array<string, mixed> $options
+     * Set the test id attribute name.
      */
-    public function type(string $text, array $options = []): void;
+    public function setTestIdAttribute(string $attributeName): void;
 
-    public function up(string $key): void;
+    /**
+     * Get the current test id attribute name.
+     */
+    public function getTestIdAttribute(): string;
 }
