@@ -54,4 +54,9 @@ class Dialog
     {
         $this->page->handleDialog($this->dialogId, false);
     }
+
+    public function page(): PageInterface
+    {
+        return $this->page;
+    }
 }

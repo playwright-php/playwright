@@ -17,7 +17,7 @@ namespace Playwright\Locator;
 /**
  * @author Simon André <smn.andre@gmail.com>
  */
-class SelectorChain
+final class SelectorChain implements SelectorChainInterface
 {
     /** @var array<string> */
     private array $selectors = [];

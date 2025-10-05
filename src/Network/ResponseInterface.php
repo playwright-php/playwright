@@ -40,4 +40,39 @@ interface ResponseInterface
      * @return array<string, mixed>
      */
     public function json(): array;
+
+    /**
+     * @return array<string, string>
+     */
+    public function allHeaders(): array;
+
+    public function finished(): ?string;
+
+    public function frame(): ?\Playwright\Frame\FrameInterface;
+
+    public function fromServiceWorker(): bool;
+
+    public function headerValue(string $name): ?string;
+
+    /**
+     * @return string[]
+     */
+    public function headerValues(string $name): array;
+
+    /**
+     * @return array{name: string, value: string}[]
+     */
+    public function headersArray(): array;
+
+    public function request(): RequestInterface;
+
+    /**
+     * @return array{issuer?: string, protocol?: string, subjectName?: string, validFrom?: int, validTo?: int}|null
+     */
+    public function securityDetails(): ?array;
+
+    /**
+     * @return array{ipAddress: string, port: int}|null
+     */
+    public function serverAddr(): ?array;
 }

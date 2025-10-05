@@ -18,6 +18,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Playwright\Network\RequestInterface;
+use Playwright\Network\Response;
 use Playwright\Network\Route;
 use Playwright\Transport\TransportInterface;
 
