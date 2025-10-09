@@ -156,6 +156,69 @@ class PageTest extends TestCase
         $this->assertEquals(200, $response->status());
     }
 
+    #[Test]
+    public function itCanGetByText(): void
+    {
+        $locator = $this->page->getByText('Hello World');
+        $this->assertInstanceOf(\Playwright\Locator\LocatorInterface::class, $locator);
+        $text = $locator->textContent();
+        $this->assertSame('Hello World', $text);
+    }
+
+    #[Test]
+    public function itCanGetByPlaceholder(): void
+    {
+        $locator = $this->page->getByPlaceholder('Username');
+        $this->assertInstanceOf(\Playwright\Locator\LocatorInterface::class, $locator);
+        $placeholder = $locator->getAttribute('placeholder');
+        $this->assertSame('Username', $placeholder);
+    }
+
+    #[Test]
+    public function itCanGetByTitle(): void
+    {
+        $this->page->evaluate("document.querySelector('h1').setAttribute('title', 'Main Heading')");
+        $locator = $this->page->getByTitle('Main Heading');
+        $this->assertInstanceOf(\Playwright\Locator\LocatorInterface::class, $locator);
+        $text = $locator->textContent();
+        $this->assertSame('Hello World', $text);
+    }
+
+    #[Test]
+    public function itCanGetByTestId(): void
+    {
+        $this->page->evaluate("document.querySelector('button').setAttribute('data-testid', 'submit-button')");
+        $locator = $this->page->getByTestId('submit-button');
+        $this->assertInstanceOf(\Playwright\Locator\LocatorInterface::class, $locator);
+        $text = $locator->textContent();
+        $this->assertSame('Test Button', $text);
+    }
+
+    #[Test]
+    public function itCanGetByAltText(): void
+    {
+        $this->page->setContent('<img src="/logo.png" alt="Company Logo" />');
+        $locator = $this->page->getByAltText('Company Logo');
+        $this->assertInstanceOf(\Playwright\Locator\LocatorInterface::class, $locator);
+        $alt = $locator->getAttribute('alt');
+        $this->assertSame('Company Logo', $alt);
+    }
+
+    #[Test]
+    public function itCanInteractWithGetByText(): void
+    {
+        $this->page->getByText('link')->click();
+        $this->assertStringContainsString('page2.html', $this->page->url());
+    }
+
+    #[Test]
+    public function itCanFillInputUsingGetByPlaceholder(): void
+    {
+        $this->page->getByPlaceholder('Username')->fill('testuser');
+        $value = $this->page->getByPlaceholder('Username')->inputValue();
+        $this->assertSame('testuser', $value);
+    }
+
     private static function findFreePort(): int
     {
         return 0;

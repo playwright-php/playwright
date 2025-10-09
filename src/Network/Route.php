@@ -62,4 +62,33 @@ final class Route implements RouteInterface
             'options' => $options,
         ]);
     }
+
+    public function fallback(?array $options = null): void
+    {
+        $this->transport->sendAsync([
+            'action' => 'route.fallback',
+            'routeId' => $this->routeId,
+            'options' => $options,
+        ]);
+    }
+
+    public function fetch(?array $options = null): ResponseInterface
+    {
+        $response = $this->transport->send([
+            'action' => 'route.fetch',
+            'routeId' => $this->routeId,
+            'options' => $options,
+        ]);
+
+        $typedData = [];
+        foreach ($response as $key => $value) {
+            if (is_string($key)) {
+                $typedData[$key] = $value;
+            }
+        }
+
+        $pageId = isset($response['pageId']) && is_string($response['pageId']) ? $response['pageId'] : '';
+
+        return new Response($this->transport, $pageId, $typedData);
+    }
 }

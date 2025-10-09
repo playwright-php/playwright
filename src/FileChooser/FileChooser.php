@@ -34,11 +34,31 @@ final class FileChooser implements FileChooserInterface
     public function element(): string
     {
         return $this->elementId;
+ * @author Simon André <smn.andre@gmail.com>
+ */
+final class FileChooser implements FileChooserInterface
+{
+    /**
+     * @param array<string, mixed> $data
+     */
+    public function __construct(
+        private readonly TransportInterface $transport,
+        private readonly PageInterface $page,
+        private readonly string $elementId,
+        private readonly array $data,
+    ) {
+    }
+
+    public function element(): mixed
+    {
+        // TODO: ElementHandle implementation not yet available
+        return null;
     }
 
     public function isMultiple(): bool
     {
         return $this->isMultiple;
+        return (bool) ($this->data['isMultiple'] ?? false);
     }
 
     public function page(): PageInterface
@@ -105,5 +125,26 @@ final class FileChooser implements FileChooserInterface
         }
 
         return $out;
+     * @param string|string[]|array{name: string, mimeType: string, buffer: string}|array<array{name: string, mimeType: string, buffer: string}> $files
+     * @param array<string, mixed>                                                                                                               $options
+     */
+    public function setFiles(string|array $files, array $options = []): void
+    {
+        $payload = [
+            'action' => 'fileChooser.setFiles',
+            'elementId' => $this->elementId,
+        ];
+
+        if (is_string($files)) {
+            $payload['files'] = [$files];
+        } elseif (is_array($files)) {
+            $payload['files'] = $files;
+        }
+
+        if (!empty($options)) {
+            $payload['options'] = $options;
+        }
+
+        $this->transport->send($payload);
     }
 }

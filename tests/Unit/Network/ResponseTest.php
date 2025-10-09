@@ -18,6 +18,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Playwright\Network\Request;
 use Playwright\Network\Response;
 use Playwright\Transport\TransportInterface;
 
@@ -174,6 +175,208 @@ final class ResponseTest extends TestCase
             ['name' => 'accept', 'value' => 'application/json'],
             ['name' => 'x-one', 'value' => '1'],
         ], $pairs);
+    public function testAllHeaders(): void
+    {
+        $response = $this->createResponse();
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(function ($payload) {
+                return 'response.allHeaders' === $payload['action']
+                    && 'page123' === $payload['pageId']
+                    && 'response123' === $payload['responseId'];
+            }))
+            ->willReturn(['content-type' => 'application/json', 'x-custom' => 'value']);
+
+        $result = $response->allHeaders();
+        $this->assertSame(['content-type' => 'application/json', 'x-custom' => 'value'], $result);
+    }
+
+    public function testFinished(): void
+    {
+        $response = $this->createResponse();
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->willReturn(['error' => 'Network error']);
+
+        $this->assertSame('Network error', $response->finished());
+    }
+
+    public function testFinishedReturnsNull(): void
+    {
+        $response = $this->createResponse();
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->willReturn([]);
+
+        $this->assertNull($response->finished());
+    }
+
+    public function testFrame(): void
+    {
+        $response = $this->createResponse();
+        $this->assertNull($response->frame());
+    }
+
+    public function testFromServiceWorker(): void
+    {
+        $response = $this->createResponse(['fromServiceWorker' => true]);
+        $this->assertTrue($response->fromServiceWorker());
+
+        $response = $this->createResponse(['fromServiceWorker' => false]);
+        $this->assertFalse($response->fromServiceWorker());
+
+        $response = $this->createResponse();
+        $this->assertFalse($response->fromServiceWorker());
+    }
+
+    public function testHeaderValue(): void
+    {
+        $response = $this->createResponse();
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(function ($payload) {
+                return 'response.headerValue' === $payload['action']
+                    && 'Content-Type' === $payload['name'];
+            }))
+            ->willReturn(['value' => 'application/json']);
+
+        $this->assertSame('application/json', $response->headerValue('Content-Type'));
+    }
+
+    public function testHeaderValueReturnsNull(): void
+    {
+        $response = $this->createResponse();
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->willReturn([]);
+
+        $this->assertNull($response->headerValue('Missing'));
+    }
+
+    public function testHeaderValues(): void
+    {
+        $response = $this->createResponse();
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(function ($payload) {
+                return 'response.headerValues' === $payload['action']
+                    && 'Set-Cookie' === $payload['name'];
+            }))
+            ->willReturn(['values' => ['cookie1=value1', 'cookie2=value2']]);
+
+        $result = $response->headerValues('Set-Cookie');
+        $this->assertSame(['cookie1=value1', 'cookie2=value2'], $result);
+    }
+
+    public function testHeaderValuesReturnsEmpty(): void
+    {
+        $response = $this->createResponse();
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->willReturn([]);
+
+        $this->assertSame([], $response->headerValues('Missing'));
+    }
+
+    public function testHeadersArray(): void
+    {
+        $response = $this->createResponse();
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->willReturn([
+                ['name' => 'content-type', 'value' => 'application/json'],
+                ['name' => 'x-custom', 'value' => 'value'],
+            ]);
+
+        $result = $response->headersArray();
+        $this->assertCount(2, $result);
+        $this->assertSame(['name' => 'content-type', 'value' => 'application/json'], $result[0]);
+        $this->assertSame(['name' => 'x-custom', 'value' => 'value'], $result[1]);
+    }
+
+    public function testRequest(): void
+    {
+        $requestData = [
+            'url' => 'https://example.com/api',
+            'method' => 'GET',
+            'headers' => [],
+            'resourceType' => 'fetch',
+            'requestId' => 'req-123',
+        ];
+        $response = $this->createResponse(['request' => $requestData]);
+        $request = $response->request();
+
+        $this->assertInstanceOf(Request::class, $request);
+        $this->assertSame('https://example.com/api', $request->url());
+        $this->assertSame('GET', $request->method());
+    }
+
+    public function testSecurityDetails(): void
+    {
+        $response = $this->createResponse();
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->willReturn([
+                'issuer' => 'Let\'s Encrypt',
+                'protocol' => 'TLS 1.3',
+                'subjectName' => 'example.com',
+                'validFrom' => 1609459200,
+                'validTo' => 1640995200,
+            ]);
+
+        $result = $response->securityDetails();
+        $this->assertSame('Let\'s Encrypt', $result['issuer']);
+        $this->assertSame('TLS 1.3', $result['protocol']);
+        $this->assertSame('example.com', $result['subjectName']);
+        $this->assertSame(1609459200, $result['validFrom']);
+        $this->assertSame(1640995200, $result['validTo']);
+    }
+
+    public function testSecurityDetailsReturnsNull(): void
+    {
+        $response = $this->createResponse();
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->willReturn([]);
+
+        $this->assertNull($response->securityDetails());
+    }
+
+    public function testServerAddr(): void
+    {
+        $response = $this->createResponse();
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->willReturn([
+                'ipAddress' => '93.184.216.34',
+                'port' => 443,
+            ]);
+
+        $result = $response->serverAddr();
+        $this->assertSame('93.184.216.34', $result['ipAddress']);
+        $this->assertSame(443, $result['port']);
+    }
+
+    public function testServerAddrReturnsNull(): void
+    {
+        $response = $this->createResponse();
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->willReturn([]);
+
+        $this->assertNull($response->serverAddr());
     }
 
     private function createResponse(array $data = []): Response

@@ -29,4 +29,14 @@ interface RouteInterface
      * @param array<string, mixed> $options
      */
     public function fulfill(array $options): void;
+
+    /**
+     * @param array<string, mixed>|null $options
+     */
+    public function fallback(?array $options = null): void;
+
+    /**
+     * @param array<string, mixed>|null $options
+     */
+    public function fetch(?array $options = null): ResponseInterface;
 }

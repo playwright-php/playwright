@@ -109,4 +109,110 @@ final class KeyboardTest extends TestCase
 
         $this->keyboard->insertText('inserted text');
     }
+
+    public function testDown(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with([
+                'action' => 'keyboard.down',
+                'pageId' => 'page1',
+                'key' => 'Shift',
+            ])
+            ->willReturn([]);
+
+        $this->transport
+            ->expects($this->once())
+            ->method('processEvents');
+
+        $this->keyboard->down('Shift');
+    }
+
+    public function testDownWithArrowKey(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with([
+                'action' => 'keyboard.down',
+                'pageId' => 'page1',
+                'key' => 'ArrowDown',
+            ])
+            ->willReturn([]);
+
+        $this->transport
+            ->expects($this->once())
+            ->method('processEvents');
+
+        $this->keyboard->down('ArrowDown');
+    }
+
+    public function testUp(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with([
+                'action' => 'keyboard.up',
+                'pageId' => 'page1',
+                'key' => 'Shift',
+            ])
+            ->willReturn([]);
+
+        $this->transport
+            ->expects($this->once())
+            ->method('processEvents');
+
+        $this->keyboard->up('Shift');
+    }
+
+    public function testUpWithControlKey(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with([
+                'action' => 'keyboard.up',
+                'pageId' => 'page1',
+                'key' => 'Control',
+            ])
+            ->willReturn([]);
+
+        $this->transport
+            ->expects($this->once())
+            ->method('processEvents');
+
+        $this->keyboard->up('Control');
+    }
+
+    public function testDownAndUpSequence(): void
+    {
+        $this->transport
+            ->expects($this->exactly(2))
+            ->method('send')
+            ->willReturnCallback(function (array $payload) {
+                static $callCount = 0;
+                ++$callCount;
+
+                if (1 === $callCount) {
+                    $this->assertSame('keyboard.down', $payload['action']);
+                    $this->assertSame('page1', $payload['pageId']);
+                    $this->assertSame('A', $payload['key']);
+                } elseif (2 === $callCount) {
+                    $this->assertSame('keyboard.up', $payload['action']);
+                    $this->assertSame('page1', $payload['pageId']);
+                    $this->assertSame('A', $payload['key']);
+                }
+
+                return [];
+            });
+
+        $this->transport
+            ->expects($this->exactly(2))
+            ->method('processEvents');
+
+        $this->keyboard->down('A');
+        $this->keyboard->up('A');
+    }
 }

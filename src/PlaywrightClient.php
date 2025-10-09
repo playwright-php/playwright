@@ -22,12 +22,15 @@ use Playwright\Exception\DisconnectedException;
 use Playwright\Exception\ProcessCrashedException;
 use Playwright\Exception\ProcessLaunchException;
 use Playwright\Exception\TransportException;
+use Playwright\Selector\Selectors;
+use Playwright\Selector\SelectorsInterface;
 use Playwright\Transport\TransportInterface;
 use Psr\Log\LoggerInterface;
 
 class PlaywrightClient
 {
     private bool $isConnected = false;
+    private ?SelectorsInterface $selectors = null;
 
     public function __construct(
         private readonly TransportInterface $transport,
@@ -88,6 +91,15 @@ class PlaywrightClient
         $pidValue = is_int($pid) ? $pid : null;
 
         return new BrowserServer($this->transport, $serverId, $endpoint, $pidValue);
+    public function selectors(): SelectorsInterface
+    {
+        $this->connect();
+
+        if (null === $this->selectors) {
+            $this->selectors = new Selectors($this->transport);
+        }
+
+        return $this->selectors;
     }
 
     public function close(): void

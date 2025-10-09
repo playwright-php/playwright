@@ -27,6 +27,17 @@ final class Keyboard implements KeyboardInterface
         $this->pageId = $pageId;
     }
 
+    public function down(string $key): void
+    {
+        $this->transport->send([
+            'action' => 'keyboard.down',
+            'pageId' => $this->pageId,
+            'key' => $key,
+        ]);
+
+        $this->transport->processEvents();
+    }
+
     public function insertText(string $text): void
     {
         $this->transport->send([
@@ -56,5 +67,16 @@ final class Keyboard implements KeyboardInterface
             'text' => $text,
             'options' => $options,
         ]);
+    }
+
+    public function up(string $key): void
+    {
+        $this->transport->send([
+            'action' => 'keyboard.up',
+            'pageId' => $this->pageId,
+            'key' => $key,
+        ]);
+
+        $this->transport->processEvents();
     }
 }

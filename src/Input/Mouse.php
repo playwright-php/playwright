@@ -40,6 +40,30 @@ final class Mouse implements MouseInterface
         $this->transport->processEvents();
     }
 
+    public function dblclick(float $x, float $y, array $options = []): void
+    {
+        $this->transport->send([
+            'action' => 'mouse.dblclick',
+            'pageId' => $this->pageId,
+            'x' => $x,
+            'y' => $y,
+            'options' => $options,
+        ]);
+
+        $this->transport->processEvents();
+    }
+
+    public function down(array $options = []): void
+    {
+        $this->transport->send([
+            'action' => 'mouse.down',
+            'pageId' => $this->pageId,
+            'options' => $options,
+        ]);
+
+        $this->transport->processEvents();
+    }
+
     public function move(float $x, float $y, array $options = []): void
     {
         $this->transport->send([
@@ -49,6 +73,17 @@ final class Mouse implements MouseInterface
             'y' => $y,
             'options' => $options,
         ]);
+    }
+
+    public function up(array $options = []): void
+    {
+        $this->transport->send([
+            'action' => 'mouse.up',
+            'pageId' => $this->pageId,
+            'options' => $options,
+        ]);
+
+        $this->transport->processEvents();
     }
 
     public function wheel(float $deltaX, float $deltaY): void

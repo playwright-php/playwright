@@ -24,6 +24,38 @@ interface FrameInterface
     public function locator(string $selector): LocatorInterface;
 
     /**
+     * @param array<string, mixed> $options
+     */
+    public function getByAltText(string $text, array $options = []): LocatorInterface;
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function getByLabel(string $text, array $options = []): LocatorInterface;
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function getByPlaceholder(string $text, array $options = []): LocatorInterface;
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function getByRole(string $role, array $options = []): LocatorInterface;
+
+    public function getByTestId(string $testId): LocatorInterface;
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function getByText(string $text, array $options = []): LocatorInterface;
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function getByTitle(string $text, array $options = []): LocatorInterface;
+
+    /**
      * Create a nested frame locator from this frame.
      */
     public function frameLocator(string $selector): FrameLocatorInterface;

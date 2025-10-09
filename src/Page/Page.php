@@ -131,6 +131,10 @@ final class Page implements PageInterface, EventDispatcherInterface
                     $this->eventHandler->publicEmit('requestfailed', [$this->createRequest($params['request'])]);
                 }
                 break;
+            case 'close':
+                $this->isClosed = true;
+                $this->eventHandler->publicEmit('close', []);
+                break;
             case 'route':
                 if (is_string($params['routeId']) && is_array($params['request'])) {
                     $route = $this->createRoute(
@@ -225,6 +229,59 @@ final class Page implements PageInterface, EventDispatcherInterface
     public function getByTitle(string $text, array $options = []): LocatorInterface
     {
         return $this->locator(\sprintf('[title="%s"]', $text), $options);
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function getByAltText(string $text, array $options = []): LocatorInterface
+    {
+        return $this->locator(\sprintf('[alt="%s"]', $text));
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function getByLabel(string $text, array $options = []): LocatorInterface
+    {
+        return $this->locator(\sprintf('label:text-is("%s") >> nth=0', $text));
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function getByPlaceholder(string $text, array $options = []): LocatorInterface
+    {
+        return $this->locator(\sprintf('[placeholder="%s"]', $text));
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function getByRole(string $role, array $options = []): LocatorInterface
+    {
+        return $this->locator($role);
+    }
+
+    public function getByTestId(string $testId): LocatorInterface
+    {
+        return $this->locator(\sprintf('[data-testid="%s"]', $testId));
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function getByText(string $text, array $options = []): LocatorInterface
+    {
+        return $this->locator(\sprintf('text="%s"', $text));
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function getByTitle(string $text, array $options = []): LocatorInterface
+    {
+        return $this->locator(\sprintf('[title="%s"]', $text));
     }
 
     /**
@@ -363,6 +420,13 @@ final class Page implements PageInterface, EventDispatcherInterface
     public function close(): void
     {
         $this->sendCommand('close');
+
+        $this->isClosed = true;
+    }
+
+    public function isClosed(): bool
+    {
+        return $this->isClosed;
     }
 
     /**
@@ -638,6 +702,20 @@ final class Page implements PageInterface, EventDispatcherInterface
     public function setViewportSize(int $width, int $height): self
     {
         $this->sendCommand('setViewportSize', ['size' => ['width' => $width, 'height' => $height]]);
+
+        return $this;
+    }
+
+    public function setDefaultNavigationTimeout(int $timeout): self
+    {
+        $this->sendCommand('setDefaultNavigationTimeout', ['timeout' => $timeout]);
+
+        return $this;
+    }
+
+    public function setDefaultTimeout(int $timeout): self
+    {
+        $this->sendCommand('setDefaultTimeout', ['timeout' => $timeout]);
 
         return $this;
     }

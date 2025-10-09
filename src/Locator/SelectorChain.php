@@ -14,7 +14,7 @@ declare(strict_types=1);
 
 namespace Playwright\Locator;
 
-class SelectorChain
+final class SelectorChain implements SelectorChainInterface
 {
     /** @var array<string> */
     private array $selectors = [];
@@ -34,5 +34,10 @@ class SelectorChain
     public function __toString(): string
     {
         return implode(' >> ', $this->selectors);
+    }
+
+    public function toString(): string
+    {
+        return (string) $this;
     }
 }
