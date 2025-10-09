@@ -21,5 +21,6 @@ return (new PhpCsFixer\Config())
         '@Symfony' => true,
         'declare_strict_types' => true,
         'header_comment' => ['header' => $license],
+        'no_unused_imports' => true,
     ])
 ;
