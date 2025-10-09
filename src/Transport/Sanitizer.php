@@ -23,7 +23,10 @@ use Playwright\Exception\RuntimeException;
  */
 final class Sanitizer
 {
-    private const array SENSITIVE_KEYS = [
+    /**
+     * @var string[]
+     */
+    private const SENSITIVE_KEYS = [
         'password',
         'passwd',
         'secret',
@@ -40,7 +43,7 @@ final class Sanitizer
         'refresh_token',
     ];
 
-    private const string REPLACEMENT = '[REDACTED]';
+    private const REPLACEMENT = '[REDACTED]';
 
     /**
      * Sanitize parameters by removing or masking sensitive values.

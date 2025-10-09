@@ -64,7 +64,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        php-version: ['8.3', '8.4']
+        php-version: ['8.2', '8.3', '8.4']
       fail-fast: false
     steps:
       - name: "Git: checkout"
@@ -76,12 +76,26 @@ jobs:
           php-version: ${{ matrix.php-version }}
           coverage: pcov
           tools: phpunit
+          
+      # Force PHPUnit 11.5 on PHP 8.2 to keep support for it
+      # https://phpunit.de/supported-versions.html
+      - name: "PHPUnit: install 11.5"      
+        if: matrix.php-version == '8.2'
+        run: composer require --no-update phpunit/phpunit:^11.5
 
-      - name: "Composer: install"
-        run: composer install --prefer-dist --no-interaction --no-progress
+      - name: "Composer: install (${{ matrix.dependencies }})"
+        run: |
+          if [ "${{ matrix.dependencies }}" == "low" ]; then
+            composer update --prefer-lowest --prefer-dist --no-interaction --no-progress
+          else
+            composer install --prefer-dist --no-interaction --no-progress
+          fi
 
-      - name: "PHPUnit: unit tests"
-        run: vendor/bin/phpunit --testsuite=unit
+      - name: "PHPUnit: version"
+        run: phpunit --version
+
+      - name: "PHPUnit: tests"
+        run: phpunit --testsuite=unit
 
   integration-tests:
     name: "Integration Tests (PHP ${{ matrix.php-version }} ${{ matrix.dependencies }})"
@@ -89,8 +103,10 @@ jobs:
     strategy:
       matrix:
         include:
+          - php-version: '8.2'
+            dependencies: 'low' 
           - php-version: '8.3'
-            dependencies: 'low'
+            dependencies: 'high'
           - php-version: '8.4'
             dependencies: 'high'
       fail-fast: false
@@ -104,6 +120,11 @@ jobs:
           php-version: ${{ matrix.php-version }}
           coverage: pcov
           tools: phpunit
+
+      # Force PHPUnit 11.5 on PHP 8.2 to keep support for it
+      # https://phpunit.de/supported-versions.html
+      - if: matrix.php-version == '8.2'
+        run: composer require --no-update phpunit/phpunit:^11.5
 
       - name: "Node: setup"
         uses: actions/setup-node@v4
