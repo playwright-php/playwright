@@ -175,6 +175,8 @@ final class ResponseTest extends TestCase
             ['name' => 'accept', 'value' => 'application/json'],
             ['name' => 'x-one', 'value' => '1'],
         ], $pairs);
+    }
+
     public function testAllHeaders(): void
     {
         $response = $this->createResponse();

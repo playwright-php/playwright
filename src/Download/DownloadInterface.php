@@ -67,29 +67,5 @@ interface DownloadInterface
      */
     public function suggestedFilename(): string;
 
-    /**
-     * Returns downloaded url.
-     */
-/**
- * @author Simon André <smn.andre@gmail.com>
- */
-interface DownloadInterface
-{
-    public function cancel(): void;
-
-    public function createReadStream(): mixed;
-
-    public function delete(): void;
-
-    public function failure(): ?string;
-
-    public function page(): \Playwright\Page\PageInterface;
-
-    public function path(): ?string;
-
-    public function saveAs(string $path): void;
-
-    public function suggestedFilename(): string;
-
     public function url(): string;
 }

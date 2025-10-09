@@ -49,7 +49,7 @@ final class Clock implements ClockInterface
     {
         $timeValue = $time;
         if ($time instanceof \DateTimeInterface) {
-            $timeValue = $time->getTimestamp() * 1000; // Convert to milliseconds
+            $timeValue = $time->getTimestamp() * 1000;
         }
 
         $this->transport->send([
@@ -80,7 +80,7 @@ final class Clock implements ClockInterface
     {
         $timeValue = $time;
         if ($time instanceof \DateTimeInterface) {
-            $timeValue = $time->getTimestamp() * 1000; // Convert to milliseconds
+            $timeValue = $time->getTimestamp() * 1000;
         }
 
         $this->transport->send([
@@ -94,7 +94,7 @@ final class Clock implements ClockInterface
     {
         $timeValue = $time;
         if ($time instanceof \DateTimeInterface) {
-            $timeValue = $time->getTimestamp() * 1000; // Convert to milliseconds
+            $timeValue = $time->getTimestamp() * 1000;
         }
 
         $this->transport->send([

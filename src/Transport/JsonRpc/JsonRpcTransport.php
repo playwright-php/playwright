@@ -133,9 +133,6 @@ final class JsonRpcTransport implements TransportInterface
         $this->pendingCallbacks = [];
 
         if ($this->process && $this->process->isRunning()) {
-            // First attempt a graceful terminate via launcher (fast path),
-            // then always call Process::stop() to satisfy teardown expectations
-            // and ensure the underlying process is fully reaped.
             try {
                 $this->processLauncher->terminate($this->process, 0.5);
             } catch (\Throwable) {
@@ -352,8 +349,6 @@ final class JsonRpcTransport implements TransportInterface
             'action' => $message['action'],
             'requestId' => $requestId,
         ]);
-
-        // Send initial message to server
         if (null === $this->client) {
             throw new NetworkException('JSON-RPC client not available');
         }

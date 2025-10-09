@@ -51,10 +51,6 @@ final class ProcessLauncher implements ProcessLauncherInterface
         }
 
         try {
-            // Proactively validate that the executable exists to distinguish
-            // between a true launch failure (unknown command) and a short-lived
-            // process that exits quickly with a non-zero code (which callers
-            // may want to handle via wait/exit checks).
             $executable = $command[0] ?? '';
             if ('' === $executable) {
                 throw new ProcessLaunchException('Command cannot be empty', 0, null, ['command' => $command, 'cwd' => $cwd]);
@@ -78,11 +74,6 @@ final class ProcessLauncher implements ProcessLauncherInterface
                     $this->stderrBuf->push($data);
                 }
             });
-
-            // Do not treat an immediate non-zero exit as a launch failure.
-            // Some tests intentionally start short-lived commands. True
-            // launch errors are detected above (executable missing), while
-            // runtime failures should be surfaced by waitForExit().
 
             $this->log('Node process started successfully', [
                 'pid' => $process->getPid(),

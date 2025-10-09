@@ -91,6 +91,8 @@ class PlaywrightClient
         $pidValue = is_int($pid) ? $pid : null;
 
         return new BrowserServer($this->transport, $serverId, $endpoint, $pidValue);
+    }
+
     public function selectors(): SelectorsInterface
     {
         $this->connect();

@@ -15,7 +15,6 @@ declare(strict_types=1);
 namespace Playwright\Network;
 
 use Playwright\Exception\ProtocolErrorException;
-use Playwright\Frame\Frame;
 use Playwright\Frame\FrameInterface;
 use Playwright\Transport\TransportInterface;
 
@@ -116,51 +115,8 @@ final class Request implements RequestInterface
     }
 
     /**
-     * Case-insensitive single header value, or null if not present.
-     */
-    public function headerValue(string $name): ?string
-    {
-        $headers = $this->headers();
-        $lower = strtolower($name);
-        foreach ($headers as $k => $v) {
-            if (strtolower($k) === $lower) {
-                return $v;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Headers as a list of name/value pairs; splits comma-separated values.
-     *
-     * @return array<array{name: string, value: string}>
-     */
-    public function headersArray(): array
-    {
-        $result = [];
-        foreach ($this->headers() as $name => $value) {
-            // Split comma-separated header values into multiple entries
-            $parts = array_map('trim', explode(',', $value));
-            foreach ($parts as $part) {
-                if ('' === $part) {
-                    continue;
-                }
-                $result[] = ['name' => $name, 'value' => $part];
-            }
-        }
-
-        return $result;
-    }
-
-    /**
      * Alias of headers().
      *
-     * @return array<string, string>
-     */
-    public function allHeaders(): array
-    {
-        return $this->headers();
      * @return array<string, string>
      */
     public function allHeaders(): array
@@ -184,61 +140,53 @@ final class Request implements RequestInterface
         return $typed;
     }
 
+    public function headerValue(string $name): ?string
+    {
+        if (null !== $this->transport && null !== $this->requestId) {
+            $response = $this->transport->send([
+                'action' => 'request.headerValue',
+                'requestId' => $this->requestId,
+                'name' => $name,
+            ]);
+
+            if (isset($response['value']) && is_string($response['value'])) {
+                return $response['value'];
+            }
+        }
+
+        return $this->headerValueFromLocalData($name);
+    }
+
     /**
-     * @return array{name: string, value: string}[]
+     * Headers as a list of name/value pairs; splits comma-separated values when using local cache.
+     *
+     * @return array<array{name: string, value: string}>
      */
     public function headersArray(): array
     {
-        if (null === $this->transport || null === $this->requestId) {
-            $result = [];
-            foreach ($this->headers() as $name => $value) {
-                $result[] = ['name' => $name, 'value' => $value];
-            }
+        if (null !== $this->transport && null !== $this->requestId) {
+            $response = $this->transport->send([
+                'action' => 'request.headersArray',
+                'requestId' => $this->requestId,
+            ]);
 
-            return $result;
-        }
-
-        $response = $this->transport->send([
-            'action' => 'request.headersArray',
-            'requestId' => $this->requestId,
-        ]);
-
-        $typed = [];
-        foreach ($response as $header) {
-            if (is_array($header) && isset($header['name'], $header['value']) && is_string($header['name']) && is_string($header['value'])) {
-                $typed[] = ['name' => $header['name'], 'value' => $header['value']];
-            }
-        }
-
-        return $typed;
-    }
-
-    public function headerValue(string $name): ?string
-    {
-        if (null === $this->transport || null === $this->requestId) {
-            $headers = $this->headers();
-            $lowerName = strtolower($name);
-
-            foreach ($headers as $key => $value) {
-                if (strtolower($key) === $lowerName) {
-                    return $value;
+            $typed = [];
+            foreach ($response as $header) {
+                if (is_array($header)
+                    && isset($header['name'], $header['value'])
+                    && is_string($header['name'])
+                    && is_string($header['value'])
+                ) {
+                    $typed[] = ['name' => $header['name'], 'value' => $header['value']];
                 }
             }
 
-            return null;
+            if (!empty($typed)) {
+                return $typed;
+            }
         }
 
-        $response = $this->transport->send([
-            'action' => 'request.headerValue',
-            'requestId' => $this->requestId,
-            'name' => $name,
-        ]);
-
-        if (isset($response['value']) && is_string($response['value'])) {
-            return $response['value'];
-        }
-
-        return null;
+        return $this->headersArrayFallback();
     }
 
     public function isNavigationRequest(): bool
@@ -273,7 +221,6 @@ final class Request implements RequestInterface
 
     public function frame(): ?FrameInterface
     {
-        // TODO: Frame constructor requires pageId and frameSelector - need to refactor Request to store pageId
         return null;
     }
 
@@ -319,7 +266,6 @@ final class Request implements RequestInterface
 
     public function response(): ?ResponseInterface
     {
-        // TODO: Response constructor requires (transport, pageId, data) - need to refactor Request to store pageId
         return null;
     }
 
@@ -402,5 +348,47 @@ final class Request implements RequestInterface
             'responseStart' => is_numeric($responseStart) ? (float) $responseStart : -1.0,
             'responseEnd' => is_numeric($responseEnd) ? (float) $responseEnd : -1.0,
         ];
+    }
+
+    private function headerValueFromLocalData(string $name): ?string
+    {
+        $headers = $this->headers();
+        $lowerName = strtolower($name);
+
+        foreach ($headers as $key => $value) {
+            if (strtolower($key) !== $lowerName) {
+                continue;
+            }
+
+            $parts = array_map('trim', explode(',', $value));
+            foreach ($parts as $part) {
+                if ('' !== $part) {
+                    return $part;
+                }
+            }
+
+            return '';
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array<array{name: string, value: string}>
+     */
+    private function headersArrayFallback(): array
+    {
+        $result = [];
+        foreach ($this->headers() as $name => $value) {
+            $parts = array_map('trim', explode(',', $value));
+            foreach ($parts as $part) {
+                if ('' === $part) {
+                    continue;
+                }
+                $result[] = ['name' => $name, 'value' => $part];
+            }
+        }
+
+        return $result;
     }
 }

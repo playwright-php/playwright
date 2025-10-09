@@ -22,43 +22,27 @@ use Playwright\Transport\TransportInterface;
  */
 final class FileChooser implements FileChooserInterface
 {
-    public function __construct(
-        private readonly TransportInterface $transport,
-        private readonly PageInterface $page,
-        private readonly string $fileChooserId,
-        private readonly string $elementId,
-        private readonly bool $isMultiple,
-    ) {
-    }
-
-    public function element(): string
-    {
-        return $this->elementId;
- * @author Simon André <smn.andre@gmail.com>
- */
-final class FileChooser implements FileChooserInterface
-{
     /**
      * @param array<string, mixed> $data
      */
     public function __construct(
         private readonly TransportInterface $transport,
         private readonly PageInterface $page,
+        private readonly string $fileChooserId,
         private readonly string $elementId,
-        private readonly array $data,
+        private readonly bool $isMultiple,
+        private readonly array $data = [],
     ) {
     }
 
-    public function element(): mixed
+    public function element(): string
     {
-        // TODO: ElementHandle implementation not yet available
-        return null;
+        return $this->elementId;
     }
 
     public function isMultiple(): bool
     {
-        return $this->isMultiple;
-        return (bool) ($this->data['isMultiple'] ?? false);
+        return (bool) ($this->data['isMultiple'] ?? $this->isMultiple);
     }
 
     public function page(): PageInterface
@@ -67,9 +51,8 @@ final class FileChooser implements FileChooserInterface
     }
 
     /**
-     * @param string|array<string>|array{name: string, mimeType: string, buffer: string}|array<array{name: string,
-     *                                                 mimeType: string, buffer: string}> $files
-     * @param array{noWaitAfter?: bool, timeout?: int} $options
+     * @param string|array<string>|array{name: string, mimeType: string, buffer: string}|array<array{name: string, mimeType: string, buffer: string}> $files
+     * @param array{noWaitAfter?: bool, timeout?: int}                                                                                                $options
      */
     public function setFiles(string|array $files, array $options = []): void
     {
@@ -78,14 +61,14 @@ final class FileChooser implements FileChooserInterface
         $this->transport->send([
             'action' => 'fileChooserSetFiles',
             'fileChooserId' => $this->fileChooserId,
+            'elementId' => $this->elementId,
             'files' => $normalizedFiles,
             'options' => $options,
         ]);
     }
 
     /**
-     * @param string|array<string>|array{name: string, mimeType: string, buffer: string}|array<array{name: string,
-     *                                                 mimeType: string, buffer: string}> $files
+     * @param string|array<string>|array{name: string, mimeType: string, buffer: string}|array<array{name: string, mimeType: string, buffer: string}> $files
      *
      * @return array<array{name: string, mimeType: string, buffer: string}|string>
      */
@@ -94,8 +77,6 @@ final class FileChooser implements FileChooserInterface
         if (is_string($files)) {
             return [$files];
         }
-
-        // Single file object
         if (isset($files['name'], $files['mimeType'], $files['buffer'])
             && is_string($files['name'])
             && is_string($files['mimeType'])
@@ -104,8 +85,6 @@ final class FileChooser implements FileChooserInterface
             /* @var array{name: string, mimeType: string, buffer: string} $files */
             return [$files];
         }
-
-        // At this point $files is an array list: either array<string> or array<array{name:..., mimeType:..., buffer:...}>
         $list = array_values($files);
         $out = [];
         foreach ($list as $item) {
@@ -125,26 +104,5 @@ final class FileChooser implements FileChooserInterface
         }
 
         return $out;
-     * @param string|string[]|array{name: string, mimeType: string, buffer: string}|array<array{name: string, mimeType: string, buffer: string}> $files
-     * @param array<string, mixed>                                                                                                               $options
-     */
-    public function setFiles(string|array $files, array $options = []): void
-    {
-        $payload = [
-            'action' => 'fileChooser.setFiles',
-            'elementId' => $this->elementId,
-        ];
-
-        if (is_string($files)) {
-            $payload['files'] = [$files];
-        } elseif (is_array($files)) {
-            $payload['files'] = $files;
-        }
-
-        if (!empty($options)) {
-            $payload['options'] = $options;
-        }
-
-        $this->transport->send($payload);
     }
 }

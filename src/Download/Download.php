@@ -24,10 +24,6 @@ use Playwright\Transport\TransportInterface;
  */
 final class Download implements DownloadInterface
 {
- * @author Simon André <smn.andre@gmail.com>
- */
-final class Download implements DownloadInterface
-{
     /**
      * @param array<string, mixed> $data
      */
@@ -44,7 +40,6 @@ final class Download implements DownloadInterface
     public function cancel(): void
     {
         $this->transport->send([
-            'action' => 'downloadCancel',
             'action' => 'download.cancel',
             'downloadId' => $this->downloadId,
         ]);
@@ -73,16 +68,11 @@ final class Download implements DownloadInterface
         rewind($stream);
 
         return $stream;
-    public function createReadStream(): mixed
-    {
-        // TODO: Implement stream handling - PHP streams are different from Node.js Readable
-        return null;
     }
 
     public function delete(): void
     {
         $this->transport->send([
-            'action' => 'downloadDelete',
             'action' => 'download.delete',
             'downloadId' => $this->downloadId,
         ]);
@@ -92,13 +82,6 @@ final class Download implements DownloadInterface
     {
         $response = $this->transport->send([
             'action' => 'downloadFailure',
-            'downloadId' => $this->downloadId,
-        ]);
-
-        $error = $response['error'] ?? null;
-
-        return is_string($error) ? $error : null;
-            'action' => 'download.failure',
             'downloadId' => $this->downloadId,
         ]);
 
@@ -126,24 +109,11 @@ final class Download implements DownloadInterface
         }
 
         return $response['path'];
-    public function path(): ?string
-    {
-        $response = $this->transport->send([
-            'action' => 'download.path',
-            'downloadId' => $this->downloadId,
-        ]);
-
-        if (isset($response['path']) && is_string($response['path'])) {
-            return $response['path'];
-        }
-
-        return null;
     }
 
     public function saveAs(string $path): void
     {
         $this->transport->send([
-            'action' => 'downloadSaveAs',
             'action' => 'download.saveAs',
             'downloadId' => $this->downloadId,
             'path' => $path,
@@ -152,13 +122,23 @@ final class Download implements DownloadInterface
 
     public function suggestedFilename(): string
     {
-        return $this->suggestedFilename;
-        return is_string($this->data['suggestedFilename'] ?? null) ? $this->data['suggestedFilename'] : '';
+        if ('' !== $this->suggestedFilename) {
+            return $this->suggestedFilename;
+        }
+
+        $fallback = $this->data['suggestedFilename'] ?? null;
+
+        return is_string($fallback) ? $fallback : '';
     }
 
     public function url(): string
     {
-        return $this->url;
-        return is_string($this->data['url'] ?? null) ? $this->data['url'] : '';
+        if ('' !== $this->url) {
+            return $this->url;
+        }
+
+        $fallback = $this->data['url'] ?? null;
+
+        return is_string($fallback) ? $fallback : '';
     }
 }

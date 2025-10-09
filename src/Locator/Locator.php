@@ -564,7 +564,6 @@ final class Locator implements LocatorInterface
 
     private static function isFunctionLike(string $s): bool
     {
-        // Detect common JS function patterns: function, async function, arrow functions
         return (bool) preg_match('/^((async\s+)?function\b|\([^)]*\)\s*=>|[A-Za-z_$][A-Za-z0-9_$]*\s*=>|async\s*\([^)]*\)\s*=>)/', $s);
     }
 

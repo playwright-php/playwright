@@ -14,6 +14,8 @@ declare(strict_types=1);
 
 namespace Playwright\Network;
 
+use Playwright\Frame\FrameInterface;
+
 interface ResponseInterface
 {
     public function url(): string;
@@ -28,11 +30,6 @@ interface ResponseInterface
      * @return array<string, string>
      */
     public function headers(): array;
-
-    /**
-     * Case-insensitive single header value (first value if multiple), or null if absent.
-     */
-    public function headerValue(string $name): ?string;
 
     /**
      * Case-insensitive multiple header values (split on commas).
@@ -64,21 +61,9 @@ interface ResponseInterface
 
     public function finished(): ?string;
 
-    public function frame(): ?\Playwright\Frame\FrameInterface;
+    public function frame(): ?FrameInterface;
 
     public function fromServiceWorker(): bool;
-
-    public function headerValue(string $name): ?string;
-
-    /**
-     * @return string[]
-     */
-    public function headerValues(string $name): array;
-
-    /**
-     * @return array{name: string, value: string}[]
-     */
-    public function headersArray(): array;
 
     public function request(): RequestInterface;
 

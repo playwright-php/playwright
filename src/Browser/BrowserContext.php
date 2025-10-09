@@ -517,7 +517,6 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
         if (method_exists($this->transport, 'storePendingCallback')) {
             $this->transport->storePendingCallback($requestId, $action);
         } else {
-            // Fallback for transports that don't support callbacks
             $action();
         }
 
@@ -563,7 +562,6 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
 
     public function request(): APIRequestContextInterface
     {
-        // No baseURL configured at the context level by default
         return new APIRequestContext($this->transport, $this->contextId, null);
     }
 

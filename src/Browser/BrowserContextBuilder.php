@@ -90,7 +90,6 @@ final class BrowserContextBuilder
 
     public function withColorScheme(string $scheme): self
     {
-        // Expected values: 'light' | 'dark' | 'no-preference'
         $this->options['colorScheme'] = $scheme;
 
         return $this;

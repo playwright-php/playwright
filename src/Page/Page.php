@@ -61,6 +61,8 @@ final class Page implements PageInterface, EventDispatcherInterface
 
     private ?APIRequestContextInterface $apiRequestContext = null;
 
+    private bool $isClosed = false;
+
     public function __construct(
         private readonly TransportInterface $transport,
         private readonly BrowserContextInterface $context,
@@ -74,7 +76,6 @@ final class Page implements PageInterface, EventDispatcherInterface
         $this->mouse = new Mouse($this->transport, $this->pageId);
         $this->eventHandler = new PageEventHandler();
 
-        // Use context clock when available, otherwise fall back to no-op clock for tests
         if (\method_exists($this->context, 'clock')) {
             /** @var ClockInterface $ctxClock */
             $ctxClock = $this->context->clock();
@@ -82,12 +83,6 @@ final class Page implements PageInterface, EventDispatcherInterface
         } else {
             $this->clock = new NullClock();
         }
-
-        // this.keyboard = new Keyboard(this);
-        //     this.mouse = new Mouse(this);
-        //     this.request = this._browserContext.request;
-        //     this.touchscreen = new Touchscreen(this);
-        //     this.clock = this._browserContext.clock;
 
         if (method_exists($this->transport, 'addEventDispatcher')) {
             $this->transport->addEventDispatcher($this->pageId, $this);
@@ -234,59 +229,6 @@ final class Page implements PageInterface, EventDispatcherInterface
     /**
      * @param array<string, mixed> $options
      */
-    public function getByAltText(string $text, array $options = []): LocatorInterface
-    {
-        return $this->locator(\sprintf('[alt="%s"]', $text));
-    }
-
-    /**
-     * @param array<string, mixed> $options
-     */
-    public function getByLabel(string $text, array $options = []): LocatorInterface
-    {
-        return $this->locator(\sprintf('label:text-is("%s") >> nth=0', $text));
-    }
-
-    /**
-     * @param array<string, mixed> $options
-     */
-    public function getByPlaceholder(string $text, array $options = []): LocatorInterface
-    {
-        return $this->locator(\sprintf('[placeholder="%s"]', $text));
-    }
-
-    /**
-     * @param array<string, mixed> $options
-     */
-    public function getByRole(string $role, array $options = []): LocatorInterface
-    {
-        return $this->locator($role);
-    }
-
-    public function getByTestId(string $testId): LocatorInterface
-    {
-        return $this->locator(\sprintf('[data-testid="%s"]', $testId));
-    }
-
-    /**
-     * @param array<string, mixed> $options
-     */
-    public function getByText(string $text, array $options = []): LocatorInterface
-    {
-        return $this->locator(\sprintf('text="%s"', $text));
-    }
-
-    /**
-     * @param array<string, mixed> $options
-     */
-    public function getByTitle(string $text, array $options = []): LocatorInterface
-    {
-        return $this->locator(\sprintf('[title="%s"]', $text));
-    }
-
-    /**
-     * @param array<string, mixed> $options
-     */
     public function goto(string $url, array $options = []): ?ResponseInterface
     {
         $this->logger->debug('Navigating to URL', ['url' => $url, 'options' => $options]);
@@ -404,8 +346,6 @@ final class Page implements PageInterface, EventDispatcherInterface
 
         return $response['result'] ?? null;
     }
-
-    // TODO consoleMessages()
 
     /**
      * @param array<string, mixed> $options
@@ -855,7 +795,6 @@ final class Page implements PageInterface, EventDispatcherInterface
         if (method_exists($this->transport, 'storePendingCallback')) {
             $this->transport->storePendingCallback($requestId, $action);
         } else {
-            // Fallback for transports that don't support callbacks
             $action();
         }
 
@@ -971,7 +910,6 @@ final class Page implements PageInterface, EventDispatcherInterface
 
     private static function isFunctionLike(string $s): bool
     {
-        // Detect common JS function patterns: function, async function, arrow functions
         return (bool) preg_match('/^((async\s+)?function\b|\([^)]*\)\s*=>|[A-Za-z_$][A-Za-z0-9_$]*\s*=>|async\s*\([^)]*\)\s*=>)/', $s);
     }
 
