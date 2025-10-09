@@ -20,9 +20,6 @@ use Playwright\Transport\TransportInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
-/**
- * @author Simon André <smn.andre@gmail.com>
- */
 final class FrameLocator implements FrameLocatorInterface
 {
     private LoggerInterface $logger;

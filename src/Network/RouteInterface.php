@@ -14,9 +14,6 @@ declare(strict_types=1);
 
 namespace Playwright\Network;
 
-/**
- * @author Simon André <smn.andre@gmail.com>
- */
 interface RouteInterface
 {
     public function request(): RequestInterface;

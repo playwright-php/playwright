@@ -14,12 +14,10 @@ declare(strict_types=1);
 
 namespace Playwright\Browser;
 
+use Playwright\API\APIRequestContextInterface;
 use Playwright\Network\NetworkThrottling;
 use Playwright\Page\PageInterface;
 
-/**
- * @author Simon André <smn.andre@gmail.com>
- */
 interface BrowserContextInterface
 {
     /**
@@ -125,4 +123,11 @@ interface BrowserContextInterface
      * @param array<string, mixed> $options
      */
     public function waitForPopup(callable $action, array $options = []): PageInterface;
+
+    /**
+     * API testing helper associated with this context.
+     *
+     * Requests made with this API will use context cookies.
+     */
+    public function request(): APIRequestContextInterface;
 }

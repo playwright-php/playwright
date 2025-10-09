@@ -19,9 +19,6 @@ use Playwright\Exception\ProtocolErrorException;
 use Playwright\Page\PageInterface;
 use Playwright\Transport\TransportInterface;
 
-/**
- * @author Simon André <smn.andre@gmail.com>
- */
 final class Browser implements BrowserInterface
 {
     private BrowserContextInterface $defaultContext;

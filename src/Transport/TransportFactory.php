@@ -21,9 +21,6 @@ use Playwright\Transport\JsonRpc\JsonRpcTransport;
 use Playwright\Transport\JsonRpc\ProcessLauncher;
 use Psr\Log\LoggerInterface;
 
-/**
- * @author Simon André <smn.andre@gmail.com>
- */
 final class TransportFactory
 {
     public function create(PlaywrightConfig $config, LoggerInterface $logger): TransportInterface

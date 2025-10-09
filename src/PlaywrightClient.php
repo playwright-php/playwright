@@ -15,6 +15,8 @@ declare(strict_types=1);
 namespace Playwright;
 
 use Playwright\Browser\BrowserBuilder;
+use Playwright\BrowserServer\BrowserServer;
+use Playwright\BrowserServer\BrowserServerInterface;
 use Playwright\Configuration\PlaywrightConfig;
 use Playwright\Exception\DisconnectedException;
 use Playwright\Exception\ProcessCrashedException;
@@ -25,9 +27,6 @@ use Playwright\Selector\SelectorsInterface;
 use Playwright\Transport\TransportInterface;
 use Psr\Log\LoggerInterface;
 
-/**
- * @author Simon André <smn.andre@gmail.com>
- */
 class PlaywrightClient
 {
     private bool $isConnected = false;
@@ -64,6 +63,34 @@ class PlaywrightClient
         return $this->createBrowserBuilder('webkit');
     }
 
+    /**
+     * Launch a persistent browser server and return a handle to control it.
+     *
+     * @param 'chromium'|'firefox'|'webkit' $browser
+     * @param array<string, mixed>          $options
+     */
+    public function launchServer(string $browser, array $options = []): BrowserServerInterface
+    {
+        $this->connect();
+        $this->logger->debug('Launching browser server', ['browser' => $browser, 'options' => $options]);
+
+        $response = $this->transport->send([
+            'action' => 'launchServer',
+            'browser' => $browser,
+            'options' => $options,
+        ]);
+
+        $serverId = $response['serverId'] ?? null;
+        $endpoint = $response['wsEndpoint'] ?? null;
+        $pid = $response['pid'] ?? null;
+
+        if (!is_string($serverId) || !is_string($endpoint)) {
+            throw new TransportException('Invalid response launching browser server');
+        }
+
+        $pidValue = is_int($pid) ? $pid : null;
+
+        return new BrowserServer($this->transport, $serverId, $endpoint, $pidValue);
     public function selectors(): SelectorsInterface
     {
         $this->connect();

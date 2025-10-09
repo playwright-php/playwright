@@ -139,4 +139,38 @@ class BrowserBuilderTest extends TestCase
         $this->assertInstanceOf(BrowserBuilder::class, $firefoxBuilder);
         $this->assertInstanceOf(BrowserBuilder::class, $webkitBuilder);
     }
+
+    #[Test]
+    public function itCanConnectToExistingBrowserServer(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with($this->callback(function (array $message) {
+                return 'connect' === $message['action']
+                    && 'chromium' === $message['browser']
+                    && 'ws://127.0.0.1:12345' === $message['wsEndpoint'];
+            }))
+            ->willReturn(['browserId' => 'browser-456', 'defaultContextId' => 'context-456', 'version' => '1.1']);
+
+        $browser = $this->builder->connect('ws://127.0.0.1:12345');
+
+        $this->assertInstanceOf(Browser::class, $browser);
+    }
+
+    #[Test]
+    public function itCanConnectOverCDP(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with($this->callback(function (array $message) {
+                return 'connectOverCDP' === $message['action']
+                    && 'chromium' === $message['browser']
+                    && 'http://localhost:9222' === $message['endpointURL'];
+            }))
+            ->willReturn(['browserId' => 'browser-789', 'defaultContextId' => 'context-789', 'version' => '1.2']);
+
+        $browser = $this->builder->connectOverCDP('http://localhost:9222');
+
+        $this->assertInstanceOf(Browser::class, $browser);
+    }
 }
