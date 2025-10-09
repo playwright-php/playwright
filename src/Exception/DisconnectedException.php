@@ -19,6 +19,6 @@ namespace Playwright\Exception;
  *
  * @author Simon André <smn.andre@gmail.com>
  */
-class DisconnectedException extends PlaywrightException
+class DisconnectedException extends TransportException
 {
 }

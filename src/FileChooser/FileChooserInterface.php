@@ -24,7 +24,7 @@ interface FileChooserInterface
     /**
      * Returns input element associated with this file chooser.
      */
-    public function element(): string;
+    public function element(): mixed;
 
     /**
      * Returns whether this file chooser accepts multiple files.

@@ -28,21 +28,19 @@ final class FileChooser implements FileChooserInterface
     public function __construct(
         private readonly TransportInterface $transport,
         private readonly PageInterface $page,
-        private readonly string $fileChooserId,
         private readonly string $elementId,
-        private readonly bool $isMultiple,
         private readonly array $data = [],
     ) {
     }
 
-    public function element(): string
+    public function element(): mixed
     {
-        return $this->elementId;
+        return $this->data['element'] ?? null;
     }
 
     public function isMultiple(): bool
     {
-        return (bool) ($this->data['isMultiple'] ?? $this->isMultiple);
+        return (bool) ($this->data['isMultiple'] ?? false);
     }
 
     public function page(): PageInterface
@@ -58,13 +56,22 @@ final class FileChooser implements FileChooserInterface
     {
         $normalizedFiles = $this->normalizeFiles($files);
 
-        $this->transport->send([
-            'action' => 'fileChooserSetFiles',
-            'fileChooserId' => $this->fileChooserId,
+        $payload = [
+            'action' => 'fileChooser.setFiles',
             'elementId' => $this->elementId,
             'files' => $normalizedFiles,
-            'options' => $options,
-        ]);
+        ];
+
+        if (!empty($options)) {
+            $payload['options'] = $options;
+        }
+
+        $fileChooserId = $this->data['fileChooserId'] ?? null;
+        if (is_string($fileChooserId) && '' !== $fileChooserId) {
+            $payload['fileChooserId'] = $fileChooserId;
+        }
+
+        $this->transport->send($payload);
     }
 
     /**

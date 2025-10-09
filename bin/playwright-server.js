@@ -70,8 +70,7 @@ class PlaywrightServer extends BaseHandler {
       keyboard: () => this.interactionHandler.handleKeyboard(command, actionMethod),
       touchscreen: () => this.interactionHandler.handleTouchscreen(command, actionMethod),
       frame: () => this.frameHandler.handle(command, actionMethod),
-      browserServer: () => this.handleBrowserServer(command, actionMethod)
-      frame: () => this.frameHandler.handle(command, actionMethod),
+      browserServer: () => this.handleBrowserServer(command, actionMethod),
       selectors: () => this.selectorsHandler.handle(command, actionMethod)
     });
 
