@@ -79,29 +79,15 @@ jobs:
           
       # Force PHPUnit 11.5 on PHP 8.2 to keep support for it
       # https://phpunit.de/supported-versions.html
-      - if: matrix.php-version == '8.2'
+      - name: "PHPUnit: install 11.5"      
+        if: matrix.php-version == '8.2'
         run: composer require --no-update phpunit/phpunit:^11.5
-
-      - name: "Composer: install"
-        run: composer update --no-interaction --prefer-dist
 
       - name: "PHPUnit: version"
         run: phpunit --version
 
       - name: "PHPUnit: tests"
-        if: matrix.php-version != env.PHP_STABLE_VERSION
-        run: phpunit
-
-      - name: "PHPUnit: tests + coverage"
-        if: matrix.php-version == env.PHP_STABLE_VERSION
-        run: phpunit --coverage-clover ./coverage.xml
-
-      - name: "Codecov: upload coverage"
-        if: matrix.php-version == env.PHP_STABLE_VERSION
-        uses: codecov/codecov-action@v5
-        with:
-          files: ./coverage.xml
-          fail_ci_if_error: false
+        run: phpunit --testsuite=unit
 
   integration-tests:
     name: "Integration Tests (PHP ${{ matrix.php-version }} ${{ matrix.dependencies }})"
