@@ -513,6 +513,14 @@ class InteractionHandler extends BaseHandler {
     });
     await this.executeWithRegistry(registry, method);
   }
+
+  async handleTouchscreen(command, method) {
+    const page = this.validateResource(this.pages, command.pageId, 'Page');
+    const registry = CommandRegistry.create({
+      tap: () => page.touchscreen.tap(command.x, command.y)
+    });
+    await this.executeWithRegistry(registry, method);
+  }
 }
 
 class FrameHandler extends BaseHandler {

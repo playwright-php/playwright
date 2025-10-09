@@ -20,7 +20,8 @@ class PlaywrightServer extends BaseHandler {
     this.dialogs = new Map();
     this.elementHandles = new Map();
     this.contextThrottling = new Map();
-    this.counters = { browser: 0, context: 0, page: 0, response: 0, route: 0, element: 0 };
+    this.servers = new Map();
+    this.counters = { browser: 0, context: 0, page: 0, response: 0, route: 0, element: 0, server: 0 };
   }
 
   initHandlers() {
@@ -67,6 +68,9 @@ class PlaywrightServer extends BaseHandler {
       response: () => this.handleResponse(command, actionMethod),
       mouse: () => this.interactionHandler.handleMouse(command, actionMethod),
       keyboard: () => this.interactionHandler.handleKeyboard(command, actionMethod),
+      touchscreen: () => this.interactionHandler.handleTouchscreen(command, actionMethod),
+      frame: () => this.frameHandler.handle(command, actionMethod),
+      browserServer: () => this.handleBrowserServer(command, actionMethod)
       frame: () => this.frameHandler.handle(command, actionMethod),
       selectors: () => this.selectorsHandler.handle(command, actionMethod)
     });
@@ -77,9 +81,13 @@ class PlaywrightServer extends BaseHandler {
 
     const directRegistry = CommandRegistry.create({
       launch: () => this.launchBrowser(command),
+      // Attach to existing browser servers/endpoints
+      connect: () => this.connect(command),
+      connectOverCDP: () => this.connectOverCDP(command),
       newContext: () => this.newContext(command),
       close: () => this.closeBrowser(command),
-      exit: () => this.exit()
+      exit: () => this.exit(),
+      launchServer: () => this.launchServer(command)
     });
 
     return await ErrorHandler.safeExecute(() => this.executeWithRegistry(directRegistry, command.action), { action: command.action });
@@ -238,6 +246,83 @@ class PlaywrightServer extends BaseHandler {
     } catch (error) {
       logger.error('Callback continuation failed', { requestId, error: error.message });
       return { error: error.message };
+    }
+  }
+
+  async handleBrowserServer(command, method) {
+    const server = this.servers.get(command.serverId);
+    if (!server) throw new Error(`Unknown BrowserServer: ${command.serverId}`);
+    const registry = CommandRegistry.create({
+      close: async () => { await server.close(); this.servers.delete(command.serverId); },
+      kill: async () => { try { await server.kill(); } finally { this.servers.delete(command.serverId); } }
+    });
+    logger.info(`BROWSER_SERVER ${method.toUpperCase()}`, { serverId: command.serverId });
+    return await ErrorHandler.safeExecute(() => this.executeWithRegistry(registry, method), { method, serverId: command.serverId });
+  }
+
+  async launchServer(command) {
+    try {
+      const browserType = this.getBrowserType(command.browser);
+      const launchOptions = this.buildLaunchOptions(command);
+      const server = await browserType.launchServer(launchOptions);
+      const serverId = this.generateId('server');
+      this.servers.set(serverId, server);
+
+      // Auto-cleanup on server close and notify
+      try {
+        server.on?.('close', () => {
+          if (this.servers.has(serverId)) this.servers.delete(serverId);
+          try { sendFramedResponse({ objectId: serverId, event: 'close', params: {} }); } catch {}
+        });
+      } catch {}
+
+      const wsEndpoint = server.wsEndpoint();
+      let pid = null;
+      try { pid = server.process() ? server.process().pid : null; } catch {}
+      return { serverId, wsEndpoint, pid };
+    } catch (error) {
+      logger.error('launchServer error', { message: error.message });
+      throw error;
+    }
+  }
+
+  // Attach to an existing BrowserServer (WebSocket endpoint)
+  async connect(command) {
+    try {
+      const { browser, wsEndpoint, options } = command;
+      if (!wsEndpoint || typeof wsEndpoint !== 'string') throw new Error('connect requires a wsEndpoint string');
+      const browserType = this.getBrowserType(browser);
+      const attached = await browserType.connect(wsEndpoint, options || {});
+      const browserId = this.generateId('browser');
+      this.browsers.set(browserId, attached);
+      // Create a fresh context to align with launch return shape
+      const context = await attached.newContext();
+      const contextId = this.generateId('context');
+      this.contexts.set(contextId, { context, browserId, id: contextId });
+      return { browserId, defaultContextId: contextId, version: attached.version() };
+    } catch (error) {
+      logger.error('connect error', { message: error.message });
+      throw error;
+    }
+  }
+
+  // Attach over CDP (Chromium only)
+  async connectOverCDP(command) {
+    try {
+      const { endpointURL, options, browser } = command;
+      if (!endpointURL || typeof endpointURL !== 'string') throw new Error('connectOverCDP requires an endpointURL string');
+      const browserName = browser || 'chromium';
+      if (browserName !== 'chromium') throw new Error('connectOverCDP is only supported for chromium');
+      const attached = await chromium.connectOverCDP(endpointURL, options || {});
+      const browserId = this.generateId('browser');
+      this.browsers.set(browserId, attached);
+      const context = await attached.newContext();
+      const contextId = this.generateId('context');
+      this.contexts.set(contextId, { context, browserId, id: contextId });
+      return { browserId, defaultContextId: contextId, version: attached.version() };
+    } catch (error) {
+      logger.error('connectOverCDP error', { message: error.message });
+      throw error;
     }
   }
 
