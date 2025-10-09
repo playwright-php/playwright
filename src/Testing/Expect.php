@@ -19,9 +19,6 @@ use PHPUnit\Framework\AssertionFailedError;
 use Playwright\Locator\LocatorInterface;
 use Playwright\Page\PageInterface;
 
-/**
- * @author Simon André <smn.andre@gmail.com>
- */
 final class Expect implements ExpectInterface
 {
     private bool $negated = false;
