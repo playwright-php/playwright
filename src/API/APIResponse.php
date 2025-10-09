@@ -157,23 +157,20 @@ final class APIResponse implements APIResponseInterface
         }
 
         try {
+            /** @var array<array-key, mixed>|null $decoded */
             $decoded = json_decode($body, true, 512, \JSON_THROW_ON_ERROR);
 
             if (!is_array($decoded)) {
                 return [];
             }
 
-            $result = [];
+            /** @var array<string, mixed> $normalized */
+            $normalized = [];
             foreach ($decoded as $key => $value) {
-                if (is_string($key)) {
-                    $result[$key] = $value;
-                    continue;
-                }
-
-                $result[(string) $key] = $value;
+                $normalized[(string) $key] = $value;
             }
 
-            return $result;
+            return $normalized;
         } catch (\JsonException $e) {
             throw new PlaywrightException('Response body is not valid JSON: '.$e->getMessage(), 0, $e);
         }

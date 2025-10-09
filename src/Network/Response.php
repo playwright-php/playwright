@@ -338,4 +338,106 @@ final class Response implements ResponseInterface
             'port' => (int) $response['port'],
         ];
     }
+
+    private function headerValueFromLocalData(string $name): ?string
+    {
+        $values = $this->headerValuesFromLocalData($name);
+
+        return $values[0] ?? null;
+    }
+
+    /**
+     * @return string[]
+     */
+    private function headerValuesFromLocalData(string $name): array
+    {
+        $headers = $this->data['headers'] ?? null;
+
+        if (!is_array($headers)) {
+            return [];
+        }
+
+        $target = strtolower($name);
+        foreach ($headers as $headerName => $value) {
+            if (!is_string($headerName) || strtolower($headerName) !== $target) {
+                continue;
+            }
+
+            if (is_array($value)) {
+                $collected = [];
+                foreach ($value as $item) {
+                    if (is_string($item) || is_numeric($item)) {
+                        $trimmed = trim((string) $item);
+                        if ('' !== $trimmed) {
+                            $collected[] = $trimmed;
+                        }
+                    }
+                }
+
+                return $collected;
+            }
+
+            if (is_string($value) || is_numeric($value)) {
+                return $this->splitHeaderValue((string) $value);
+            }
+        }
+
+        return [];
+    }
+
+    /**
+     * @return array{name: string, value: string}[]
+     */
+    private function headersArrayFromLocalData(): array
+    {
+        $headers = $this->data['headers'] ?? null;
+
+        if (!is_array($headers)) {
+            return [];
+        }
+
+        $pairs = [];
+        foreach ($headers as $name => $value) {
+            if (!is_string($name)) {
+                continue;
+            }
+
+            if (is_array($value)) {
+                foreach ($value as $item) {
+                    if (is_string($item) || is_numeric($item)) {
+                        $trimmed = trim((string) $item);
+                        if ('' !== $trimmed) {
+                            $pairs[] = ['name' => strtolower($name), 'value' => $trimmed];
+                        }
+                    }
+                }
+                continue;
+            }
+
+            if (is_string($value) || is_numeric($value)) {
+                foreach ($this->splitHeaderValue((string) $value) as $chunk) {
+                    $pairs[] = ['name' => strtolower($name), 'value' => $chunk];
+                }
+            }
+        }
+
+        return $pairs;
+    }
+
+    /**
+     * @return string[]
+     */
+    private function splitHeaderValue(string $value): array
+    {
+        $parts = array_map('trim', explode(',', $value));
+
+        $filtered = [];
+        foreach ($parts as $part) {
+            if ('' !== $part) {
+                $filtered[] = $part;
+            }
+        }
+
+        return $filtered;
+    }
 }

@@ -28,9 +28,9 @@ interface DownloadInterface
     public function cancel(): void;
 
     /**
-     * Returns a readable stream for a successful download, or throws for a failed/canceled download.
+     * Returns a readable stream for a successful download, or null if the transport does not provide it.
      *
-     * @return resource
+     * @return resource|null
      */
     public function createReadStream();
 
@@ -53,7 +53,7 @@ interface DownloadInterface
      * Returns path to the downloaded file for a successful download, or throws for a failed/canceled download.
      * The method will wait for the download to finish if necessary.
      */
-    public function path(): string;
+    public function path(): ?string;
 
     /**
      * Copy the download to a user-specified path. It is safe to call this method while the download is still in progress.
