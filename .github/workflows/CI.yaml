@@ -83,6 +83,14 @@ jobs:
         if: matrix.php-version == '8.2'
         run: composer require --no-update phpunit/phpunit:^11.5
 
+      - name: "Composer: install (${{ matrix.dependencies }})"
+        run: |
+          if [ "${{ matrix.dependencies }}" == "low" ]; then
+            composer update --prefer-lowest --prefer-dist --no-interaction --no-progress
+          else
+            composer install --prefer-dist --no-interaction --no-progress
+          fi
+
       - name: "PHPUnit: version"
         run: phpunit --version
 
