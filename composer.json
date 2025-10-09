@@ -30,7 +30,7 @@
         }
     ],
     "require": {
-        "php": "^8.3",
+        "php": "^8.2",
         "psr/log": "^3.0",
         "symfony/console": "^6.4 || ^7.3 || ^8.0",
         "symfony/process": "^6.4 || ^7.3 || ^8.0"
