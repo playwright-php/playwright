@@ -23,23 +23,30 @@ use Playwright\Transport\TransportInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
-/**
- * @author Simon André <smn.andre@gmail.com>
- */
 final class Locator implements LocatorInterface
 {
     private SelectorChain $selectorChain;
 
     private LoggerInterface $logger;
 
+    /**
+     * @var array<string, mixed>
+     */
+    private array $options;
+
+    /**
+     * @param array<string, mixed> $options
+     */
     public function __construct(
         private readonly TransportInterface $transport,
         private readonly string $pageId,
         string|SelectorChain $selector,
         private readonly ?string $frameSelector = null,
         ?LoggerInterface $logger = null,
+        array $options = [],
     ) {
         $this->logger = $logger ?? new NullLogger();
+        $this->options = $options;
         if ($selector instanceof SelectorChain) {
             $this->selectorChain = $selector;
         } else {
@@ -55,6 +62,16 @@ final class Locator implements LocatorInterface
     public function getSelector(): string
     {
         return (string) $this->selectorChain;
+    }
+
+    /**
+     * Expose the options provided at construction time.
+     *
+     * @return array<string, mixed>
+     */
+    public function getOptions(): array
+    {
+        return $this->options;
     }
 
     /**

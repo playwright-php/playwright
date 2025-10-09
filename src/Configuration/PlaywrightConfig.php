@@ -19,8 +19,6 @@ use Psr\Log\LoggerInterface;
 
 /**
  * Immutable configuration value object for Playwright PHP.
- *
- * @author Simon André <smn.andre@gmail.com>
  */
 final class PlaywrightConfig
 {

@@ -16,9 +16,6 @@ namespace Playwright\Browser;
 
 use Playwright\Page\PageInterface;
 
-/**
- * @author Simon André <smn.andre@gmail.com>
- */
 interface BrowserInterface
 {
     public function context(): BrowserContextInterface;

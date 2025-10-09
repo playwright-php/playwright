@@ -150,6 +150,32 @@ final class ResponseTest extends TestCase
         $response->json();
     }
 
+    public function testHeaderValueIsCaseInsensitiveAndReturnsFirst(): void
+    {
+        $response = $this->createResponse(['headers' => ['Content-Type' => 'text/html, application/json', 'x-test' => 'TRUE']]);
+        $this->assertSame('text/html', $response->headerValue('content-type'));
+        $this->assertSame('TRUE', $response->headerValue('X-Test'));
+        $this->assertNull($response->headerValue('missing'));
+    }
+
+    public function testHeaderValuesSplitsCommaSeparatedList(): void
+    {
+        $response = $this->createResponse(['headers' => ['accept' => 'text/html, application/json,  text/plain ']]);
+        $this->assertSame(['text/html', 'application/json', 'text/plain'], $response->headerValues('ACCEPT'));
+        $this->assertSame([], $response->headerValues('missing'));
+    }
+
+    public function testHeadersArrayProducesPairs(): void
+    {
+        $response = $this->createResponse(['headers' => ['accept' => 'text/html, application/json', 'x-one' => '1']]);
+        $pairs = $response->headersArray();
+        $this->assertSame([
+            ['name' => 'accept', 'value' => 'text/html'],
+            ['name' => 'accept', 'value' => 'application/json'],
+            ['name' => 'x-one', 'value' => '1'],
+        ], $pairs);
+    }
+
     private function createResponse(array $data = []): Response
     {
         return new Response(

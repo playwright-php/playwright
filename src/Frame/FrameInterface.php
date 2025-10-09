@@ -16,9 +16,6 @@ namespace Playwright\Frame;
 
 use Playwright\Locator\LocatorInterface;
 
-/**
- * @author Simon André <smn.andre@gmail.com>
- */
 interface FrameInterface
 {
     /**

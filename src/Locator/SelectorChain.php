@@ -14,9 +14,6 @@ declare(strict_types=1);
 
 namespace Playwright\Locator;
 
-/**
- * @author Simon André <smn.andre@gmail.com>
- */
 class SelectorChain
 {
     /** @var array<string> */

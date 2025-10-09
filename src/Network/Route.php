@@ -16,9 +16,6 @@ namespace Playwright\Network;
 
 use Playwright\Transport\TransportInterface;
 
-/**
- * @author Simon André <smn.andre@gmail.com>
- */
 final class Route implements RouteInterface
 {
     private RequestInterface $request;

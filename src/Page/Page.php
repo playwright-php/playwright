@@ -14,7 +14,10 @@ declare(strict_types=1);
 
 namespace Playwright\Page;
 
+use Playwright\API\APIRequestContextInterface;
 use Playwright\Browser\BrowserContextInterface;
+use Playwright\Clock\ClockInterface;
+use Playwright\Clock\NullClock;
 use Playwright\Configuration\PlaywrightConfig;
 use Playwright\Console\ConsoleMessage;
 use Playwright\Dialog\Dialog;
@@ -44,18 +47,19 @@ use Playwright\Transport\TransportInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
-/**
- * @author Simon André <smn.andre@gmail.com>
- */
 final class Page implements PageInterface, EventDispatcherInterface
 {
-    private KeyboardInterface $keyboard;
+    public readonly ClockInterface $clock;
 
-    private MouseInterface $mouse;
+    public readonly KeyboardInterface $keyboard;
+
+    public readonly MouseInterface $mouse;
 
     private PageEventHandlerInterface $eventHandler;
 
     private LoggerInterface $logger;
+
+    private ?APIRequestContextInterface $apiRequestContext = null;
 
     public function __construct(
         private readonly TransportInterface $transport,
@@ -65,9 +69,25 @@ final class Page implements PageInterface, EventDispatcherInterface
         ?LoggerInterface $logger = null,
     ) {
         $this->logger = $logger ?? new NullLogger();
+
         $this->keyboard = new Keyboard($this->transport, $this->pageId);
         $this->mouse = new Mouse($this->transport, $this->pageId);
         $this->eventHandler = new PageEventHandler();
+
+        // Use context clock when available, otherwise fall back to no-op clock for tests
+        if (\method_exists($this->context, 'clock')) {
+            /** @var ClockInterface $ctxClock */
+            $ctxClock = $this->context->clock();
+            $this->clock = $ctxClock;
+        } else {
+            $this->clock = new NullClock();
+        }
+
+        // this.keyboard = new Keyboard(this);
+        //     this.mouse = new Mouse(this);
+        //     this.request = this._browserContext.request;
+        //     this.touchscreen = new Touchscreen(this);
+        //     this.clock = this._browserContext.clock;
 
         if (method_exists($this->transport, 'addEventDispatcher')) {
             $this->transport->addEventDispatcher($this->pageId, $this);
@@ -143,9 +163,68 @@ final class Page implements PageInterface, EventDispatcherInterface
         return $this->eventHandler;
     }
 
-    public function locator(string $selector): LocatorInterface
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function locator(string $selector, array $options = []): LocatorInterface
     {
-        return new Locator($this->transport, $this->pageId, $selector);
+        return new Locator($this->transport, $this->pageId, $selector, null, null, $options);
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function getByAltText(string $text, array $options = []): LocatorInterface
+    {
+        return $this->locator(\sprintf('[alt="%s"]', $text), $options);
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function getByLabel(string $text, array $options = []): LocatorInterface
+    {
+        return $this->locator(\sprintf('label:text-is("%s") >> nth=0', $text), $options);
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function getByPlaceholder(string $text, array $options = []): LocatorInterface
+    {
+        return $this->locator(\sprintf('[placeholder="%s"]', $text), $options);
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function getByRole(string $role, array $options = []): LocatorInterface
+    {
+        return $this->locator($role, $options);
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function getByTestId(string $testId, array $options = []): LocatorInterface
+    {
+        return $this->locator(\sprintf('[data-testid="%s"]', $testId), $options);
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function getByText(string $text, array $options = []): LocatorInterface
+    {
+        return $this->locator(\sprintf('text="%s"', $text), $options);
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function getByTitle(string $text, array $options = []): LocatorInterface
+    {
+        return $this->locator(\sprintf('[title="%s"]', $text), $options);
     }
 
     /**
@@ -268,6 +347,8 @@ final class Page implements PageInterface, EventDispatcherInterface
 
         return $response['result'] ?? null;
     }
+
+    // TODO consoleMessages()
 
     /**
      * @param array<string, mixed> $options
@@ -742,6 +823,15 @@ final class Page implements PageInterface, EventDispatcherInterface
         }
 
         return $this;
+    }
+
+    public function request(): APIRequestContextInterface
+    {
+        if (null === $this->apiRequestContext) {
+            $this->apiRequestContext = $this->context->request();
+        }
+
+        return $this->apiRequestContext;
     }
 
     /**

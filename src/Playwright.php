@@ -16,9 +16,6 @@ namespace Playwright;
 
 use Playwright\Browser\BrowserContextInterface;
 
-/**
- * @author Simon André <smn.andre@gmail.com>
- */
 final class Playwright
 {
     /** @var PlaywrightClient[] */

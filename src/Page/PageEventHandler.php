@@ -16,9 +16,6 @@ namespace Playwright\Page;
 
 use Playwright\Event\EventEmitter;
 
-/**
- * @author Simon André <smn.andre@gmail.com>
- */
 final class PageEventHandler implements PageEventHandlerInterface
 {
     use EventEmitter {

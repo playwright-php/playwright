@@ -97,6 +97,31 @@ final class RequestTest extends TestCase
         $this->assertSame('fetch', $request->resourceType());
     }
 
+    public function testHeaderValueIsCaseInsensitive(): void
+    {
+        $request = $this->createRequest(['headers' => ['Content-Type' => 'application/json', 'x-test' => 'TRUE']]);
+        $this->assertSame('application/json', $request->headerValue('content-type'));
+        $this->assertSame('TRUE', $request->headerValue('X-Test'));
+        $this->assertNull($request->headerValue('missing'));
+    }
+
+    public function testHeadersArraySplitsCommaSeparatedValues(): void
+    {
+        $request = $this->createRequest(['headers' => ['accept' => 'text/html, application/json,  text/plain ']]);
+        $pairs = $request->headersArray();
+        $this->assertSame([
+            ['name' => 'accept', 'value' => 'text/html'],
+            ['name' => 'accept', 'value' => 'application/json'],
+            ['name' => 'accept', 'value' => 'text/plain'],
+        ], $pairs);
+    }
+
+    public function testAllHeadersIsAliasOfHeaders(): void
+    {
+        $request = $this->createRequest(['headers' => ['a' => '1', 'b' => '2']]);
+        $this->assertSame(['a' => '1', 'b' => '2'], $request->allHeaders());
+    }
+
     private function createRequest(array $data = []): Request
     {
         return new Request(array_merge($this->requestData, $data));

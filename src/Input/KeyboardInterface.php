@@ -14,9 +14,6 @@ declare(strict_types=1);
 
 namespace Playwright\Input;
 
-/**
- * @author Simon André <smn.andre@gmail.com>
- */
 interface KeyboardInterface
 {
     /**

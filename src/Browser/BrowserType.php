@@ -14,9 +14,6 @@ declare(strict_types=1);
 
 namespace Playwright\Browser;
 
-/**
- * @author Simon André <smn.andre@gmail.com>
- */
 enum BrowserType: string
 {
     case CHROMIUM = 'chromium';

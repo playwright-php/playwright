@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 namespace Playwright\Page;
 
+use Playwright\API\APIRequestContextInterface;
 use Playwright\Browser\BrowserContextInterface;
 use Playwright\Frame\FrameInterface;
 use Playwright\Frame\FrameLocatorInterface;
@@ -22,9 +23,6 @@ use Playwright\Input\MouseInterface;
 use Playwright\Locator\LocatorInterface;
 use Playwright\Network\ResponseInterface;
 
-/**
- * @author Simon André <smn.andre@gmail.com>
- */
 interface PageInterface
 {
     public function locator(string $selector): LocatorInterface;
@@ -189,4 +187,11 @@ interface PageInterface
      * @param array{name?: string, url?: string, urlRegex?: string} $options
      */
     public function frame(array $options): ?FrameInterface;
+
+    /**
+     * API testing helper associated with this page.
+     *
+     * This method returns the same instance as browserContext.request() on the page's context.
+     */
+    public function request(): APIRequestContextInterface;
 }

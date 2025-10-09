@@ -25,8 +25,6 @@ use Psr\Log\LoggerInterface;
  * - Headless: true
  * - Timeout: 30s
  * - Node min version: 20.0.0
- *
- * @author Simon André <smn.andre@gmail.com>
  */
 final class PlaywrightConfigBuilder
 {

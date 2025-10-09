@@ -16,9 +16,6 @@ namespace Playwright\Network;
 
 use Playwright\Exception\ProtocolErrorException;
 
-/**
- * @author Simon André <smn.andre@gmail.com>
- */
 final class Request implements RequestInterface
 {
     /**
@@ -104,5 +101,53 @@ final class Request implements RequestInterface
         }
 
         return $resourceType;
+    }
+
+    /**
+     * Case-insensitive single header value, or null if not present.
+     */
+    public function headerValue(string $name): ?string
+    {
+        $headers = $this->headers();
+        $lower = strtolower($name);
+        foreach ($headers as $k => $v) {
+            if (strtolower($k) === $lower) {
+                return $v;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Headers as a list of name/value pairs; splits comma-separated values.
+     *
+     * @return array<array{name: string, value: string}>
+     */
+    public function headersArray(): array
+    {
+        $result = [];
+        foreach ($this->headers() as $name => $value) {
+            // Split comma-separated header values into multiple entries
+            $parts = array_map('trim', explode(',', $value));
+            foreach ($parts as $part) {
+                if ('' === $part) {
+                    continue;
+                }
+                $result[] = ['name' => $name, 'value' => $part];
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Alias of headers().
+     *
+     * @return array<string, string>
+     */
+    public function allHeaders(): array
+    {
+        return $this->headers();
     }
 }

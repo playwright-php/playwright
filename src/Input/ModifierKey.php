@@ -16,9 +16,6 @@ namespace Playwright\Input;
 
 use Playwright\Exception\InvalidArgumentException;
 
-/**
- * @author Simon André <smn.andre@gmail.com>
- */
 enum ModifierKey: string
 {
     case Alt = 'Alt';

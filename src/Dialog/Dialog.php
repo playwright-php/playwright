@@ -16,9 +16,6 @@ namespace Playwright\Dialog;
 
 use Playwright\Page\PageInterface;
 
-/**
- * @author Simon André <smn.andre@gmail.com>
- */
 class Dialog
 {
     public function __construct(

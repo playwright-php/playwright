@@ -16,9 +16,6 @@ namespace Playwright\Input;
 
 use Playwright\Transport\TransportInterface;
 
-/**
- * @author Simon André <smn.andre@gmail.com>
- */
 final class Mouse implements MouseInterface
 {
     private string $pageId;
