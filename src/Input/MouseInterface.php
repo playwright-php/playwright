@@ -14,9 +14,6 @@ declare(strict_types=1);
 
 namespace Playwright\Input;
 
-/**
- * @author Simon André <smn.andre@gmail.com>
- */
 interface MouseInterface
 {
     /**
@@ -27,7 +24,22 @@ interface MouseInterface
     /**
      * @param array<string, mixed> $options
      */
+    public function dblclick(float $x, float $y, array $options = []): void;
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function down(array $options = []): void;
+
+    /**
+     * @param array<string, mixed> $options
+     */
     public function move(float $x, float $y, array $options = []): void;
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function up(array $options = []): void;
 
     public function wheel(float $deltaX, float $deltaY): void;
 }

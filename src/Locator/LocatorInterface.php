@@ -16,9 +16,6 @@ namespace Playwright\Locator;
 
 use Playwright\Frame\FrameLocatorInterface;
 
-/**
- * @author Simon André <smn.andre@gmail.com>
- */
 interface LocatorInterface
 {
     /**
@@ -119,6 +116,38 @@ interface LocatorInterface
     /**
      * @param array<string, mixed> $options
      */
+    public function getByAltText(string $text, array $options = []): self;
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function getByLabel(string $text, array $options = []): self;
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function getByPlaceholder(string $text, array $options = []): self;
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function getByRole(string $role, array $options = []): self;
+
+    public function getByTestId(string $testId): self;
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function getByText(string $text, array $options = []): self;
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function getByTitle(string $text, array $options = []): self;
+
+    /**
+     * @param array<string, mixed> $options
+     */
     public function waitFor(array $options = []): void;
 
     /**
@@ -163,4 +192,17 @@ interface LocatorInterface
     public function frameLocator(string $selector): FrameLocatorInterface;
 
     public function getSelector(): string;
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function filter(array $options = []): self;
+
+    public function and(LocatorInterface $locator): self;
+
+    public function or(LocatorInterface $locator): self;
+
+    public function describe(string $description): self;
+
+    public function contentFrame(): FrameLocatorInterface;
 }

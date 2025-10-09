@@ -16,9 +16,6 @@ namespace Playwright\Console;
 
 use Playwright\Exception\ProtocolErrorException;
 
-/**
- * @author Simon André <smn.andre@gmail.com>
- */
 final class ConsoleMessage
 {
     /**

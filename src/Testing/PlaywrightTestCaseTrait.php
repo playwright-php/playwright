@@ -27,9 +27,6 @@ use Playwright\PlaywrightFactory;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Process\ExecutableFinder;
 
-/**
- * @author Simon André <smn.andre@gmail.com>
- */
 trait PlaywrightTestCaseTrait
 {
     protected PlaywrightClient $playwright;

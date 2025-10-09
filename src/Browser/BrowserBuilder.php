@@ -19,9 +19,6 @@ use Playwright\Exception\PlaywrightException;
 use Playwright\Transport\TransportInterface;
 use Psr\Log\LoggerInterface;
 
-/**
- * @author Simon André <smn.andre@gmail.com>
- */
 final class BrowserBuilder
 {
     /**
@@ -90,6 +87,98 @@ final class BrowserBuilder
         if (isset($response['error'])) {
             if (!is_string($response['error'])) {
                 throw new PlaywrightException('Browser launch failed with unknown error');
+            }
+            throw new PlaywrightException($response['error']);
+        }
+
+        if (!is_string($response['browserId'])) {
+            throw new PlaywrightException('Invalid browserId returned from transport');
+        }
+        if (!is_string($response['defaultContextId'])) {
+            throw new PlaywrightException('Invalid defaultContextId returned from transport');
+        }
+        if (!is_string($response['version'])) {
+            throw new PlaywrightException('Invalid version returned from transport');
+        }
+
+        return new Browser(
+            $this->transport,
+            $response['browserId'],
+            $response['defaultContextId'],
+            $response['version'],
+            $this->config
+        );
+    }
+
+    /**
+     * Attaches Playwright to an existing BrowserServer via WebSocket endpoint.
+     *
+     * @param array<string, mixed> $options
+     */
+    public function connect(string $wsEndpoint, array $options = []): BrowserInterface
+    {
+        $this->logger->info('Connecting to browser server', [
+            'browser' => $this->browserType,
+            'wsEndpoint' => $wsEndpoint,
+            'options' => $options,
+        ]);
+
+        $response = $this->transport->send([
+            'action' => 'connect',
+            'browser' => $this->browserType,
+            'wsEndpoint' => $wsEndpoint,
+            'options' => $options,
+        ]);
+
+        if (isset($response['error'])) {
+            if (!is_string($response['error'])) {
+                throw new PlaywrightException('Browser connect failed with unknown error');
+            }
+            throw new PlaywrightException($response['error']);
+        }
+
+        if (!is_string($response['browserId'])) {
+            throw new PlaywrightException('Invalid browserId returned from transport');
+        }
+        if (!is_string($response['defaultContextId'])) {
+            throw new PlaywrightException('Invalid defaultContextId returned from transport');
+        }
+        if (!is_string($response['version'])) {
+            throw new PlaywrightException('Invalid version returned from transport');
+        }
+
+        return new Browser(
+            $this->transport,
+            $response['browserId'],
+            $response['defaultContextId'],
+            $response['version'],
+            $this->config
+        );
+    }
+
+    /**
+     * Attaches Playwright over CDP (Chromium only).
+     *
+     * @param array<string, mixed> $options
+     */
+    public function connectOverCDP(string $endpointURL, array $options = []): BrowserInterface
+    {
+        $this->logger->info('Connecting over CDP', [
+            'browser' => $this->browserType,
+            'endpointURL' => $endpointURL,
+            'options' => $options,
+        ]);
+
+        $response = $this->transport->send([
+            'action' => 'connectOverCDP',
+            'browser' => $this->browserType,
+            'endpointURL' => $endpointURL,
+            'options' => $options,
+        ]);
+
+        if (isset($response['error'])) {
+            if (!is_string($response['error'])) {
+                throw new PlaywrightException('Browser connectOverCDP failed with unknown error');
             }
             throw new PlaywrightException($response['error']);
         }

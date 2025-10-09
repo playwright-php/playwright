@@ -16,9 +16,6 @@ namespace Playwright\Input;
 
 use Playwright\Transport\TransportInterface;
 
-/**
- * @author Simon André <smn.andre@gmail.com>
- */
 final class Keyboard implements KeyboardInterface
 {
     private string $pageId;
@@ -28,6 +25,17 @@ final class Keyboard implements KeyboardInterface
     {
         $this->transport = $transport;
         $this->pageId = $pageId;
+    }
+
+    public function down(string $key): void
+    {
+        $this->transport->send([
+            'action' => 'keyboard.down',
+            'pageId' => $this->pageId,
+            'key' => $key,
+        ]);
+
+        $this->transport->processEvents();
     }
 
     public function insertText(string $text): void
@@ -59,5 +67,16 @@ final class Keyboard implements KeyboardInterface
             'text' => $text,
             'options' => $options,
         ]);
+    }
+
+    public function up(string $key): void
+    {
+        $this->transport->send([
+            'action' => 'keyboard.up',
+            'pageId' => $this->pageId,
+            'key' => $key,
+        ]);
+
+        $this->transport->processEvents();
     }
 }

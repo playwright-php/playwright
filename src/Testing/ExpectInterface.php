@@ -14,9 +14,6 @@ declare(strict_types=1);
 
 namespace Playwright\Testing;
 
-/**
- * @author Simon André <smn.andre@gmail.com>
- */
 interface ExpectInterface
 {
     public function toBeVisible(): void;

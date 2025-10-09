@@ -14,9 +14,6 @@ declare(strict_types=1);
 
 namespace Playwright\Network;
 
-/**
- * @author Simon André <smn.andre@gmail.com>
- */
 interface RouteInterface
 {
     public function request(): RequestInterface;
@@ -32,4 +29,14 @@ interface RouteInterface
      * @param array<string, mixed> $options
      */
     public function fulfill(array $options): void;
+
+    /**
+     * @param array<string, mixed>|null $options
+     */
+    public function fallback(?array $options = null): void;
+
+    /**
+     * @param array<string, mixed>|null $options
+     */
+    public function fetch(?array $options = null): ResponseInterface;
 }

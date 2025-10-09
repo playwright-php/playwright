@@ -18,8 +18,6 @@ use Playwright\Exception\RuntimeException;
 
 /**
  * Storage state container for cookies and localStorage data.
- *
- * @author Simon André <smn.andre@gmail.com>
  */
 final readonly class StorageState
 {

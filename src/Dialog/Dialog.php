@@ -16,10 +16,11 @@ namespace Playwright\Dialog;
 
 use Playwright\Page\PageInterface;
 
+class Dialog
 /**
  * @author Simon André <smn.andre@gmail.com>
  */
-class Dialog
+final class Dialog implements DialogInterface
 {
     public function __construct(
         private readonly PageInterface $page,
@@ -53,5 +54,10 @@ class Dialog
     public function dismiss(): void
     {
         $this->page->handleDialog($this->dialogId, false);
+    }
+
+    public function page(): PageInterface
+    {
+        return $this->page;
     }
 }

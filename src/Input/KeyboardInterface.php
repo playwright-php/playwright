@@ -14,11 +14,10 @@ declare(strict_types=1);
 
 namespace Playwright\Input;
 
-/**
- * @author Simon André <smn.andre@gmail.com>
- */
 interface KeyboardInterface
 {
+    public function down(string $key): void;
+
     /**
      * @param array<string, mixed> $options
      */
@@ -28,4 +27,6 @@ interface KeyboardInterface
      * @param array<string, mixed> $options
      */
     public function type(string $text, array $options = []): void;
+
+    public function up(string $key): void;
 }

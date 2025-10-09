@@ -23,23 +23,30 @@ use Playwright\Transport\TransportInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
-/**
- * @author Simon André <smn.andre@gmail.com>
- */
 final class Locator implements LocatorInterface
 {
     private SelectorChain $selectorChain;
 
     private LoggerInterface $logger;
 
+    /**
+     * @var array<string, mixed>
+     */
+    private array $options;
+
+    /**
+     * @param array<string, mixed> $options
+     */
     public function __construct(
         private readonly TransportInterface $transport,
         private readonly string $pageId,
         string|SelectorChain $selector,
         private readonly ?string $frameSelector = null,
         ?LoggerInterface $logger = null,
+        array $options = [],
     ) {
         $this->logger = $logger ?? new NullLogger();
+        $this->options = $options;
         if ($selector instanceof SelectorChain) {
             $this->selectorChain = $selector;
         } else {
@@ -55,6 +62,16 @@ final class Locator implements LocatorInterface
     public function getSelector(): string
     {
         return (string) $this->selectorChain;
+    }
+
+    /**
+     * Expose the options provided at construction time.
+     *
+     * @return array<string, mixed>
+     */
+    public function getOptions(): array
+    {
+        return $this->options;
     }
 
     /**
@@ -233,6 +250,59 @@ final class Locator implements LocatorInterface
         $newSelectorChain->append($selector);
 
         return new Locator($this->transport, $this->pageId, $newSelectorChain, $this->frameSelector);
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function getByAltText(string $text, array $options = []): self
+    {
+        return $this->locator(\sprintf('[alt="%s"]', $text));
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function getByLabel(string $text, array $options = []): self
+    {
+        return $this->locator(\sprintf('label:text-is("%s") >> nth=0', $text));
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function getByPlaceholder(string $text, array $options = []): self
+    {
+        return $this->locator(\sprintf('[placeholder="%s"]', $text));
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function getByRole(string $role, array $options = []): self
+    {
+        return $this->locator($role);
+    }
+
+    public function getByTestId(string $testId): self
+    {
+        return $this->locator(\sprintf('[data-testid="%s"]', $testId));
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function getByText(string $text, array $options = []): self
+    {
+        return $this->locator(\sprintf('text="%s"', $text));
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function getByTitle(string $text, array $options = []): self
+    {
+        return $this->locator(\sprintf('[title="%s"]', $text));
     }
 
     /**
@@ -621,5 +691,51 @@ final class Locator implements LocatorInterface
             $timeout,
             sprintf('Element does not contain text: %s', $text)
         );
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function filter(array $options = []): self
+    {
+        $chain = clone $this->selectorChain;
+
+        if (isset($options['hasText']) && is_scalar($options['hasText'])) {
+            $chain = $chain->append(\sprintf(':has-text("%s")', $options['hasText']));
+        }
+
+        if (isset($options['has'])) {
+            $has = $options['has'];
+            if ($has instanceof LocatorInterface) {
+                $chain = $chain->append(\sprintf(':has(%s)', $has->getSelector()));
+            }
+        }
+
+        return new self($this->transport, $this->pageId, $chain, $this->frameSelector, $this->logger);
+    }
+
+    public function and(LocatorInterface $locator): self
+    {
+        $chain = $this->selectorChain->append($locator->getSelector());
+
+        return new self($this->transport, $this->pageId, $chain, $this->frameSelector, $this->logger);
+    }
+
+    public function or(LocatorInterface $locator): self
+    {
+        $combined = \sprintf('%s, %s', $this->selectorChain->toString(), $locator->getSelector());
+        $chain = new SelectorChain($combined);
+
+        return new self($this->transport, $this->pageId, $chain, $this->frameSelector, $this->logger);
+    }
+
+    public function describe(string $description): self
+    {
+        return $this;
+    }
+
+    public function contentFrame(): FrameLocatorInterface
+    {
+        return new FrameLocator($this->transport, $this->pageId, $this->selectorChain->toString(), $this->logger);
     }
 }

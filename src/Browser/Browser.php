@@ -16,16 +16,12 @@ namespace Playwright\Browser;
 
 use Playwright\Configuration\PlaywrightConfig;
 use Playwright\Exception\ProtocolErrorException;
-use Playwright\Exception\RuntimeException;
 use Playwright\Page\PageInterface;
 use Playwright\Transport\TransportInterface;
 
-/**
- * @author Simon André <smn.andre@gmail.com>
- */
 final class Browser implements BrowserInterface
 {
-    private ?BrowserContextInterface $defaultContext;
+    private BrowserContextInterface $defaultContext;
 
     /**
      * @var array<BrowserContextInterface>
@@ -47,10 +43,6 @@ final class Browser implements BrowserInterface
 
     public function context(): BrowserContextInterface
     {
-        if (null === $this->defaultContext) {
-            throw new RuntimeException('Default context is not available');
-        }
-
         return $this->defaultContext;
     }
 
@@ -77,10 +69,6 @@ final class Browser implements BrowserInterface
 
     public function newPage(array $options = []): PageInterface
     {
-        if (null === $this->defaultContext) {
-            $this->defaultContext = new BrowserContext($this->transport, $this->defaultContextId, $this->config);
-        }
-
         return $this->defaultContext->newPage($options);
     }
 

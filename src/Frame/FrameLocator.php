@@ -20,9 +20,6 @@ use Playwright\Transport\TransportInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
-/**
- * @author Simon André <smn.andre@gmail.com>
- */
 final class FrameLocator implements FrameLocatorInterface
 {
     private LoggerInterface $logger;
@@ -44,6 +41,59 @@ final class FrameLocator implements FrameLocatorInterface
         ]);
 
         return new Locator($this->transport, $this->pageId, $selector, $this->frameSelector, $this->logger);
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function getByAltText(string $text, array $options = []): LocatorInterface
+    {
+        return $this->locator(\sprintf('[alt="%s"]', $text));
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function getByLabel(string $text, array $options = []): LocatorInterface
+    {
+        return $this->locator(\sprintf('label:text-is("%s") >> nth=0', $text));
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function getByPlaceholder(string $text, array $options = []): LocatorInterface
+    {
+        return $this->locator(\sprintf('[placeholder="%s"]', $text));
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function getByRole(string $role, array $options = []): LocatorInterface
+    {
+        return $this->locator($role);
+    }
+
+    public function getByTestId(string $testId): LocatorInterface
+    {
+        return $this->locator(\sprintf('[data-testid="%s"]', $testId));
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function getByText(string $text, array $options = []): LocatorInterface
+    {
+        return $this->locator(\sprintf('text="%s"', $text));
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function getByTitle(string $text, array $options = []): LocatorInterface
+    {
+        return $this->locator(\sprintf('[title="%s"]', $text));
     }
 
     public function first(): self

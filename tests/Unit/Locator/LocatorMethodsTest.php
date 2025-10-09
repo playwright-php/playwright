@@ -409,4 +409,53 @@ final class LocatorMethodsTest extends TestCase
 
         $this->locator->dragTo($targetLocator);
     }
+
+    public function testGetByText(): void
+    {
+        $result = $this->locator->getByText('Hello');
+        $this->assertInstanceOf(Locator::class, $result);
+        $this->assertSame('Locator(selector=".element >> text="Hello"")', (string) $result);
+    }
+
+    public function testGetByRole(): void
+    {
+        $result = $this->locator->getByRole('button');
+        $this->assertInstanceOf(Locator::class, $result);
+        $this->assertSame('Locator(selector=".element >> button")', (string) $result);
+    }
+
+    public function testGetByPlaceholder(): void
+    {
+        $result = $this->locator->getByPlaceholder('Search');
+        $this->assertInstanceOf(Locator::class, $result);
+        $this->assertSame('Locator(selector=".element >> [placeholder="Search"]")', (string) $result);
+    }
+
+    public function testGetByTestId(): void
+    {
+        $result = $this->locator->getByTestId('submit-btn');
+        $this->assertInstanceOf(Locator::class, $result);
+        $this->assertSame('Locator(selector=".element >> [data-testid="submit-btn"]")', (string) $result);
+    }
+
+    public function testGetByAltText(): void
+    {
+        $result = $this->locator->getByAltText('Logo');
+        $this->assertInstanceOf(Locator::class, $result);
+        $this->assertSame('Locator(selector=".element >> [alt="Logo"]")', (string) $result);
+    }
+
+    public function testGetByTitle(): void
+    {
+        $result = $this->locator->getByTitle('Help');
+        $this->assertInstanceOf(Locator::class, $result);
+        $this->assertSame('Locator(selector=".element >> [title="Help"]")', (string) $result);
+    }
+
+    public function testGetByLabel(): void
+    {
+        $result = $this->locator->getByLabel('Email');
+        $this->assertInstanceOf(Locator::class, $result);
+        $this->assertSame('Locator(selector=".element >> label:text-is("Email") >> nth=0")', (string) $result);
+    }
 }

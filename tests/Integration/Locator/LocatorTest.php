@@ -303,6 +303,55 @@ class LocatorTest extends TestCase
         $this->assertEquals('1', $dropzone->getAttribute('data-drops'));
     }
 
+    #[Test]
+    public function itUsesGetByTextChaining(): void
+    {
+        $this->page->setContent('<div class="container"><button>Submit</button></div>');
+        $locator = $this->page->locator('.container')->getByText('Submit');
+        $this->assertSame('Submit', $locator->textContent());
+    }
+
+    #[Test]
+    public function itUsesGetByRoleChaining(): void
+    {
+        $this->page->setContent('<div class="form"><button role="button">Click</button></div>');
+        $locator = $this->page->locator('.form')->getByRole('button');
+        $this->assertSame('Click', $locator->textContent());
+    }
+
+    #[Test]
+    public function itUsesGetByPlaceholderChaining(): void
+    {
+        $this->page->setContent('<form><input placeholder="Enter email" /></form>');
+        $locator = $this->page->locator('form')->getByPlaceholder('Enter email');
+        $locator->fill('test@example.com');
+        $this->assertSame('test@example.com', $locator->inputValue());
+    }
+
+    #[Test]
+    public function itUsesGetByTestIdChaining(): void
+    {
+        $this->page->setContent('<div class="wrapper"><span data-testid="status">Active</span></div>');
+        $locator = $this->page->locator('.wrapper')->getByTestId('status');
+        $this->assertSame('Active', $locator->textContent());
+    }
+
+    #[Test]
+    public function itUsesGetByAltTextChaining(): void
+    {
+        $this->page->setContent('<div class="images"><img src="/test.png" alt="Test Image" /></div>');
+        $locator = $this->page->locator('.images')->getByAltText('Test Image');
+        $this->assertSame('Test Image', $locator->getAttribute('alt'));
+    }
+
+    #[Test]
+    public function itUsesGetByTitleChaining(): void
+    {
+        $this->page->setContent('<nav><a href="#" title="Home Page">Home</a></nav>');
+        $locator = $this->page->locator('nav')->getByTitle('Home Page');
+        $this->assertSame('Home', $locator->textContent());
+    }
+
     private static function findFreePort(): int
     {
         return 0;

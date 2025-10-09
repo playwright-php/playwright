@@ -2,9 +2,9 @@ name: "CI"
 
 on:
   push:
-    branches: [ main ]
+    branches: [ "*" ]
   pull_request:
-    branches: [ main ]
+    branches: [ "*" ]
   workflow_dispatch:
 
 permissions:
@@ -48,17 +48,16 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
-          coverage: pcov
           tools: phpstan
 
       - name: "Composer: install"
         run: composer install --prefer-dist --no-interaction --no-progress
 
       - name: "PHPStan: version"
-        run: vendor/bin/phpstan --version
+        run: phpstan --version
 
       - name: "PHPStan: analyze"
-        run: vendor/bin/phpstan
+        run: phpstan
 
   unit-tests:
     name: "Unit Tests (PHP ${{ matrix.php-version }})"
@@ -120,7 +119,7 @@ jobs:
           fi
 
       - name: "Playwright: install browsers"
-        run: composer run install-browsers
+        run: php bin/playwright-install --browsers
 
       - name: "PHPUnit: version"
         run: vendor/bin/phpunit --version

@@ -108,6 +108,80 @@ class InputTest extends TestCase
         $this->assertEquals('Replaced', $inputField->inputValue());
     }
 
+    #[Test]
+    public function itUsesKeyboardDownAndUp(): void
+    {
+        $this->page->locator('#input-text')->click();
+
+        $this->page->keyboard()->down('Shift');
+        $this->page->keyboard()->press('KeyA');
+        $this->page->keyboard()->press('KeyB');
+        $this->page->keyboard()->up('Shift');
+        $this->page->keyboard()->press('KeyC');
+
+        usleep(100000);
+        $value = $this->page->locator('#input-text')->inputValue();
+        $this->assertSame('ABc', $value);
+    }
+
+    #[Test]
+    public function itUsesMouseDoubleClick(): void
+    {
+        $this->page->evaluate("
+            document.getElementById('mouse-tracker').addEventListener('dblclick', (e) => {
+                document.getElementById('mouse-tracker').setAttribute('data-dblclicked', 'yes');
+            });
+        ");
+
+        $this->page->mouse()->dblclick(100, 100);
+
+        usleep(100000);
+        $attr = $this->page->evaluate("document.getElementById('mouse-tracker').getAttribute('data-dblclicked')");
+        $this->assertSame('yes', $attr);
+    }
+
+    #[Test]
+    public function itUsesMouseDownAndUp(): void
+    {
+        $this->page->evaluate("
+            let downFired = false;
+            let upFired = false;
+            document.getElementById('mouse-tracker').addEventListener('mousedown', () => {
+                downFired = true;
+                document.getElementById('mouse-tracker').setAttribute('data-down', 'yes');
+            });
+            document.getElementById('mouse-tracker').addEventListener('mouseup', () => {
+                upFired = true;
+                document.getElementById('mouse-tracker').setAttribute('data-up', 'yes');
+            });
+        ");
+
+        $this->page->mouse()->move(100, 100);
+        $this->page->mouse()->down();
+        usleep(50000);
+
+        $downAttr = $this->page->evaluate("document.getElementById('mouse-tracker').getAttribute('data-down')");
+        $this->assertSame('yes', $downAttr);
+
+        $this->page->mouse()->up();
+        usleep(50000);
+
+        $upAttr = $this->page->evaluate("document.getElementById('mouse-tracker').getAttribute('data-up')");
+        $this->assertSame('yes', $upAttr);
+    }
+
+    #[Test]
+    public function itUsesMouseDownAndUpWithButton(): void
+    {
+        $this->page->mouse()->move(100, 100);
+        $this->page->mouse()->down(['button' => 'left']);
+        $this->page->mouse()->up(['button' => 'left']);
+
+        usleep(100000);
+        $bgColor = $this->page->evaluate("document.getElementById('mouse-tracker').style.backgroundColor");
+        $this->assertSame('lightgreen', $bgColor);
+    }
+
     private static function findFreePort(): int
     {
         return 0;

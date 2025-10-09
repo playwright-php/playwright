@@ -14,6 +14,10 @@ declare(strict_types=1);
 
 namespace Playwright\Browser;
 
+use Playwright\API\APIRequestContext;
+use Playwright\API\APIRequestContextInterface;
+use Playwright\Clock\Clock;
+use Playwright\Clock\ClockInterface;
 use Playwright\Configuration\PlaywrightConfig;
 use Playwright\Event\EventDispatcherInterface;
 use Playwright\Exception\ProtocolErrorException;
@@ -25,9 +29,6 @@ use Playwright\Page\Page;
 use Playwright\Page\PageInterface;
 use Playwright\Transport\TransportInterface;
 
-/**
- * @author Simon André <smn.andre@gmail.com>
- */
 final class BrowserContext implements BrowserContextInterface, EventDispatcherInterface
 {
     /**
@@ -50,6 +51,8 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
      */
     private array $functions = [];
 
+    private ClockInterface $clock;
+
     public function __construct(
         private readonly TransportInterface $transport,
         private readonly string $contextId,
@@ -58,6 +61,13 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
         if (method_exists($this->transport, 'addEventDispatcher')) {
             $this->transport->addEventDispatcher($this->contextId, $this);
         }
+
+        $this->clock = new Clock($this->transport, $this->contextId);
+    }
+
+    public function clock(): ClockInterface
+    {
+        return $this->clock;
     }
 
     /**
@@ -283,8 +293,18 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
             throw new ProtocolErrorException('Invalid cookies response', 0);
         }
 
-        /** @phpstan-var array<array<string, mixed>> $cookies */
-        $cookies = $response['cookies'];
+        $cookies = [];
+        foreach ($response['cookies'] as $cookie) {
+            if (is_array($cookie)) {
+                $typedCookie = [];
+                foreach ($cookie as $key => $value) {
+                    if (is_string($key)) {
+                        $typedCookie[$key] = $value;
+                    }
+                }
+                $cookies[] = $typedCookie;
+            }
+        }
 
         return $cookies;
     }
@@ -344,8 +364,12 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
             throw new ProtocolErrorException('Invalid storageState response', 0);
         }
 
-        /** @phpstan-var array<string, mixed> $storageState */
-        $storageState = $response['storageState'];
+        $storageState = [];
+        foreach ($response['storageState'] as $key => $value) {
+            if (is_string($key)) {
+                $storageState[$key] = $value;
+            }
+        }
 
         return $storageState;
     }
@@ -535,5 +559,21 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
         }
 
         return $result;
+    }
+
+    public function request(): APIRequestContextInterface
+    {
+        // No baseURL configured at the context level by default
+        return new APIRequestContext($this->transport, $this->contextId, null);
+    }
+
+    public function getTransport(): TransportInterface
+    {
+        return $this->transport;
+    }
+
+    public function getContextId(): string
+    {
+        return $this->contextId;
     }
 }

@@ -16,9 +16,6 @@ namespace Playwright;
 
 use Playwright\Browser\BrowserContextInterface;
 
-/**
- * @author Simon André <smn.andre@gmail.com>
- */
 final class Playwright
 {
     /** @var PlaywrightClient[] */
@@ -97,8 +94,14 @@ final class Playwright
             $contextOptions = [];
         }
 
-        /** @phpstan-var array<string, mixed> $contextOptions */
-        $context = empty($contextOptions) ? $browser->context() : $browser->newContext($contextOptions);
+        $typedOptions = [];
+        foreach ($contextOptions as $key => $value) {
+            if (is_string($key)) {
+                $typedOptions[$key] = $value;
+            }
+        }
+
+        $context = empty($typedOptions) ? $browser->context() : $browser->newContext($typedOptions);
 
         self::$clients[] = $client;
         self::registerShutdown();
