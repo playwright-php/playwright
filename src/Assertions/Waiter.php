@@ -33,6 +33,6 @@ final class Waiter
             \usleep($intervalMs * 1000);
         } while (\hrtime(true) < $deadline);
 
-        throw new TimeoutException('Condition not met within timeout.'); // caught & rethrown as AssertionException by callers
+        throw new TimeoutException('Condition not met within timeout.');
     }
 }

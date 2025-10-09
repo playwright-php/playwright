@@ -50,7 +50,6 @@ final class Expectation
         if (!$this->subject instanceof LocatorInterface) {
             throw new AssertionFailedError('Subject is not a Locator');
         }
-        // Resolve timeout without nullsafe-left-of-??
         $timeout = $this->timeoutMs;
         if (!is_int($timeout)) {
             $timeout = $o?->timeoutMs;
@@ -80,7 +79,6 @@ final class Expectation
         if (!$this->subject instanceof PageInterface) {
             throw new AssertionFailedError('Subject is not a Page');
         }
-        // Resolve timeout without nullsafe-left-of-??
         $timeout = $this->timeoutMs;
         if (!is_int($timeout)) {
             $timeout = $o?->timeoutMs;

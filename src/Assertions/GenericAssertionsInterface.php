@@ -29,5 +29,5 @@ interface GenericAssertionsInterface
     public function toBeGreaterThan(int|float $expected, ?AssertionOptions $options = null): self;
 
     /** @return $this */
-    public function not(): self; // flips to negated mode for next assertion
+    public function not(): self;
 }

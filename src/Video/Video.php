@@ -34,8 +34,6 @@ final class Video implements VideoInterface
             'action' => 'video.delete',
             'videoId' => $this->videoId,
         ]);
-
-        // Also delete the local file if it exists
         if (file_exists($this->videoPath)) {
             unlink($this->videoPath);
         }
@@ -53,8 +51,6 @@ final class Video implements VideoInterface
             'videoId' => $this->videoId,
             'path' => $path,
         ]);
-
-        // Also copy the file locally if the source exists
         if (file_exists($this->videoPath) && $this->videoPath !== $path) {
             $directory = dirname($path);
             if (!is_dir($directory)) {

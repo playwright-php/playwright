@@ -111,8 +111,6 @@ final class APIRequestContext implements APIRequestContextInterface
         if (!isset($response['response']) || !is_array($response['response'])) {
             throw new ProtocolErrorException('Invalid API response from transport', 0);
         }
-
-        // Ensure we pass an array<string, mixed> to APIResponse
         $respData = [];
         foreach ($response['response'] as $key => $value) {
             if (is_string($key)) {

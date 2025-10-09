@@ -43,20 +43,8 @@ interface FileChooserInterface
      *
      * @param string|array<string>|array{name: string, mimeType: string, buffer: string}|array<array{name: string, mimeType: string, buffer: string}> $files
      * @param array{noWaitAfter?: bool, timeout?: int}                                                                                                $options
-/**
- * @author Simon André <smn.andre@gmail.com>
- */
-interface FileChooserInterface
-{
-    public function element(): mixed;
-
-    public function isMultiple(): bool;
-
-    public function page(): \Playwright\Page\PageInterface;
-
-    /**
-     * @param string|string[]|array{name: string, mimeType: string, buffer: string}|array<array{name: string, mimeType: string, buffer: string}> $files
-     * @param array<string, mixed>                                                                                                               $options
+     * @param string|string[]|array{name: string, mimeType: string, buffer: string}|array<array{name: string, mimeType: string, buffer: string}>      $files
+     * @param array<string, mixed>                                                                                                                    $options
      */
     public function setFiles(string|array $files, array $options = []): void;
 }

@@ -82,8 +82,6 @@ final class Worker implements WorkerInterface
         if (!is_array($data)) {
             return [];
         }
-
-        // Normalize to array<string, mixed>
         $sanitized = [];
         foreach ($data as $key => $value) {
             if (is_string($key)) {

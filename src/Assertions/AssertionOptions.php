@@ -16,16 +16,13 @@ namespace Playwright\Assertions;
 
 readonly class AssertionOptions
 {
-    // TODO add from/to array
-    // also allow array anywhere this type is used as argument
-
     public function __construct(
         public ?int $timeoutMs = null,
         public ?int $intervalMs = 100,
         public ?string $message = null,
-        public ?bool $strict = null,        // e.g. exact text match
-        public ?bool $ignoreCase = null,    // text assertions
-        public ?bool $useInnerText = null,  // locator text
+        public ?bool $strict = null,
+        public ?bool $ignoreCase = null,
+        public ?bool $useInnerText = null,
     ) {
     }
 }

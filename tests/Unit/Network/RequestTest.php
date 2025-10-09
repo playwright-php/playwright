@@ -121,6 +121,8 @@ final class RequestTest extends TestCase
     {
         $request = $this->createRequest(['headers' => ['a' => '1', 'b' => '2']]);
         $this->assertSame(['a' => '1', 'b' => '2'], $request->allHeaders());
+    }
+
     public function testAllHeadersWithoutTransport(): void
     {
         $request = $this->createRequest();

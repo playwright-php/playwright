@@ -73,14 +73,12 @@ final class WebSocketRoute implements WebSocketRouteInterface, EventDispatcherIn
             return new self($this->transport, $serverRouteId, $url);
         }
 
-        // Fallback: return same instance if server does not provide a distinct route
         return $this;
     }
 
     public function onClose(callable $handler): void
     {
         $this->closeHandler = $handler;
-        // Hint transport that default forwarding should be disabled server-side if supported
         $this->transport->sendAsync([
             'action' => 'websocketRoute.onClose',
             'routeId' => $this->routeId,
@@ -90,7 +88,6 @@ final class WebSocketRoute implements WebSocketRouteInterface, EventDispatcherIn
     public function onMessage(callable $handler): void
     {
         $this->messageHandler = $handler;
-        // Hint transport that automatic forwarding should be disabled server-side if supported
         $this->transport->sendAsync([
             'action' => 'websocketRoute.onMessage',
             'routeId' => $this->routeId,
@@ -124,13 +121,11 @@ final class WebSocketRoute implements WebSocketRouteInterface, EventDispatcherIn
                 $handler = $this->messageHandler;
                 if (\is_callable($handler)) {
                     $payload = isset($params['payload']) && \is_string($params['payload']) ? $params['payload'] : '';
-                    // Optionally direction: 'fromPage' | 'fromServer'
                     $direction = isset($params['direction']) && \is_string($params['direction']) ? $params['direction'] : null;
                     $handler(['payload' => $payload, 'direction' => $direction]);
                 }
                 break;
             default:
-                // No-op for unknown events
                 break;
         }
     }

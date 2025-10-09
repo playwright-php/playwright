@@ -86,69 +86,6 @@ final class Response implements ResponseInterface
         return $stringHeaders;
     }
 
-    /**
-     * Case-insensitive single header value (first value if multiple), or null if absent.
-     */
-    public function headerValue(string $name): ?string
-    {
-        $lower = strtolower($name);
-        foreach ($this->headers() as $k => $v) {
-            if (strtolower($k) === $lower) {
-                // If multiple (comma-separated), return first trimmed part
-                $parts = array_map('trim', explode(',', $v));
-                foreach ($parts as $part) {
-                    if ('' !== $part) {
-                        return $part;
-                    }
-                }
-
-                return '';
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Case-insensitive multiple header values (split on commas).
-     *
-     * @return array<string>
-     */
-    public function headerValues(string $name): array
-    {
-        $lower = strtolower($name);
-        foreach ($this->headers() as $k => $v) {
-            if (strtolower($k) === $lower) {
-                $parts = array_map('trim', explode(',', $v));
-
-                return array_values(array_filter($parts, fn ($p) => '' !== $p));
-            }
-        }
-
-        return [];
-    }
-
-    /**
-     * Headers as a list of name/value pairs; values split on commas.
-     *
-     * @return array<array{name: string, value: string}>
-     */
-    public function headersArray(): array
-    {
-        $result = [];
-        foreach ($this->headers() as $name => $value) {
-            $parts = array_map('trim', explode(',', $value));
-            foreach ($parts as $part) {
-                if ('' === $part) {
-                    continue;
-                }
-                $result[] = ['name' => $name, 'value' => $part];
-            }
-        }
-
-        return $result;
-    }
-
     public function body(): string
     {
         if (null === $this->body) {
@@ -240,7 +177,6 @@ final class Response implements ResponseInterface
 
     public function frame(): ?\Playwright\Frame\FrameInterface
     {
-        // TODO: Frame constructor requires pageId and frameSelector - need frameId from response data
         return null;
     }
 
@@ -262,7 +198,7 @@ final class Response implements ResponseInterface
             return $response['value'];
         }
 
-        return null;
+        return $this->headerValueFromLocalData($name);
     }
 
     /**
@@ -285,10 +221,12 @@ final class Response implements ResponseInterface
                 }
             }
 
-            return $typed;
+            if (!empty($typed)) {
+                return $typed;
+            }
         }
 
-        return [];
+        return $this->headerValuesFromLocalData($name);
     }
 
     /**
@@ -304,12 +242,20 @@ final class Response implements ResponseInterface
 
         $typed = [];
         foreach ($response as $header) {
-            if (is_array($header) && isset($header['name'], $header['value']) && is_string($header['name']) && is_string($header['value'])) {
+            if (is_array($header)
+                && isset($header['name'], $header['value'])
+                && is_string($header['name'])
+                && is_string($header['value'])
+            ) {
                 $typed[] = ['name' => $header['name'], 'value' => $header['value']];
             }
         }
 
-        return $typed;
+        if (!empty($typed)) {
+            return $typed;
+        }
+
+        return $this->headersArrayFromLocalData();
     }
 
     public function request(): RequestInterface

@@ -16,7 +16,6 @@ namespace Playwright\Dialog;
 
 use Playwright\Page\PageInterface;
 
-class Dialog
 /**
  * @author Simon André <smn.andre@gmail.com>
  */

@@ -159,7 +159,21 @@ final class APIResponse implements APIResponseInterface
         try {
             $decoded = json_decode($body, true, 512, \JSON_THROW_ON_ERROR);
 
-            return is_array($decoded) ? $decoded : [];
+            if (!is_array($decoded)) {
+                return [];
+            }
+
+            $result = [];
+            foreach ($decoded as $key => $value) {
+                if (is_string($key)) {
+                    $result[$key] = $value;
+                    continue;
+                }
+
+                $result[(string) $key] = $value;
+            }
+
+            return $result;
         } catch (\JsonException $e) {
             throw new PlaywrightException('Response body is not valid JSON: '.$e->getMessage(), 0, $e);
         }
@@ -174,6 +188,5 @@ final class APIResponse implements APIResponseInterface
 
     public function dispose(): void
     {
-        // No-op for now - in the future this might release resources
     }
 }

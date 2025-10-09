@@ -14,6 +14,8 @@ declare(strict_types=1);
 
 namespace Playwright\Network;
 
+use Playwright\Frame\FrameInterface;
+
 interface RequestInterface
 {
     public function url(): string;
@@ -53,18 +55,6 @@ interface RequestInterface
 
     public function resourceType(): string;
 
-    /**
-     * @return array<string, string>
-     */
-    public function allHeaders(): array;
-
-    /**
-     * @return array{name: string, value: string}[]
-     */
-    public function headersArray(): array;
-
-    public function headerValue(string $name): ?string;
-
     public function isNavigationRequest(): bool;
 
     public function postDataBuffer(): ?string;
@@ -74,7 +64,7 @@ interface RequestInterface
      */
     public function failure(): ?array;
 
-    public function frame(): ?\Playwright\Frame\FrameInterface;
+    public function frame(): ?FrameInterface;
 
     public function redirectedFrom(): ?self;
 
