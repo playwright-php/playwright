@@ -16,9 +16,6 @@ namespace Playwright\Testing;
 
 use PHPUnit\Framework\TestCase;
 
-/**
- * @author Simon André <smn.andre@gmail.com>
- */
 abstract class PlaywrightTestCase extends TestCase
 {
     use PlaywrightTestCaseTrait;
