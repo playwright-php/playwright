@@ -6,7 +6,13 @@
  * Installs Node.js dependencies for the Playwright server using Symfony Process
  */
 
-$possibleFiles = [__DIR__.'/../../../autoload.php', __DIR__.'/../../autoload.php', __DIR__.'/../vendor/autoload.php'];
+$possibleFiles = [
+    __DIR__.'/../../../autoload.php',
+    __DIR__.'/../../autoload.php',
+    __DIR__.'/../../vendor/autoload.php',
+    __DIR__.'/../vendor/autoload.php',
+    __DIR__.'/vendor/autoload.php',
+];
 $file = null;
 
 foreach ($possibleFiles as $possibleFile) {
@@ -30,11 +36,15 @@ use Symfony\Component\Process\Process;
 
 final class PlaywrightServerInstaller
 {
+    private const MIN_NODE_VERSION = '20.0.0';
+
     private string $serverDir;
 
     private OutputInterface $output;
 
     private bool $verbose;
+
+    private bool $dryRun;
 
     private bool $shouldInstallBrowsers;
 
@@ -47,11 +57,12 @@ final class PlaywrightServerInstaller
      */
     private array $commandAvailability = [];
 
-    public function __construct(bool $verbose, bool $installBrowsers, bool $withDeps)
+    public function __construct(bool $verbose, bool $dryRun, bool $installBrowsers, bool $withDeps)
     {
         $this->serverDir = __DIR__;
         $this->output = new ConsoleOutput();
         $this->verbose = $verbose;
+        $this->dryRun = $dryRun;
         $this->shouldInstallBrowsers = $installBrowsers;
         $this->withDeps = $withDeps;
 
@@ -64,11 +75,20 @@ final class PlaywrightServerInstaller
     {
         $this->output->writeln('<info>Installing Playwright Server...</info>');
 
+        if ($this->dryRun) {
+            $this->output->writeln('<comment>Dry run mode enabled. Installation commands will not be executed.</comment>');
+        }
+
         try {
             $this->checkRequirements();
             $this->ensureServerDirectory();
             $this->installNodeDependencies();
-            $this->verifyInstallation();
+
+            if ($this->dryRun) {
+                $this->output->writeln('[dry-run] Skipping verification step.');
+            } else {
+                $this->verifyInstallation();
+            }
 
             if ($this->shouldInstallBrowsers) {
                 $this->installBrowserBinaries();
@@ -81,9 +101,8 @@ final class PlaywrightServerInstaller
             $this->output->writeln("❌ <error>Installation failed: {$e->getMessage()}</error>");
 
             if ($this->verbose && $e instanceof ProcessFailedException) {
-                $this->output->writeln('<error>Process output:</error>');
-                $this->output->writeln('<error>'.$e->getProcess()->getOutput().'</error>');
-                $this->output->writeln('<error>'.$e->getProcess()->getErrorOutput().'</error>');
+                $this->output->writeln('<error>Process stderr:</error>');
+                $this->output->writeln($e->getProcess()->getErrorOutput());
             }
 
             return 1;
@@ -94,27 +113,25 @@ final class PlaywrightServerInstaller
     {
         $this->output->writeln('Checking requirements...', OutputInterface::VERBOSITY_VERBOSE);
 
-        $nodeProcess = new Process(['node', '--version']);
-        $nodeProcess->run();
-
-        if (!$nodeProcess->isSuccessful()) {
-            throw new \RuntimeException('Node.js is required but not found.');
+        try {
+            $nodeProcess = $this->runCommand(['node', '--version']);
+        } catch (ProcessFailedException $exception) {
+            throw new \RuntimeException('Node.js is required but not found in PATH.', 0, $exception);
         }
 
         $nodeVersion = trim($nodeProcess->getOutput());
         $version = str_replace('v', '', $nodeVersion);
 
-        if (version_compare($version, '20.0.0', '<')) {
-            throw new \RuntimeException(sprintf('Node.js 20+ is required, found version %s. Please upgrade Node.js.', $nodeVersion));
+        if (version_compare($version, self::MIN_NODE_VERSION, '<')) {
+            throw new \RuntimeException(sprintf('Node.js %s+ is required, found version %s. Please upgrade Node.js.', self::MIN_NODE_VERSION, $nodeVersion));
         }
 
         $this->output->writeln("✓ Node.js $nodeVersion found");
 
-        $npmProcess = new Process(['npm', '--version']);
-        $npmProcess->run();
-
-        if (!$npmProcess->isSuccessful()) {
-            throw new \RuntimeException('npm is required but not found.');
+        try {
+            $npmProcess = $this->runCommand(['npm', '--version']);
+        } catch (ProcessFailedException $exception) {
+            throw new \RuntimeException('npm is required but not found in PATH.', 0, $exception);
         }
 
         $npmVersion = trim($npmProcess->getOutput());
@@ -168,20 +185,7 @@ final class PlaywrightServerInstaller
 
         $this->output->writeln("Using $packageManager for installation", OutputInterface::VERBOSITY_VERBOSE);
 
-        $process = new Process($command, $this->serverDir);
-        $process->setTimeout(300);
-
-        if ($this->verbose) {
-            $process->run(function ($type, $buffer) {
-                $this->output->write($buffer);
-            });
-        } else {
-            $process->run();
-        }
-
-        if (!$process->isSuccessful()) {
-            throw new ProcessFailedException($process);
-        }
+        $this->runCommand($command, $this->serverDir, 300, true);
 
         $this->output->writeln('✓ Node.js dependencies installed');
     }
@@ -271,13 +275,7 @@ final class PlaywrightServerInstaller
     {
         $this->output->writeln('Verifying installation...', OutputInterface::VERBOSITY_VERBOSE);
 
-        $resolve = new Process(['node', '-p', "require.resolve('playwright')"], $this->serverDir);
-        $resolve->setTimeout(30);
-        $resolve->run();
-
-        if (!$resolve->isSuccessful()) {
-            throw new \RuntimeException('Server verification failed - playwright package not resolvable');
-        }
+        $this->runCommand(['node', '-p', "require.resolve('playwright')"], $this->serverDir, 30);
 
         if (!is_file($this->serverDir.'/playwright-server.js')) {
             throw new \RuntimeException('Server entry script not found: playwright-server.js');
@@ -293,20 +291,7 @@ final class PlaywrightServerInstaller
         $packageManager = $this->detectPackageManager();
         $command = $this->getBrowserInstallCommand($packageManager);
 
-        $process = new Process($command, $this->serverDir);
-        $process->setTimeout(null);
-
-        if ($this->verbose) {
-            $process->run(function ($type, $buffer) {
-                $this->output->write($buffer);
-            });
-        } else {
-            $process->run();
-        }
-
-        if (!$process->isSuccessful()) {
-            throw new ProcessFailedException($process);
-        }
+        $this->runCommand($command, $this->serverDir, null, true);
 
         $this->output->writeln('✓ Browsers installed');
     }
@@ -326,6 +311,37 @@ final class PlaywrightServerInstaller
         };
     }
 
+    /**
+     * @param array<int, string> $command
+     */
+    private function runCommand(array $command, ?string $cwd = null, ?int $timeout = 60, bool $allowDryRun = false): Process
+    {
+        $process = new Process($command, $cwd);
+        $process->setTimeout($timeout);
+
+        $this->output->writeln(sprintf('Running command: %s', $process->getCommandLine()), OutputInterface::VERBOSITY_VERBOSE);
+
+        if ($allowDryRun && $this->dryRun) {
+            $this->output->writeln(sprintf('[dry-run] Would execute: %s', $process->getCommandLine()));
+
+            return $process;
+        }
+
+        $callback = $this->verbose
+            ? function (string $type, string $buffer): void {
+                $this->output->write($buffer);
+            }
+            : null;
+
+        $process->run($callback);
+
+        if (!$process->isSuccessful()) {
+            throw new ProcessFailedException($process);
+        }
+
+        return $process;
+    }
+
     private function isCommandAvailable(string $command): bool
     {
         if (array_key_exists($command, $this->commandAvailability)) {
@@ -343,6 +359,7 @@ $argv = $_SERVER['argv'] ?? [];
 $args = array_slice($argv, 1);
 
 $verbose = false;
+$dryRun = false;
 $installBrowsers = false;
 $withDeps = false;
 $help = false;
@@ -356,6 +373,9 @@ foreach ($args as $arg) {
         case '-h':
         case '--help':
             $help = true;
+            break;
+        case '--dry-run':
+            $dryRun = true;
             break;
         case '--browsers':
             $installBrowsers = true;
@@ -377,6 +397,7 @@ if ($help) {
     echo "Options:\n";
     echo "  -v, --verbose     Show detailed output\n";
     echo "  -h, --help        Show this help message\n";
+    echo "  --dry-run         Print commands without executing install steps\n";
     echo "  --browsers        Install Playwright browser binaries\n";
     echo "  --with-deps       Install browsers and system dependencies (implies --browsers)\n";
     echo "\n";
@@ -389,5 +410,5 @@ if ($help) {
     exit(0);
 }
 
-$installer = new PlaywrightServerInstaller($verbose, $installBrowsers, $withDeps);
+$installer = new PlaywrightServerInstaller($verbose, $dryRun, $installBrowsers, $withDeps);
 exit($installer->install());

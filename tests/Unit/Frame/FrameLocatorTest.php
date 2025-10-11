@@ -176,7 +176,7 @@ class FrameLocatorTest extends TestCase
     {
         $locator = $this->frameLocator->getByRole('button');
         $this->assertInstanceOf(LocatorInterface::class, $locator);
-        $this->assertSame('button', $locator->getSelector());
+        $this->assertSame('internal:role=button', $locator->getSelector());
     }
 
     public function testGetByPlaceholder(): void

@@ -16,6 +16,7 @@ namespace Playwright\Frame;
 
 use Playwright\Locator\Locator;
 use Playwright\Locator\LocatorInterface;
+use Playwright\Locator\RoleSelectorBuilder;
 use Playwright\Transport\TransportInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -72,7 +73,16 @@ final class FrameLocator implements FrameLocatorInterface
      */
     public function getByRole(string $role, array $options = []): LocatorInterface
     {
-        return $this->locator($role);
+        $selector = RoleSelectorBuilder::buildSelector($role, $options);
+        $locatorOptions = RoleSelectorBuilder::filterLocatorOptions($options);
+
+        $this->logger->debug('Creating getByRole locator within frame', [
+            'frameSelector' => $this->frameSelector,
+            'role' => $role,
+            'selector' => $selector,
+        ]);
+
+        return new Locator($this->transport, $this->pageId, $selector, $this->frameSelector, $this->logger, $locatorOptions);
     }
 
     public function getByTestId(string $testId): LocatorInterface
