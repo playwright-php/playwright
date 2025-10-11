@@ -421,7 +421,24 @@ final class LocatorMethodsTest extends TestCase
     {
         $result = $this->locator->getByRole('button');
         $this->assertInstanceOf(Locator::class, $result);
-        $this->assertSame('Locator(selector=".element >> button")', (string) $result);
+        $this->assertSame('Locator(selector=".element >> internal:role=button")', (string) $result);
+    }
+
+    public function testGetByRoleWithOptions(): void
+    {
+        $result = $this->locator->getByRole('button', [
+            'name' => 'Submit',
+            'checked' => true,
+            'includeHidden' => true,
+            'pressed' => 'mixed',
+            'selected' => false,
+            'level' => 2,
+        ]);
+
+        $this->assertSame(
+            'Locator(selector=".element >> internal:role=button[name="Submit"][checked][pressed="mixed"][selected=false][include-hidden][level=2]")',
+            (string) $result
+        );
     }
 
     public function testGetByPlaceholder(): void

@@ -1,7 +1,7 @@
 <div align="center">
 <img src="https://github.com/playwright-php/.github/raw/main/profile/playwright-php.png" alt="Playwright PHP" />
 
-&nbsp; ![PHP Version](https://img.shields.io/badge/PHP-8.3+-05971B?labelColor=09161E&color=1D8D23&logoColor=FFFFFF)
+&nbsp; ![PHP Version](https://img.shields.io/badge/PHP-8.2+-05971B?labelColor=09161E&color=1D8D23&logoColor=FFFFFF)
 &nbsp; ![CI](https://img.shields.io/github/actions/workflow/status/playwright-php/playwright/CI.yaml?branch=main&label=Tests&color=1D8D23&labelColor=09161E&logoColor=FFFFFF)
 &nbsp; ![Release](https://img.shields.io/github/v/release/playwright-php/playwright?label=Stable&labelColor=09161E&color=1D8D23&logoColor=FFFFFF)
 &nbsp; ![License](https://img.shields.io/github/license/playwright-php/playwright?label=License&labelColor=09161E&color=1D8D23&logoColor=FFFFFF)
@@ -16,14 +16,14 @@ Modern, PHP‑native browser automation powered by Microsoft Playwright.
 
 Playwright for PHP lets you launch real browsers (Chromium, Firefox, WebKit), drive pages and locators, and write reliable end‑to‑end tests — all from PHP.
 
-- Familiar model: browser → context → page → locator
-- Auto‑waiting interactions reduce flakiness
-- PHPUnit integration with a base trait and fluent `expect()` assertions
-- Cross‑browser: Chromium, Firefox, and WebKit supported
+- **Familiar model**: browser → context → page → locator
+- **Auto‑waiting** interactions reduce flakiness
+- **PHPUnit integration** with a base trait and fluent `expect()` assertions
+- **Cross‑browser**: Chromium, Firefox, and WebKit supported
 - No separate server to manage — a lightweight Node server is started for you
 
 Requirements:
-- PHP 8.3+
+- PHP 8.2+
 - Node.js 20+ (used by the bundled Playwright server and browsers)
 
 ## Install
@@ -45,6 +45,9 @@ vendor/bin/playwright-install --with-deps
 
 # The same commands apply when you work on this repository
 # (the script lives in vendor/bin/playwright-install here too)
+
+# Preview commands without changes
+vendor/bin/playwright-install --dry-run --with-deps
 ```
 
 
@@ -171,7 +174,7 @@ jobs:
 
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: '8.2'
 
       - uses: actions/setup-node@v4
         with:

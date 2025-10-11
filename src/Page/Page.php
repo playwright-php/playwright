@@ -38,6 +38,7 @@ use Playwright\Input\Mouse;
 use Playwright\Input\MouseInterface;
 use Playwright\Locator\Locator;
 use Playwright\Locator\LocatorInterface;
+use Playwright\Locator\RoleSelectorBuilder;
 use Playwright\Network\Request;
 use Playwright\Network\Response;
 use Playwright\Network\ResponseInterface;
@@ -199,7 +200,10 @@ final class Page implements PageInterface, EventDispatcherInterface
      */
     public function getByRole(string $role, array $options = []): LocatorInterface
     {
-        return $this->locator($role, $options);
+        $selector = RoleSelectorBuilder::buildSelector($role, $options);
+        $locatorOptions = RoleSelectorBuilder::filterLocatorOptions($options);
+
+        return $this->locator($selector, $locatorOptions);
     }
 
     /**

@@ -281,7 +281,9 @@ final class Locator implements LocatorInterface
      */
     public function getByRole(string $role, array $options = []): self
     {
-        return $this->locator($role);
+        $selector = RoleSelectorBuilder::buildSelector($role, $options);
+
+        return $this->locator($selector);
     }
 
     public function getByTestId(string $testId): self

@@ -19,6 +19,7 @@ use PHPUnit\Framework\TestCase;
 use Playwright\Exception\TimeoutException;
 use Playwright\Tests\Mocks\TestLogger;
 use Playwright\Transport\JsonRpc\JsonRpcClient;
+use Playwright\Transport\JsonRpc\JsonRpcClientInterface;
 use Symfony\Component\Clock\MockClock;
 
 #[CoversClass(JsonRpcClient::class)]
@@ -58,24 +59,26 @@ final class JsonRpcClientTest extends TestCase
         $this->assertEquals('method2', $requests[1]['method']);
     }
 
-    public function testSendTracksPendingRequests(): void
+    public function testImplementsJsonRpcClientInterface(): void
     {
-        $client = new TestableJsonRpcClient($this->clock, $this->logger);
+        $this->assertInstanceOf(JsonRpcClientInterface::class, $this->client);
+    }
 
-        $client->setResponseDelay(100);
-        $client->setMockResponse(['jsonrpc' => '2.0', 'id' => 1, 'result' => ['status' => 'ok']]);
+    public function testGetPendingRequestsReportsActiveRequest(): void
+    {
+        $client = new InspectingJsonRpcClient($this->clock, $this->logger);
+        $client->mockResponse = ['jsonrpc' => '2.0', 'id' => 1, 'result' => ['status' => 'ok']];
 
-        $pendingBefore = $client->getPendingRequests();
-        $this->assertEmpty($pendingBefore);
+        $client->send('Browser.getVersion');
 
-        $startTime = $this->clock->now()->format('Uu') / 1000;
+        $this->assertNotEmpty($client->capturedPending);
+        $this->assertArrayHasKey($client->capturedRequestId, $client->capturedPending);
 
-        $result = $client->send('test_method');
-
-        $pendingAfter = $client->getPendingRequests();
-        $this->assertEmpty($pendingAfter);
-
-        $this->assertEquals(['status' => 'ok'], $result);
+        $pending = $client->capturedPending[$client->capturedRequestId];
+        $this->assertSame('Browser.getVersion', $pending['method']);
+        $this->assertSame(0.0, $pending['age']);
+        $this->assertGreaterThanOrEqual(0.0, $pending['timestamp']);
+        $this->assertSame([], $client->getPendingRequests());
     }
 
     public function testSendHandlesTimeout(): void
@@ -110,15 +113,21 @@ final class JsonRpcClientTest extends TestCase
         $client->send('slow_method', ['param' => 'value'], 1000.0);
     }
 
-    public function testCancelPendingRequests(): void
+    public function testCancelPendingRequestsClearsTrackedEntries(): void
     {
-        $pending = $this->client->getPendingRequests();
-        $this->assertEmpty($pending);
+        $client = new InspectingJsonRpcClient($this->clock, $this->logger);
 
-        $this->client->cancelPendingRequests();
+        $reflection = new \ReflectionProperty(JsonRpcClient::class, 'pendingRequests');
+        $reflection->setAccessible(true);
+        $reflection->setValue($client, [
+            123 => ['method' => 'Browser.getVersion', 'timestamp' => 1.0],
+        ]);
 
-        $pendingAfter = $this->client->getPendingRequests();
-        $this->assertEmpty($pendingAfter);
+        $this->assertNotEmpty($client->getPendingRequests());
+
+        $client->cancelPendingRequests();
+
+        $this->assertSame([], $client->getPendingRequests());
     }
 
     public function testLogsDebugInformation(): void
@@ -285,16 +294,10 @@ class TestableJsonRpcClient extends JsonRpcClient
 {
     private array $sentRequests = [];
     private ?array $mockResponse = null;
-    private int $responseDelay = 0;
 
     public function setMockResponse(?array $response): void
     {
         $this->mockResponse = $response;
-    }
-
-    public function setResponseDelay(int $delayMs): void
-    {
-        $this->responseDelay = $delayMs;
     }
 
     public function getSentRequests(): array
@@ -306,10 +309,6 @@ class TestableJsonRpcClient extends JsonRpcClient
     {
         $this->sentRequests[] = $request;
 
-        if ($this->responseDelay > 0) {
-            usleep($this->responseDelay * 1000);
-        }
-
         if (null === $this->mockResponse) {
             if (null !== $deadline) {
                 throw new TimeoutException('Mock timeout exceeded deadline', 100.0);
@@ -319,9 +318,24 @@ class TestableJsonRpcClient extends JsonRpcClient
 
         return $this->mockResponse;
     }
+}
 
-    public function getCurrentTimeMs(): float
+class InspectingJsonRpcClient extends JsonRpcClient
+{
+    /** @var array<int, array{method: string, timestamp: float, age: float}> */
+    public array $capturedPending = [];
+    public int|string|null $capturedRequestId = null;
+    public ?array $mockResponse = null;
+
+    protected function sendAndReceive(array $request, ?float $deadline): array
     {
-        return parent::getCurrentTimeMs();
+        $this->capturedPending = $this->getPendingRequests();
+        $this->capturedRequestId = $request['id'] ?? ($request['requestId'] ?? null);
+
+        if (null === $this->mockResponse) {
+            throw new \RuntimeException('No mock response set');
+        }
+
+        return $this->mockResponse;
     }
 }
