@@ -16,7 +16,7 @@ namespace Playwright\Tests\Unit\WebSocket;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Playwright\Transport\TransportInterface;
+use Playwright\Transport\MockTransport;
 use Playwright\WebSocket\WebSocketRoute;
 use Playwright\WebSocket\WebSocketRouteInterface;
 
@@ -25,33 +25,8 @@ final class WebSocketRouteTest extends TestCase
 {
     public function testUrlReturnsGivenUrl(): void
     {
-        $transport = new class implements TransportInterface {
-            public function connect(): void
-            {
-            }
-
-            public function disconnect(): void
-            {
-            }
-
-            public function send(array $message): array
-            {
-                return [];
-            }
-
-            public function sendAsync(array $message): void
-            {
-            }
-
-            public function isConnected(): bool
-            {
-                return true;
-            }
-
-            public function processEvents(): void
-            {
-            }
-        };
+        $transport = new MockTransport();
+        $transport->connect();
 
         $route = new WebSocketRoute($transport, 'route_1', 'wss://example/ws');
         $this->assertSame('wss://example/ws', $route->url());
@@ -60,41 +35,11 @@ final class WebSocketRouteTest extends TestCase
     public function testCloseSendsMessage(): void
     {
         $captured = [];
-        $transport = new class($captured) implements TransportInterface {
-            public array $captured;
-
-            public function __construct(&$captured)
-            {
-                $this->captured = &$captured;
-            }
-
-            public function connect(): void
-            {
-            }
-
-            public function disconnect(): void
-            {
-            }
-
-            public function send(array $message): array
-            {
-                return [];
-            }
-
-            public function sendAsync(array $message): void
-            {
-                $this->captured[] = $message;
-            }
-
-            public function isConnected(): bool
-            {
-                return true;
-            }
-
-            public function processEvents(): void
-            {
-            }
-        };
+        $transport = new MockTransport();
+        $transport->connect();
+        $transport->onSendAsync(function (array $message) use (&$captured): void {
+            $captured[] = $message;
+        });
 
         $route = new WebSocketRoute($transport, 'route_1', 'wss://example/ws');
         $route->close(['code' => 1000, 'reason' => 'Normal']);
@@ -108,80 +53,22 @@ final class WebSocketRouteTest extends TestCase
 
     public function testSendSendsMessage(): void
     {
-        $captured = [];
-        $transport = new class($captured) implements TransportInterface {
-            public array $captured;
-
-            public function __construct(&$captured)
-            {
-                $this->captured = &$captured;
-            }
-
-            public function connect(): void
-            {
-            }
-
-            public function disconnect(): void
-            {
-            }
-
-            public function send(array $message): array
-            {
-                return [];
-            }
-
-            public function sendAsync(array $message): void
-            {
-                $this->captured[] = $message;
-            }
-
-            public function isConnected(): bool
-            {
-                return true;
-            }
-
-            public function processEvents(): void
-            {
-            }
-        };
+        $transport = new MockTransport();
+        $transport->connect();
 
         $route = new WebSocketRoute($transport, 'route_1', 'wss://example/ws');
         $route->send('ping');
 
-        $this->assertSame('websocketRoute.send', $captured[0]['action'] ?? null);
-        $this->assertSame('route_1', $captured[0]['routeId'] ?? null);
-        $this->assertSame('ping', $captured[0]['message'] ?? null);
+        $messages = $transport->getAsyncMessages();
+        $this->assertSame('websocketRoute.send', $messages[0]['action'] ?? null);
+        $this->assertSame('route_1', $messages[0]['routeId'] ?? null);
+        $this->assertSame('ping', $messages[0]['message'] ?? null);
     }
 
     public function testHandlersAreInvokedViaDispatchEvent(): void
     {
-        $transport = new class implements TransportInterface {
-            public function connect(): void
-            {
-            }
-
-            public function disconnect(): void
-            {
-            }
-
-            public function send(array $message): array
-            {
-                return [];
-            }
-
-            public function sendAsync(array $message): void
-            {
-            }
-
-            public function isConnected(): bool
-            {
-                return true;
-            }
-
-            public function processEvents(): void
-            {
-            }
-        };
+        $transport = new MockTransport();
+        $transport->connect();
 
         $route = new WebSocketRoute($transport, 'route_1', 'wss://example/ws');
 
@@ -202,33 +89,15 @@ final class WebSocketRouteTest extends TestCase
 
     public function testConnectToServerReturnsNewInstanceWhenServerGivesId(): void
     {
-        $transport = new class implements TransportInterface {
-            public function connect(): void
-            {
-            }
-
-            public function disconnect(): void
-            {
-            }
-
-            public function send(array $message): array
-            {
+        $transport = new MockTransport();
+        $transport->connect();
+        $transport->queueResponse(function (array $message): array {
+            if (($message['action'] ?? null) === 'websocketRoute.connectToServer') {
                 return ['serverRouteId' => 'route_server', 'url' => 'wss://server/ws'];
             }
 
-            public function sendAsync(array $message): void
-            {
-            }
-
-            public function isConnected(): bool
-            {
-                return true;
-            }
-
-            public function processEvents(): void
-            {
-            }
-        };
+            return [];
+        });
 
         $route = new WebSocketRoute($transport, 'route_1', 'wss://example/ws');
         $serverRoute = $route->connectToServer();

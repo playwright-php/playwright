@@ -123,9 +123,13 @@ class ScreenshotHelperTest extends TestCase
 
     public function testGetDirectoryInfoWithFiles(): void
     {
-        file_put_contents($this->testDir.'/old.png', 'fake png data 1');
-        sleep(1);
-        file_put_contents($this->testDir.'/new.png', 'fake png data 2 longer');
+        $oldPath = $this->testDir.'/old.png';
+        $newPath = $this->testDir.'/new.png';
+
+        file_put_contents($oldPath, 'fake png data 1');
+        file_put_contents($newPath, 'fake png data 2 longer');
+        touch($oldPath, time() - 10);
+        touch($newPath, time());
         file_put_contents($this->testDir.'/not-png.txt', 'should be ignored');
 
         $info = ScreenshotHelper::getDirectoryInfo($this->testDir);
