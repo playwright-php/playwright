@@ -189,7 +189,7 @@ final class MockTransport implements TransportInterface
      */
     public function getSentMessages(): array
     {
-        return $this->sentMessages;
+        return array_values($this->sentMessages);
     }
 
     /**
@@ -197,7 +197,7 @@ final class MockTransport implements TransportInterface
      */
     public function getAsyncMessages(): array
     {
-        return $this->asyncMessages;
+        return array_values($this->asyncMessages);
     }
 
     /**
@@ -251,11 +251,10 @@ final class MockTransport implements TransportInterface
                 throw new \UnexpectedValueException('Mock transport response callback must return an array.');
             }
 
-            /* @var array<string, mixed> $result */
-            return $result;
+            return $this->sanitizeAssociativeArray($result);
         }
 
-        return $payload;
+        return $this->sanitizeAssociativeArray($payload);
     }
 
     /**
@@ -305,5 +304,22 @@ final class MockTransport implements TransportInterface
         if (!$this->connected) {
             throw new \UnexpectedValueException('Mock transport is not connected.');
         }
+    }
+
+    /**
+     * @param array<mixed, mixed> $payload
+     *
+     * @return array<string, mixed>
+     */
+    private function sanitizeAssociativeArray(array $payload): array
+    {
+        $result = [];
+        foreach ($payload as $key => $value) {
+            if (is_string($key)) {
+                $result[$key] = $value;
+            }
+        }
+
+        return $result;
     }
 }
