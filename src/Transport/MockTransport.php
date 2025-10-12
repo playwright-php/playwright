@@ -14,6 +14,12 @@ declare(strict_types=1);
 
 namespace Playwright\Transport;
 
+/**
+ * Deterministic in-memory implementation of the Playwright transport interface.
+ *
+ * Allows tests to queue scripted responses, inspect sent messages, and simulate
+ * async/event flows without starting the real Playwright server.
+ */
 final class MockTransport implements TransportInterface
 {
     private bool $connected = false;
@@ -26,10 +32,10 @@ final class MockTransport implements TransportInterface
      */
     private array $scriptedResponses = [];
 
-    /** @var list<array<string, mixed>> */
+    /** @var array<int, array<string, mixed>> */
     private array $sentMessages = [];
 
-    /** @var list<array<string, mixed>> */
+    /** @var array<int, array<string, mixed>> */
     private array $asyncMessages = [];
 
     /**
@@ -45,9 +51,7 @@ final class MockTransport implements TransportInterface
     /** @var list<mixed> */
     private array $processedEventResults = [];
 
-    /**
-     * @var array<string, callable>
-     */
+    /** @var array<string, callable> */
     private array $pendingRequestCallbacks = [];
 
     public function connect(): void
@@ -126,7 +130,7 @@ final class MockTransport implements TransportInterface
     }
 
     /**
-     * Register a callback that will be invoked on every {@see sendAsync()} call.
+     * Register a callback invoked on every {@see sendAsync()} call.
      *
      * @param callable $handler accepts signatures with zero, one (message), or two (message, transport) parameters
      */
@@ -136,7 +140,7 @@ final class MockTransport implements TransportInterface
     }
 
     /**
-     * Queue an event callback that will be executed the next time {@see processEvents()} runs.
+     * Queue an event callback executed from {@see processEvents()}.
      *
      * @param callable $callback accepts signatures with zero parameters or one (transport) parameter
      */
@@ -146,7 +150,7 @@ final class MockTransport implements TransportInterface
     }
 
     /**
-     * Reset recorded history while keeping scripted responses and queued events intact.
+     * Reset recorded history while keeping scripted responses and queued events.
      */
     public function resetHistory(): void
     {

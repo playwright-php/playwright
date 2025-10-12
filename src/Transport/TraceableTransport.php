@@ -14,6 +14,11 @@ declare(strict_types=1);
 
 namespace Playwright\Transport;
 
+/**
+ * Decorator transport that records every interaction with the inner transport.
+ *
+ * Useful in unit tests for asserting on payloads without stubbing behaviour.
+ */
 final class TraceableTransport implements TransportInterface
 {
     /**

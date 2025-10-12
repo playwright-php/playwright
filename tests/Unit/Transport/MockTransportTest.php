@@ -15,7 +15,6 @@ declare(strict_types=1);
 namespace Playwright\Tests\Unit\Transport;
 
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\TestCase;
 use Playwright\Transport\MockTransport;
 

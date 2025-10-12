@@ -19,57 +19,23 @@ use PHPUnit\Framework\TestCase;
 use Playwright\Browser\BrowserContext;
 use Playwright\Configuration\PlaywrightConfig;
 use Playwright\Page\PageInterface;
-use Playwright\Transport\TransportInterface;
+use Playwright\Transport\MockTransport;
+use Playwright\Transport\TraceableTransport;
 
 #[CoversClass(BrowserContext::class)]
 final class BrowserContextPopupTest extends TestCase
 {
     public function testWaitForPopupWithCallbackCoordinatedTransport(): void
     {
-        $transport = new class implements TransportInterface {
-            public bool $stored = false;
-            public $storedCallback; // property type callable not allowed in all PHP versions
-            public array $lastMessage = [];
+        $transport = new MockTransport();
+        $transport->connect();
 
-            public function connect(): void
-            {
-            }
+        $lastMessage = null;
+        $transport->queueResponse(function (array $message) use (&$lastMessage): array {
+            $lastMessage = $message;
 
-            public function disconnect(): void
-            {
-            }
-
-            public function isConnected(): bool
-            {
-                return true;
-            }
-
-            public function processEvents(): void
-            {
-            }
-
-            public function sendAsync(array $message): void
-            {
-            }
-
-            // Extra method detected by method_exists in BrowserContext
-            public function storePendingCallback(string $requestId, callable $callback): void
-            {
-                $this->stored = true;
-                $this->storedCallback = $callback;
-            }
-
-            public function send(array $message): array
-            {
-                $this->lastMessage = $message;
-                // Simulate server returning a popup page identifier
-                if (($message['action'] ?? '') === 'context.waitForPopup') {
-                    return ['popupPageId' => 'popup_ctx_123'];
-                }
-
-                return [];
-            }
-        };
+            return ['popupPageId' => 'popup_ctx_123'];
+        });
 
         $context = new BrowserContext($transport, 'ctx_1', new PlaywrightConfig());
 
@@ -78,12 +44,12 @@ final class BrowserContextPopupTest extends TestCase
             $actionExecuted = true; // should not run immediately in coordinated path
         });
 
-        // Transport was asked to store callback
-        $this->assertTrue($transport->stored, 'Expected storePendingCallback to be called');
+        $stored = $transport->getStoredPendingCallbacks();
+        $this->assertCount(1, $stored);
 
-        // Correct server action was sent
-        $this->assertSame('context.waitForPopup', $transport->lastMessage['action'] ?? null);
-        $this->assertSame('ctx_1', $transport->lastMessage['contextId'] ?? null);
+        $this->assertSame('context.waitForPopup', $lastMessage['action'] ?? null);
+        $this->assertSame('ctx_1', $lastMessage['contextId'] ?? null);
+        $this->assertArrayHasKey($lastMessage['requestId'] ?? '', $stored);
 
         // The action should not have executed immediately here (it would be executed by transport when server requests it)
         $this->assertFalse($actionExecuted, 'Callback should be deferred in coordinated path');
@@ -93,41 +59,17 @@ final class BrowserContextPopupTest extends TestCase
 
     public function testWaitForPopupFallbackWithoutCallbackSupport(): void
     {
-        // A plain mock transport without storePendingCallback method triggers fallback execution of the action
-        $transport = new class implements TransportInterface {
-            public array $lastMessage = [];
+        $inner = new MockTransport();
+        $inner->connect();
+        $lastMessage = null;
+        $inner->queueResponse(function (array $message) use (&$lastMessage): array {
+            $lastMessage = $message;
 
-            public function connect(): void
-            {
-            }
+            return ['popupPageId' => 'popup_ctx_456'];
+        });
 
-            public function disconnect(): void
-            {
-            }
-
-            public function isConnected(): bool
-            {
-                return true;
-            }
-
-            public function processEvents(): void
-            {
-            }
-
-            public function sendAsync(array $message): void
-            {
-            }
-
-            public function send(array $message): array
-            {
-                $this->lastMessage = $message;
-                if (($message['action'] ?? '') === 'context.waitForPopup') {
-                    return ['popupPageId' => 'popup_ctx_456'];
-                }
-
-                return [];
-            }
-        };
+        $transport = new TraceableTransport($inner);
+        $transport->connect();
 
         $context = new BrowserContext($transport, 'ctx_2', new PlaywrightConfig());
 
@@ -139,43 +81,19 @@ final class BrowserContextPopupTest extends TestCase
         // Fallback should have executed the action synchronously
         $this->assertTrue($actionExecuted, 'Callback should execute immediately in fallback path');
 
-        // Correct server action was sent
-        $this->assertSame('context.waitForPopup', $transport->lastMessage['action'] ?? null);
-        $this->assertSame('ctx_2', $transport->lastMessage['contextId'] ?? null);
+        $sendCalls = $transport->getSendCalls();
+        $this->assertSame('context.waitForPopup', $sendCalls[0]['message']['action'] ?? null);
+        $this->assertSame('ctx_2', $sendCalls[0]['message']['contextId'] ?? null);
+        $this->assertSame($lastMessage, $sendCalls[0]['message']);
 
         $this->assertInstanceOf(PageInterface::class, $popup);
     }
 
     public function testWaitForPopupThrowsOnInvalidResponse(): void
     {
-        $transport = new class implements TransportInterface {
-            public function connect(): void
-            {
-            }
-
-            public function disconnect(): void
-            {
-            }
-
-            public function isConnected(): bool
-            {
-                return true;
-            }
-
-            public function processEvents(): void
-            {
-            }
-
-            public function sendAsync(array $message): void
-            {
-            }
-
-            public function send(array $message): array
-            {
-                // Return an invalid response (missing popupPageId)
-                return ['popupPageId' => null];
-            }
-        };
+        $transport = new MockTransport();
+        $transport->connect();
+        $transport->queueResponse(static fn (): array => ['popupPageId' => null]);
 
         $context = new BrowserContext($transport, 'ctx_3', new PlaywrightConfig());
 

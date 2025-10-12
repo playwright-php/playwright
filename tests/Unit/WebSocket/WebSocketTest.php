@@ -16,7 +16,7 @@ namespace Playwright\Tests\Unit\WebSocket;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Playwright\Transport\TransportInterface;
+use Playwright\Transport\MockTransport;
 use Playwright\WebSocket\WebSocket;
 
 #[CoversClass(WebSocket::class)]
@@ -24,33 +24,8 @@ final class WebSocketTest extends TestCase
 {
     public function testUrlReturnsGivenUrl(): void
     {
-        $transport = new class implements TransportInterface {
-            public function connect(): void
-            {
-            }
-
-            public function disconnect(): void
-            {
-            }
-
-            public function send(array $message): array
-            {
-                return [];
-            }
-
-            public function sendAsync(array $message): void
-            {
-            }
-
-            public function isConnected(): bool
-            {
-                return true;
-            }
-
-            public function processEvents(): void
-            {
-            }
-        };
+        $transport = new MockTransport();
+        $transport->connect();
 
         $ws = new WebSocket($transport, 'ws_1', 'wss://example.test/socket');
 
@@ -59,33 +34,8 @@ final class WebSocketTest extends TestCase
 
     public function testIsClosedBecomesTrueAfterCloseEvent(): void
     {
-        $transport = new class implements TransportInterface {
-            public function connect(): void
-            {
-            }
-
-            public function disconnect(): void
-            {
-            }
-
-            public function send(array $message): array
-            {
-                return [];
-            }
-
-            public function sendAsync(array $message): void
-            {
-            }
-
-            public function isConnected(): bool
-            {
-                return true;
-            }
-
-            public function processEvents(): void
-            {
-            }
-        };
+        $transport = new MockTransport();
+        $transport->connect();
 
         $ws = new WebSocket($transport, 'ws_1', 'wss://example.test/socket');
         $this->assertFalse($ws->isClosed());
@@ -98,55 +48,19 @@ final class WebSocketTest extends TestCase
 
     public function testWaitForEventResolvesWithPredicate(): void
     {
-        $cb = null; // set after ws is created
-        $transport = new class($cb) implements TransportInterface {
-            public $onProcess;
-
-            public function __construct(&$onProcess)
-            {
-                $this->onProcess = &$onProcess;
-            }
-
-            public function connect(): void
-            {
-            }
-
-            public function disconnect(): void
-            {
-            }
-
-            public function send(array $message): array
-            {
-                return [];
-            }
-
-            public function sendAsync(array $message): void
-            {
-            }
-
-            public function isConnected(): bool
-            {
-                return true;
-            }
-
-            public function processEvents(): void
-            {
-                if (is_callable($this->onProcess)) {
-                    ($this->onProcess)();
-                }
-            }
-        };
+        $transport = new MockTransport();
+        $transport->connect();
 
         $ws = new WebSocket($transport, 'ws_1', 'wss://example.test/socket');
 
         $emitted = false;
-        $transport->onProcess = function () use ($ws, &$emitted): void {
+        $transport->queueProcessEvent(function () use ($ws, &$emitted): void {
             if ($emitted) {
                 return;
             }
             $ws->dispatchEvent('framereceived', ['payload' => 'hello']);
             $emitted = true;
-        };
+        });
 
         $result = $ws->waitForEvent('framereceived', [
             'predicate' => fn ($e) => is_array($e) && (($e['payload'] ?? '') === 'hello'),
