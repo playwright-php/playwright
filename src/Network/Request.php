@@ -84,11 +84,15 @@ final class Request implements RequestInterface
             return null;
         }
 
-        if (!json_validate($postData)) {
+        if (\function_exists('json_validate') && !\json_validate($postData)) {
             return null;
         }
 
-        $decoded = json_decode($postData, true, 512, JSON_THROW_ON_ERROR);
+        try {
+            $decoded = json_decode($postData, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return null;
+        }
 
         if (!is_array($decoded)) {
             return null;
