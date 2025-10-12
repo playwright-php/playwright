@@ -18,18 +18,18 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Playwright\Exception\DisconnectedException;
 use Playwright\Exception\NetworkException;
+use Playwright\Tests\Mocks\FixedClock;
 use Playwright\Tests\Mocks\TestLogger;
 use Playwright\Transport\JsonRpc\JsonRpcClientInterface;
 use Playwright\Transport\JsonRpc\ProcessJsonRpcClient;
 use Playwright\Transport\JsonRpc\ProcessLauncherInterface;
-use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
 
 #[CoversClass(ProcessJsonRpcClient::class)]
 final class ProcessJsonRpcClientTest extends TestCase
 {
-    private MockClock $clock;
+    private FixedClock $clock;
     private TestLogger $logger;
     private Process $mockProcess;
     private ProcessLauncherInterface $mockProcessLauncher;
@@ -38,7 +38,7 @@ final class ProcessJsonRpcClientTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->clock = new MockClock();
+        $this->clock = new FixedClock();
         $this->logger = new TestLogger();
         $this->mockProcess = $this->createMock(Process::class);
         $this->mockProcessLauncher = $this->createMock(ProcessLauncherInterface::class);

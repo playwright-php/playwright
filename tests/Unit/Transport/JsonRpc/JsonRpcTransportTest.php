@@ -12,7 +12,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace Playwright\Tests\Unit\Transport;
+namespace Playwright\Tests\Unit\Transport\JsonRpc;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;

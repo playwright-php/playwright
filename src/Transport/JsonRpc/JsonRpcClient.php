@@ -17,9 +17,9 @@ namespace Playwright\Transport\JsonRpc;
 use Playwright\Exception\NetworkException;
 use Playwright\Exception\TimeoutException;
 use Playwright\Transport\ErrorMapper;
+use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
-use Symfony\Component\Clock\ClockInterface;
 
 /**
  * JSON-RPC client for communicating with Playwright processes.
@@ -33,11 +33,14 @@ class JsonRpcClient implements JsonRpcClientInterface
     /** @var array<int, array{method: string, timestamp: float}> */
     private array $pendingRequests = [];
 
+    private ClockInterface $clock;
+
     public function __construct(
-        private readonly ClockInterface $clock,
+        mixed $clock = null,
         protected readonly LoggerInterface $logger = new NullLogger(),
         private readonly float $defaultTimeoutMs = 30000.0,
     ) {
+        $this->clock = $this->normalizeClock($clock);
     }
 
     /**
@@ -212,5 +215,23 @@ class JsonRpcClient implements JsonRpcClientInterface
             'method' => $method,
             'timestamp' => $this->getCurrentTimeMs(),
         ];
+    }
+
+    private function normalizeClock(mixed $clock): ClockInterface
+    {
+        if ($clock instanceof ClockInterface) {
+            return $clock;
+        }
+
+        if (null === $clock) {
+            return new class implements ClockInterface {
+                public function now(): \DateTimeImmutable
+                {
+                    return new \DateTimeImmutable();
+                }
+            };
+        }
+
+        throw new \InvalidArgumentException(sprintf('Unsupported clock implementation: %s', get_debug_type($clock)));
     }
 }
