@@ -17,9 +17,9 @@ namespace Playwright\Tests\Integration\Transport;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Playwright\Tests\Mocks\FixedClock;
 use Playwright\Tests\Mocks\TestLogger;
 use Playwright\Transport\JsonRpc\JsonRpcClient;
-use Symfony\Component\Clock\Clock;
 
 #[CoversClass(JsonRpcClient::class)]
 class JsonRpcClientTest extends TestCase
@@ -27,8 +27,7 @@ class JsonRpcClientTest extends TestCase
     #[Test]
     public function itCanBeInstantiated(): void
     {
-        $clock = Clock::get();
-        $client = new JsonRpcClient($clock);
+        $client = new JsonRpcClient(new FixedClock());
 
         $this->assertInstanceOf(JsonRpcClient::class, $client);
     }
@@ -36,9 +35,8 @@ class JsonRpcClientTest extends TestCase
     #[Test]
     public function itCanSendBasicRequest(): void
     {
-        $clock = Clock::get();
         $logger = new TestLogger();
-        $client = new JsonRpcClient($clock, $logger);
+        $client = new JsonRpcClient(new FixedClock(), $logger);
 
         $result = $client->send('test.method');
 
@@ -52,8 +50,7 @@ class JsonRpcClientTest extends TestCase
     #[Test]
     public function itCanSendRequestWithParams(): void
     {
-        $clock = Clock::get();
-        $client = new JsonRpcClient($clock);
+        $client = new JsonRpcClient(new FixedClock());
 
         $params = ['param1' => 'value1', 'param2' => 42];
         $result = $client->send('test.method', $params);
@@ -65,8 +62,7 @@ class JsonRpcClientTest extends TestCase
     #[Test]
     public function itCanSendRequestWithCustomTimeout(): void
     {
-        $clock = Clock::get();
-        $client = new JsonRpcClient($clock);
+        $client = new JsonRpcClient(new FixedClock());
 
         $result = $client->send('test.method', null, 5000.0);
 
@@ -76,8 +72,7 @@ class JsonRpcClientTest extends TestCase
     #[Test]
     public function itTracksAndClearsPendingRequests(): void
     {
-        $clock = Clock::get();
-        $client = new JsonRpcClient($clock);
+        $client = new JsonRpcClient(new FixedClock());
 
         $this->assertEmpty($client->getPendingRequests());
 
@@ -88,8 +83,7 @@ class JsonRpcClientTest extends TestCase
     #[Test]
     public function itUsesDefaultTimeout(): void
     {
-        $clock = Clock::get();
-        $client = new JsonRpcClient($clock, defaultTimeoutMs: 10000.0);
+        $client = new JsonRpcClient(new FixedClock(), defaultTimeoutMs: 10000.0);
 
         $result = $client->send('test.method');
 
@@ -99,9 +93,8 @@ class JsonRpcClientTest extends TestCase
     #[Test]
     public function itLogsRequestsWhenLoggerProvided(): void
     {
-        $clock = Clock::get();
         $logger = new TestLogger();
-        $client = new JsonRpcClient($clock, $logger);
+        $client = new JsonRpcClient(new FixedClock(), $logger);
 
         $client->send('test.method', ['key' => 'value']);
 
@@ -117,9 +110,8 @@ class JsonRpcClientTest extends TestCase
     #[Test]
     public function itIncrementRequestIds(): void
     {
-        $clock = Clock::get();
         $logger = new TestLogger();
-        $client = new JsonRpcClient($clock, $logger);
+        $client = new JsonRpcClient(new FixedClock(), $logger);
 
         $client->send('method1');
         $client->send('method2');
@@ -131,8 +123,7 @@ class JsonRpcClientTest extends TestCase
     #[Test]
     public function itHandlesZeroTimeout(): void
     {
-        $clock = Clock::get();
-        $client = new JsonRpcClient($clock);
+        $client = new JsonRpcClient(new FixedClock());
 
         $result = $client->send('test.method', null, 0.0);
 
@@ -142,8 +133,7 @@ class JsonRpcClientTest extends TestCase
     #[Test]
     public function itHandlesNegativeTimeout(): void
     {
-        $clock = Clock::get();
-        $client = new JsonRpcClient($clock);
+        $client = new JsonRpcClient(new FixedClock());
 
         $result = $client->send('test.method', null, -1.0);
 

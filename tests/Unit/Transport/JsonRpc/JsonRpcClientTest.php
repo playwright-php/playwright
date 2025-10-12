@@ -12,26 +12,26 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace Playwright\Tests\Unit\Transport;
+namespace Playwright\Tests\Unit\Transport\JsonRpc;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Playwright\Exception\TimeoutException;
+use Playwright\Tests\Mocks\FixedClock;
 use Playwright\Tests\Mocks\TestLogger;
 use Playwright\Transport\JsonRpc\JsonRpcClient;
 use Playwright\Transport\JsonRpc\JsonRpcClientInterface;
-use Symfony\Component\Clock\MockClock;
 
 #[CoversClass(JsonRpcClient::class)]
 final class JsonRpcClientTest extends TestCase
 {
-    private MockClock $clock;
+    private FixedClock $clock;
     private TestLogger $logger;
     private JsonRpcClient $client;
 
     protected function setUp(): void
     {
-        $this->clock = new MockClock();
+        $this->clock = new FixedClock();
         $this->logger = new TestLogger();
         $this->client = new JsonRpcClient(
             clock: $this->clock,
@@ -192,6 +192,26 @@ final class JsonRpcClientTest extends TestCase
 
         $this->assertNotNull($sendRecord);
         $this->assertEquals(7000.0, $sendRecord['context']['timeoutMs']);
+    }
+
+    public function testAcceptsPsrClock(): void
+    {
+        $psrClock = new class implements \Psr\Clock\ClockInterface {
+            public function now(): \DateTimeImmutable
+            {
+                return new \DateTimeImmutable('2024-02-03T04:05:06Z');
+            }
+        };
+
+        $client = new JsonRpcClient($psrClock);
+
+        $reflection = new \ReflectionProperty(JsonRpcClient::class, 'clock');
+        $reflection->setAccessible(true);
+
+        $adaptedClock = $reflection->getValue($client);
+
+        $this->assertInstanceOf(\Psr\Clock\ClockInterface::class, $adaptedClock);
+        $this->assertSame('2024-02-03T04:05:06+00:00', $adaptedClock->now()->setTimezone(new \DateTimeZone('UTC'))->format('c'));
     }
 
     public function testSendRawUsesRequestIdInsteadOfId(): void

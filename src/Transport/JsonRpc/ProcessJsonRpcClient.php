@@ -17,10 +17,9 @@ namespace Playwright\Transport\JsonRpc;
 use Playwright\Exception\DisconnectedException;
 use Playwright\Exception\NetworkException;
 use Playwright\Exception\TimeoutException;
+use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
-use Symfony\Component\Clock\Clock;
-use Symfony\Component\Clock\ClockInterface;
 use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
 
@@ -47,7 +46,7 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
         float $defaultTimeoutMs = 30000.0,
     ) {
         parent::__construct(
-            clock: $clock ?? new Clock(),
+            clock: $clock,
             logger: $logger ?? new NullLogger(),
             defaultTimeoutMs: $defaultTimeoutMs
         );
