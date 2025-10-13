@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Keyboard - Playwright PHP Tests</title>
+<body>
+  <h1>Keyboard Tests</h1>
+
+  <section id="text-input">
+    <h2>Text Input</h2>
+    <input type="text" id="input-field" placeholder="Type here">
+    <div id="input-value"></div>
+  </section>
+
+  <section id="key-events">
+    <h2>Key Events</h2>
+    <input type="text" id="key-listener" placeholder="Press keys">
+    <div id="last-key"></div>
+    <div id="key-code"></div>
+    <div id="modifiers"></div>
+  </section>
+
+  <section id="shortcuts">
+    <h2>Keyboard Shortcuts</h2>
+    <textarea id="editor" rows="5" cols="40">Sample text for testing</textarea>
+    <div id="editor-info"></div>
+  </section>
+
+  <script>
+    const inputField = document.getElementById('input-field');
+    const inputValue = document.getElementById('input-value');
+    inputField.addEventListener('input', (e) => {
+      inputValue.textContent = 'Value: ' + e.target.value;
+    });
+
+    const keyListener = document.getElementById('key-listener');
+    const lastKey = document.getElementById('last-key');
+    const keyCode = document.getElementById('key-code');
+    const modifiers = document.getElementById('modifiers');
+
+    keyListener.addEventListener('keydown', (e) => {
+      lastKey.textContent = 'Key: ' + e.key;
+      keyCode.textContent = 'Code: ' + e.code;
+
+      const mods = [];
+      if (e.ctrlKey) mods.push('Ctrl');
+      if (e.shiftKey) mods.push('Shift');
+      if (e.altKey) mods.push('Alt');
+      if (e.metaKey) mods.push('Meta');
+      modifiers.textContent = 'Modifiers: ' + (mods.length ? mods.join('+') : 'None');
+    });
+
+    const editor = document.getElementById('editor');
+    const editorInfo = document.getElementById('editor-info');
+    editor.addEventListener('input', () => {
+      editorInfo.textContent = 'Length: ' + editor.value.length;
+    });
+  </script>
+</body>
+</html>

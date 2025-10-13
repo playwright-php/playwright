@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Waiting - Playwright PHP Tests</title>
+<style>
+  .hidden { display: none; }
+  .visible { display: block; }
+</style>
+<body>
+  <h1>Auto-Waiting Tests</h1>
+
+  <section id="delayed-content">
+    <h2>Delayed Elements</h2>
+    <button id="show-after-delay">Show Element After Delay</button>
+    <div id="delayed-element" class="hidden">This appeared after a delay</div>
+  </section>
+
+  <section id="loading-content">
+    <h2>Loading States</h2>
+    <button id="trigger-loading">Start Loading</button>
+    <div id="loading-indicator" class="hidden">Loading...</div>
+    <div id="loaded-content" class="hidden">Content loaded!</div>
+  </section>
+
+  <section id="dynamic-elements">
+    <h2>Dynamic Elements</h2>
+    <button id="add-elements">Add Elements</button>
+    <ul id="dynamic-list"></ul>
+  </section>
+
+  <section id="state-changes">
+    <h2>State Changes</h2>
+    <button id="enable-button-later" disabled>Will be enabled</button>
+    <button id="trigger-enable">Enable Button After Delay</button>
+  </section>
+
+  <section id="visibility-changes">
+    <h2>Visibility Changes</h2>
+    <button id="fade-in-trigger">Trigger Fade In</button>
+    <div id="fade-in-element" style="opacity: 0;">Fading in...</div>
+  </section>
+
+  <section id="ajax-simulation">
+    <h2>AJAX Simulation</h2>
+    <button id="fetch-data">Fetch Data</button>
+    <div id="data-container"></div>
+  </section>
+
+  <script>
+    // Delayed element appearance
+    document.getElementById('show-after-delay').addEventListener('click', () => {
+      setTimeout(() => {
+        document.getElementById('delayed-element').classList.remove('hidden');
+        document.getElementById('delayed-element').classList.add('visible');
+      }, 500);
+    });
+
+    // Loading states
+    document.getElementById('trigger-loading').addEventListener('click', () => {
+      const indicator = document.getElementById('loading-indicator');
+      const content = document.getElementById('loaded-content');
+
+      indicator.classList.remove('hidden');
+
+      setTimeout(() => {
+        indicator.classList.add('hidden');
+        content.classList.remove('hidden');
+      }, 1000);
+    });
+
+    // Dynamic elements
+    document.getElementById('add-elements').addEventListener('click', () => {
+      const list = document.getElementById('dynamic-list');
+
+      setTimeout(() => {
+        const li1 = document.createElement('li');
+        li1.textContent = 'Item 1';
+        li1.className = 'list-item';
+        list.appendChild(li1);
+      }, 300);
+
+      setTimeout(() => {
+        const li2 = document.createElement('li');
+        li2.textContent = 'Item 2';
+        li2.className = 'list-item';
+        list.appendChild(li2);
+      }, 600);
+
+      setTimeout(() => {
+        const li3 = document.createElement('li');
+        li3.textContent = 'Item 3';
+        li3.className = 'list-item';
+        list.appendChild(li3);
+      }, 900);
+    });
+
+    // State changes
+    document.getElementById('trigger-enable').addEventListener('click', () => {
+      setTimeout(() => {
+        document.getElementById('enable-button-later').disabled = false;
+        document.getElementById('enable-button-later').textContent = 'Now enabled!';
+      }, 800);
+    });
+
+    // Visibility changes
+    document.getElementById('fade-in-trigger').addEventListener('click', () => {
+      const element = document.getElementById('fade-in-element');
+      let opacity = 0;
+
+      const interval = setInterval(() => {
+        opacity += 0.1;
+        element.style.opacity = opacity;
+
+        if (opacity >= 1) {
+          clearInterval(interval);
+        }
+      }, 100);
+    });
+
+    // AJAX simulation
+    document.getElementById('fetch-data').addEventListener('click', () => {
+      const container = document.getElementById('data-container');
+      container.textContent = 'Fetching...';
+
+      setTimeout(() => {
+        container.innerHTML = '<div id="fetched-data">Data from server</div>';
+      }, 700);
+    });
+  </script>
+</body>
+</html>

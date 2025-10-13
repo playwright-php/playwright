@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Navigation - Playwright PHP Tests</title>
+<body>
+  <h1 id="heading">Navigation Tests</h1>
+
+  <nav id="main-nav">
+    <a href="/index.html" id="link-home">Home</a>
+    <a href="/page-2.html" id="link-page2">Page 2</a>
+    <a href="/page-3.html" id="link-page3">Page 3</a>
+  </nav>
+
+  <section>
+    <h2>Popup Tests</h2>
+    <a href="/popup.html" target="_blank" id="link-popup">Open Popup</a>
+    <button id="btn-popup" onclick="window.open('/popup.html', '_blank')">Open Popup via JS</button>
+  </section>
+
+  <section>
+    <h2>Iframe Tests</h2>
+    <iframe id="test-frame" src="/iframe-content.html" title="Test Frame"></iframe>
+  </section>
+
+  <section>
+    <h2>Hash Navigation</h2>
+    <a href="#section-a" id="link-hash-a">Section A</a>
+    <a href="#section-b" id="link-hash-b">Section B</a>
+
+    <div id="section-a" style="margin-top: 100vh;">
+      <h3>Section A</h3>
+      <p>Content A</p>
+    </div>
+
+    <div id="section-b" style="margin-top: 100vh;">
+      <h3>Section B</h3>
+      <p>Content B</p>
+    </div>
+  </section>
+</body>
+</html>

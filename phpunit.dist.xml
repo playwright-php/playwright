@@ -17,6 +17,9 @@
         <testsuite name="integration">
             <directory>tests/Integration</directory>
         </testsuite>
+        <testsuite name="functional">
+            <directory>tests/Functional</directory>
+        </testsuite>
     </testsuites>
 
     <source ignoreIndirectDeprecations="true" restrictNotices="true" restrictWarnings="true">
@@ -24,7 +27,7 @@
             <directory>src</directory>
         </include>
     </source>
-    
+
     <coverage>
         <report>
             <clover outputFile="./coverage.xml"/>

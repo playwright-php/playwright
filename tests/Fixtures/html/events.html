@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Events - Playwright PHP Tests</title>
+<body>
+  <h1>Event Tests</h1>
+
+  <section id="click-tests">
+    <h2>Click Events</h2>
+    <button id="click-btn">Click Me</button>
+    <button id="dblclick-btn">Double Click Me</button>
+    <div id="click-result"></div>
+  </section>
+
+  <section id="input-tests">
+    <h2>Input Events</h2>
+    <input type="text" id="type-input" placeholder="Type here">
+    <div id="input-result"></div>
+  </section>
+
+  <section id="keyboard-tests">
+    <h2>Keyboard Events</h2>
+    <input type="text" id="keyboard-input" placeholder="Press keys">
+    <div id="key-result"></div>
+  </section>
+
+  <section id="hover-tests">
+    <h2>Hover Events</h2>
+    <div id="hover-target" style="padding: 20px; border: 1px solid black;">Hover over me</div>
+    <div id="hover-result"></div>
+  </section>
+
+  <script>
+    document.getElementById('click-btn').addEventListener('click', () => {
+      document.getElementById('click-result').textContent = 'Clicked!';
+    });
+
+    document.getElementById('dblclick-btn').addEventListener('dblclick', () => {
+      document.getElementById('click-result').textContent = 'Double Clicked!';
+    });
+
+    document.getElementById('type-input').addEventListener('input', (e) => {
+      document.getElementById('input-result').textContent = 'Input: ' + e.target.value;
+    });
+
+    document.getElementById('keyboard-input').addEventListener('keydown', (e) => {
+      document.getElementById('key-result').textContent = 'Key: ' + e.key;
+    });
+
+    document.getElementById('hover-target').addEventListener('mouseenter', () => {
+      document.getElementById('hover-result').textContent = 'Hovered!';
+    });
+
+    document.getElementById('hover-target').addEventListener('mouseleave', () => {
+      document.getElementById('hover-result').textContent = 'Hover ended';
+    });
+  </script>
+</body>
+</html>

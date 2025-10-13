@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Selectors - Playwright PHP Tests</title>
+<body>
+  <h1>Selector Tests</h1>
+
+  <section id="by-id">
+    <div id="unique-element">By ID</div>
+  </section>
+
+  <section id="by-class">
+    <div class="test-class">By Class 1</div>
+    <div class="test-class">By Class 2</div>
+  </section>
+
+  <section id="by-attribute">
+    <button data-testid="test-button">By Data Attribute</button>
+    <input type="text" name="username" placeholder="Username">
+  </section>
+
+  <section id="by-text">
+    <button>Click Here</button>
+    <a href="#">Visit Link</a>
+    <p>Some paragraph text</p>
+  </section>
+
+  <section id="by-combination">
+    <div class="parent">
+      <span class="child">First Child</span>
+      <span class="child">Second Child</span>
+    </div>
+  </section>
+
+  <section id="visibility-tests">
+    <div id="visible-element" style="display: block;">Visible</div>
+    <div id="hidden-element" style="display: none;">Hidden</div>
+    <div id="opacity-element" style="opacity: 0;">Zero Opacity</div>
+  </section>
+
+  <section id="state-tests">
+    <button id="enabled-button">Enabled</button>
+    <button id="disabled-button" disabled>Disabled</button>
+    <input id="editable-input" type="text">
+    <input id="readonly-input" type="text" readonly value="readonly">
+    <input id="checked-checkbox" type="checkbox" checked>
+    <input id="unchecked-checkbox" type="checkbox">
+  </section>
+</body>
+</html>

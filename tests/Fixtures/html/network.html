@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Network - Playwright PHP Tests</title>
+<body>
+  <h1>Network Tests</h1>
+
+  <section id="fetch-tests">
+    <h2>Fetch Tests</h2>
+    <button id="fetch-json">Fetch JSON</button>
+    <button id="fetch-text">Fetch Text</button>
+    <div id="fetch-result"></div>
+  </section>
+
+  <section id="xhr-tests">
+    <h2>XHR Tests</h2>
+    <button id="xhr-get">XHR GET</button>
+    <button id="xhr-post">XHR POST</button>
+    <div id="xhr-result"></div>
+  </section>
+
+  <section id="resource-tests">
+    <h2>Resource Loading</h2>
+    <button id="load-image">Load Image</button>
+    <button id="load-script">Load Script</button>
+    <div id="resource-container"></div>
+    <div id="resource-result"></div>
+  </section>
+
+  <script>
+    document.getElementById('fetch-json').addEventListener('click', async () => {
+      const result = document.getElementById('fetch-result');
+      try {
+        const response = await fetch('/api/data.json');
+        const data = await response.json();
+        result.textContent = 'Fetched: ' + JSON.stringify(data);
+      } catch (e) {
+        result.textContent = 'Error: ' + e.message;
+      }
+    });
+
+    document.getElementById('fetch-text').addEventListener('click', async () => {
+      const result = document.getElementById('fetch-result');
+      try {
+        const response = await fetch('/api/text');
+        const text = await response.text();
+        result.textContent = 'Fetched: ' + text;
+      } catch (e) {
+        result.textContent = 'Error: ' + e.message;
+      }
+    });
+
+    document.getElementById('xhr-get').addEventListener('click', () => {
+      const result = document.getElementById('xhr-result');
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', '/api/users');
+      xhr.onload = () => {
+        result.textContent = 'XHR GET: ' + xhr.responseText;
+      };
+      xhr.onerror = () => {
+        result.textContent = 'XHR Error';
+      };
+      xhr.send();
+    });
+
+    document.getElementById('xhr-post').addEventListener('click', () => {
+      const result = document.getElementById('xhr-result');
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/api/create');
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.onload = () => {
+        result.textContent = 'XHR POST: ' + xhr.responseText;
+      };
+      xhr.onerror = () => {
+        result.textContent = 'XHR Error';
+      };
+      xhr.send(JSON.stringify({ name: 'Test User' }));
+    });
+
+    document.getElementById('load-image').addEventListener('click', () => {
+      const container = document.getElementById('resource-container');
+      const result = document.getElementById('resource-result');
+      const img = document.createElement('img');
+      img.src = '/images/test.png';
+      img.width = 100;
+      img.onload = () => {
+        result.textContent = 'Image loaded';
+      };
+      img.onerror = () => {
+        result.textContent = 'Image failed';
+      };
+      container.appendChild(img);
+    });
+
+    document.getElementById('load-script').addEventListener('click', () => {
+      const result = document.getElementById('resource-result');
+      const script = document.createElement('script');
+      script.src = '/scripts/test.js';
+      script.onload = () => {
+        result.textContent = 'Script loaded';
+      };
+      script.onerror = () => {
+        result.textContent = 'Script failed';
+      };
+      document.body.appendChild(script);
+    });
+  </script>
+</body>
+</html>
