@@ -8,9 +8,14 @@
 
 </div>
 
-# Playwright for PHP
+# Playwright PHP - Modern Browser Automation
 
-Modern, PHP‑native browser automation powered by Microsoft Playwright.
+> [!IMPORTANT]  
+> This package is **experimental**. Its API may still change before the upcoming `1.0` release.  
+>  
+> Curious or interested? Try it out, [share your feedback](https://github.com/playwright-php/playwright/issues), or ideas!
+
+
 
 ## About
 
@@ -143,22 +148,31 @@ final class HomePageTest extends TestCase
 {
     use PlaywrightTestCaseTrait;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->setUpPlaywright();
+    }
+
+    protected function tearDown(): void
+    {
+        $this->tearDownPlaywright();
+        parent::tearDown();
+    }
+
     public function test_title_is_correct(): void
     {
-        $context = $this->playwright()->chromium(['headless' => true]);
-        $page    = $context->newPage();
+        $this->page->goto('https://example.com');
 
-        $page->goto('https://example.com');
-
-        $this->expect()->toBe($page->title(), 'Example Domain');
-
-        $context->close();
+        $this->expect($this->page)->toHaveTitle('Example Domain');
     }
 }
 ```
 
 Notes:
-- The trait bootstraps and tears down Playwright for each test class.
+- The trait provides `$this->playwright`, `$this->browser`, `$this->context`, and `$this->page` properties.
+- Call `setUpPlaywright()` in `setUp()` and `tearDownPlaywright()` in `tearDown()` for proper lifecycle management.
+- Use `$this->expect($locator)` or `$this->expect($page)` for fluent assertions.
 - If you prefer full control, you can skip the trait and use the static `Playwright` facade directly.
 
 ## CI usage (GitHub Actions)
