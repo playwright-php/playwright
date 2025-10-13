@@ -285,11 +285,11 @@ final class JsonRpcTransport implements TransportInterface
         }
 
         if (isset($this->eventDispatchers[$objectId])) {
+            $eventName = $event['event'] ?? null;
             $this->logger->debug('Dispatching event to registered handler', [
                 'objectId' => $objectId,
-                'event' => $event['event'] ?? 'unknown',
+                'event' => $eventName ?? 'unknown',
             ]);
-            $eventName = $event['event'] ?? null;
             $eventParams = $event['params'] ?? [];
             if (!is_string($eventName)) {
                 $this->logger->warning('Invalid event name', ['event' => $event]);
