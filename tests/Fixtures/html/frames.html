@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Frames - Playwright PHP Tests</title>
+<body>
+  <h1>Frame Tests</h1>
+
+  <section id="simple-frame">
+    <h2>Simple Frame</h2>
+    <iframe id="frame1" name="frame1" src="/frame-content.html" width="400" height="200"></iframe>
+  </section>
+
+  <section id="nested-frames">
+    <h2>Nested Frames</h2>
+    <iframe id="parent-frame" name="parent-frame" src="/frame-parent.html" width="400" height="300"></iframe>
+  </section>
+
+  <section id="dynamic-frame-section">
+    <h2>Dynamic Frame Loading</h2>
+    <button id="load-frame">Load Dynamic Frame</button>
+    <div id="frame-container"></div>
+  </section>
+
+  <script>
+    document.getElementById('load-frame').addEventListener('click', () => {
+      const container = document.getElementById('frame-container');
+      const iframe = document.createElement('iframe');
+      iframe.id = 'dynamic-frame';
+      iframe.src = '/frame-content.html';
+      iframe.width = '400';
+      iframe.height = '200';
+      container.appendChild(iframe);
+    });
+  </script>
+</body>
+</html>

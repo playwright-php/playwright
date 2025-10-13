@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Console - Playwright PHP Tests</title>
+    <style>
+        body { font-family: system-ui, sans-serif; padding: 2rem; max-width: 800px; margin: 0 auto; }
+        button { padding: 0.5rem 1rem; margin: 0.5rem; cursor: pointer; }
+        #output { margin-top: 1rem; padding: 1rem; background: #f5f5f5; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>Console Test Page</h1>
+
+    <div>
+        <button id="log-message">Log Message</button>
+        <button id="warn-message">Warn Message</button>
+        <button id="error-message">Error Message</button>
+        <button id="info-message">Info Message</button>
+        <button id="debug-message">Debug Message</button>
+        <button id="multiple-logs">Multiple Logs</button>
+    </div>
+
+    <div id="output"></div>
+
+    <script>
+        document.getElementById('log-message').addEventListener('click', () => {
+            console.log('This is a log message');
+            document.getElementById('output').textContent = 'Log message sent';
+        });
+
+        document.getElementById('warn-message').addEventListener('click', () => {
+            console.warn('This is a warning message');
+            document.getElementById('output').textContent = 'Warning message sent';
+        });
+
+        document.getElementById('error-message').addEventListener('click', () => {
+            console.error('This is an error message');
+            document.getElementById('output').textContent = 'Error message sent';
+        });
+
+        document.getElementById('info-message').addEventListener('click', () => {
+            console.info('This is an info message');
+            document.getElementById('output').textContent = 'Info message sent';
+        });
+
+        document.getElementById('debug-message').addEventListener('click', () => {
+            console.debug('This is a debug message');
+            document.getElementById('output').textContent = 'Debug message sent';
+        });
+
+        document.getElementById('multiple-logs').addEventListener('click', () => {
+            console.log('First message');
+            console.warn('Second message');
+            console.error('Third message');
+            document.getElementById('output').textContent = 'Multiple messages sent';
+        });
+
+        // Log on page load
+        console.log('Page loaded');
+    </script>
+</body>
+</html>

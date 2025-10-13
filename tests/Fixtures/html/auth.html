@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Auth - Playwright PHP Tests</title>
+<body>
+  <h1>Authentication Tests</h1>
+
+  <div id="auth-status">Not authenticated</div>
+
+  <form id="login-form">
+    <label for="username">Username:</label>
+    <input type="text" id="username" name="username">
+
+    <label for="password">Password:</label>
+    <input type="password" id="password" name="password">
+
+    <button type="submit" id="login-btn">Login</button>
+  </form>
+
+  <button id="logout-btn" style="display:none;">Logout</button>
+
+  <div id="user-info" style="display:none;"></div>
+
+  <script>
+    // Check if user is authenticated via cookie
+    function getCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+      return null;
+    }
+
+    function checkAuth() {
+      const authToken = getCookie('auth_token');
+      const username = getCookie('username');
+
+      if (authToken) {
+        document.getElementById('auth-status').textContent = 'Authenticated';
+        document.getElementById('login-form').style.display = 'none';
+        document.getElementById('logout-btn').style.display = 'block';
+        document.getElementById('user-info').style.display = 'block';
+        document.getElementById('user-info').textContent = 'Logged in as: ' + username;
+      } else {
+        document.getElementById('auth-status').textContent = 'Not authenticated';
+        document.getElementById('login-form').style.display = 'block';
+        document.getElementById('logout-btn').style.display = 'none';
+        document.getElementById('user-info').style.display = 'none';
+      }
+    }
+
+    document.getElementById('login-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+
+      // Simple mock authentication
+      if (username && password) {
+        // Set auth cookies
+        document.cookie = `auth_token=token_${Math.random().toString(36).substr(2, 9)}; path=/`;
+        document.cookie = `username=${username}; path=/`;
+        document.cookie = `session_id=sess_${Date.now()}; path=/`;
+
+        checkAuth();
+      }
+    });
+
+    document.getElementById('logout-btn').addEventListener('click', () => {
+      // Clear auth cookies
+      document.cookie = 'auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
+      document.cookie = 'username=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
+      document.cookie = 'session_id=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
+
+      checkAuth();
+    });
+
+    // Check auth on load
+    checkAuth();
+  </script>
+</body>
+</html>

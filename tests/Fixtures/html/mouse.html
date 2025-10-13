@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mouse - Playwright PHP Tests</title>
+<style>
+  #click-area {
+    width: 200px;
+    height: 200px;
+    border: 2px solid black;
+    position: relative;
+    margin: 20px;
+  }
+  #drag-source, #drag-target {
+    width: 100px;
+    height: 100px;
+    border: 2px solid blue;
+    margin: 10px;
+    display: inline-block;
+    text-align: center;
+    line-height: 100px;
+  }
+  #drag-source {
+    background: lightblue;
+    cursor: move;
+  }
+  #drag-target {
+    background: lightgreen;
+  }
+  #hover-area {
+    width: 200px;
+    height: 100px;
+    border: 2px solid black;
+    margin: 20px;
+    padding: 10px;
+  }
+  #context-menu-area {
+    width: 200px;
+    height: 100px;
+    border: 2px solid black;
+    margin: 20px;
+    padding: 10px;
+  }
+</style>
+<body>
+  <h1>Mouse Tests</h1>
+
+  <section id="click-tests">
+    <h2>Click Tests</h2>
+    <div id="click-area">
+      <div id="click-result"></div>
+    </div>
+  </section>
+
+  <section id="hover-tests">
+    <h2>Hover Tests</h2>
+    <div id="hover-area">Hover over me</div>
+    <div id="hover-result"></div>
+  </section>
+
+  <section id="drag-tests">
+    <h2>Drag Tests</h2>
+    <div id="drag-source" draggable="true">Drag me</div>
+    <div id="drag-target">Drop here</div>
+    <div id="drag-result"></div>
+  </section>
+
+  <section id="context-menu-tests">
+    <h2>Context Menu Tests</h2>
+    <div id="context-menu-area">Right click me</div>
+    <div id="context-result"></div>
+  </section>
+
+  <script>
+    const clickArea = document.getElementById('click-area');
+    const clickResult = document.getElementById('click-result');
+
+    clickArea.addEventListener('click', (e) => {
+      const x = e.clientX - clickArea.offsetLeft;
+      const y = e.clientY - clickArea.offsetTop;
+      clickResult.textContent = `Clicked at (${x}, ${y})`;
+    });
+
+    clickArea.addEventListener('dblclick', () => {
+      clickResult.textContent = 'Double clicked!';
+    });
+
+    const hoverArea = document.getElementById('hover-area');
+    const hoverResult = document.getElementById('hover-result');
+
+    hoverArea.addEventListener('mouseenter', () => {
+      hoverResult.textContent = 'Mouse entered';
+    });
+
+    hoverArea.addEventListener('mouseleave', () => {
+      hoverResult.textContent = 'Mouse left';
+    });
+
+    const dragSource = document.getElementById('drag-source');
+    const dragTarget = document.getElementById('drag-target');
+    const dragResult = document.getElementById('drag-result');
+
+    dragSource.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('text/plain', 'dragging');
+      dragResult.textContent = 'Drag started';
+    });
+
+    dragTarget.addEventListener('dragover', (e) => {
+      e.preventDefault();
+    });
+
+    dragTarget.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dragResult.textContent = 'Dropped!';
+    });
+
+    const contextArea = document.getElementById('context-menu-area');
+    const contextResult = document.getElementById('context-result');
+
+    contextArea.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      contextResult.textContent = 'Context menu triggered';
+    });
+  </script>
+</body>
+</html>
