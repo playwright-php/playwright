@@ -14,7 +14,10 @@ declare(strict_types=1);
 
 namespace Playwright\Tests\Integration\Functional;
 
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
+use Playwright\Locator\Locator;
+use Playwright\Page\Page;
 use Playwright\Tests\Support\FunctionalTestCase;
 
 /**
@@ -24,6 +27,8 @@ use Playwright\Tests\Support\FunctionalTestCase;
  * after tests complete. Tests can navigate to fixture URLs using the
  * fixtureUrl() helper method.
  */
+#[CoversClass(Locator::class)]
+#[CoversClass(Page::class)]
 final class BasicFunctionalTest extends FunctionalTestCase
 {
     #[Test]
