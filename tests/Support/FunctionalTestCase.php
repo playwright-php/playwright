@@ -30,8 +30,11 @@ abstract class FunctionalTestCase extends TestCase
     use PlaywrightTestCaseTrait;
 
     protected static ?Process $fixtureServer = null;
+
     protected static string $fixtureServerHost;
+
     protected static int $fixtureServerPort;
+
     protected static string $fixtureServerBaseUrl;
 
     /**
@@ -44,14 +47,17 @@ abstract class FunctionalTestCase extends TestCase
         self::$fixtureServerBaseUrl = $_ENV['FIXTURE_SERVER_BASE_URL'] ?? sprintf('http://%s:%d', self::$fixtureServerHost, self::$fixtureServerPort);
 
         if (!self::isPortAvailable(self::$fixtureServerHost, self::$fixtureServerPort)) {
-            throw new \RuntimeException(\sprintf('Port %d is already in use on %s. Cannot start fixture server.', self::$fixtureServerPort, self::$fixtureServerHost));
+            throw new \RuntimeException(sprintf('Port %d is already in use on %s. Cannot start fixture server.', self::$fixtureServerPort, self::$fixtureServerHost));
         }
 
-        $fixturesDir = __DIR__.'/../Fixtures';
-        $serverScript = $fixturesDir.'/server.php';
+        $fixturesDir = \realpath(__DIR__.'/../Fixtures');
+        if (false === $fixturesDir) {
+            throw new \RuntimeException('Fixtures directory not found');
+        }
 
-        if (!file_exists($serverScript)) {
-            throw new \RuntimeException(\sprintf('Server script not found at %s', $serverScript));
+        $serverScript = $fixturesDir.'/server.php';
+        if (!\file_exists($serverScript)) {
+            throw new \RuntimeException(sprintf('Server script not found at %s', $serverScript));
         }
 
         self::$fixtureServer = new Process([
@@ -63,6 +69,8 @@ abstract class FunctionalTestCase extends TestCase
             $serverScript,
         ], $fixturesDir);
 
+        self::$fixtureServer->setTimeout(null);
+        self::$fixtureServer->setIdleTimeout(null);
         self::$fixtureServer->start();
 
         // Wait for server to be ready
@@ -76,11 +84,14 @@ abstract class FunctionalTestCase extends TestCase
         }
 
         if (!self::isServerReady(self::$fixtureServerHost, self::$fixtureServerPort)) {
-            self::$fixtureServer->stop();
-            throw new \RuntimeException(\sprintf('Fixture server did not start within %d seconds', $maxWaitTime));
+            $stderr = '';
+            if (self::$fixtureServer?->isStarted()) {
+                $stderr = \trim(self::$fixtureServer->getErrorOutput());
+            }
+            self::$fixtureServer?->stop();
+            throw new \RuntimeException(sprintf('Fixture server did not start within %d seconds%s%s', $maxWaitTime, '' !== $stderr ? ' - stderr: ' : '', $stderr));
         }
 
-        // Register shutdown function to ensure cleanup
         \register_shutdown_function([static::class, 'stopFixtureServer']);
     }
 
@@ -144,18 +155,13 @@ abstract class FunctionalTestCase extends TestCase
         return true;
     }
 
-    /**
-     * Check if the server is ready to accept connections.
-     */
     private static function isServerReady(string $host, int $port): bool
     {
-        $connection = @\fsockopen($host, $port, $errno, $errstr, 1);
-        if (\is_resource($connection)) {
-            \fclose($connection);
+        $url = sprintf('http://%s:%d/', $host, $port);
+        $ctx = \stream_context_create(['http' => ['timeout' => 0.5, 'ignore_errors' => true]]);
+        $body = @\file_get_contents($url, false, $ctx);
 
-            return true;
-        }
-
-        return false;
+        // Any HTTP response means the server is up (status may be 404/5xx).
+        return false !== $body;
     }
 }

@@ -145,9 +145,6 @@ jobs:
       - name: "PHPUnit: version"
         run: vendor/bin/phpunit --version
 
-      - name: "Start functional test web server"
-        run: php -S localhost:8888 -t tests/Fixtures tests/Fixtures/server.php &
-
       - name: "PHPUnit: all tests with coverage"
         run: vendor/bin/phpunit --coverage-clover=coverage.xml
 
