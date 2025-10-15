@@ -64,6 +64,11 @@ final class Page implements PageInterface, EventDispatcherInterface
 
     private bool $isClosed = false;
 
+    /**
+     * @var array<string, true>
+     */
+    private array $handledDialogs = [];
+
     public function __construct(
         private readonly TransportInterface $transport,
         private readonly BrowserContextInterface $context,
@@ -98,10 +103,20 @@ final class Page implements PageInterface, EventDispatcherInterface
         switch ($eventName) {
             case 'dialog':
                 if (is_string($params['dialogId']) && is_string($params['type']) && is_string($params['message'])) {
+                    $dialogId = $params['dialogId'];
+
+                    if (isset($this->handledDialogs[$dialogId])) {
+                        $this->logger->debug('Ignoring duplicate dialog event', ['dialogId' => $dialogId]);
+
+                        return;
+                    }
+
+                    $this->handledDialogs[$dialogId] = true;
+
                     $defaultValue = $params['defaultValue'] ?? null;
                     $defaultValue = is_string($defaultValue) ? $defaultValue : null;
                     $dialog = $this->createDialog(
-                        $params['dialogId'],
+                        $dialogId,
                         $params['type'],
                         $params['message'],
                         $defaultValue
@@ -772,7 +787,13 @@ final class Page implements PageInterface, EventDispatcherInterface
 
     public function handleDialog(string $dialogId, bool $accept, ?string $promptText = null): void
     {
-        $this->sendCommand('handleDialog', ['dialogId' => $dialogId, 'accept' => $accept, 'promptText' => $promptText]);
+        $params = ['dialogId' => $dialogId, 'accept' => $accept];
+
+        if (null !== $promptText) {
+            $params['promptText'] = $promptText;
+        }
+
+        $this->sendCommand('handleDialog', $params);
     }
 
     public function getPageIdForTransport(): string
