@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dialogs - Playwright PHP Tests</title>
+<body>
+  <h1>Dialog Tests</h1>
+
+  <section id="alert-section">
+    <h2>Alert Dialog</h2>
+    <button id="trigger-alert">Show Alert</button>
+    <div id="alert-result"></div>
+  </section>
+
+  <section id="confirm-section">
+    <h2>Confirm Dialog</h2>
+    <button id="trigger-confirm">Show Confirm</button>
+    <div id="confirm-result"></div>
+  </section>
+
+  <section id="prompt-section">
+    <h2>Prompt Dialog</h2>
+    <button id="trigger-prompt">Show Prompt</button>
+    <div id="prompt-result"></div>
+  </section>
+
+  <section id="multiple-dialogs">
+    <h2>Multiple Dialogs</h2>
+    <button id="trigger-multiple">Show Multiple Dialogs</button>
+    <div id="multiple-result"></div>
+  </section>
+
+  <script>
+    document.getElementById('trigger-alert').addEventListener('click', () => {
+      alert('This is an alert message');
+      document.getElementById('alert-result').textContent = 'Alert was shown';
+    });
+
+    document.getElementById('trigger-confirm').addEventListener('click', () => {
+      const result = confirm('Do you confirm?');
+      document.getElementById('confirm-result').textContent = result ? 'Confirmed' : 'Cancelled';
+    });
+
+    document.getElementById('trigger-prompt').addEventListener('click', () => {
+      const result = prompt('Enter your name:', 'Default Name');
+      if (result !== null) {
+        document.getElementById('prompt-result').textContent = `You entered: ${result}`;
+      } else {
+        document.getElementById('prompt-result').textContent = 'Prompt cancelled';
+      }
+    });
+
+    document.getElementById('trigger-multiple').addEventListener('click', () => {
+      alert('First alert');
+      const confirmed = confirm('Confirm this?');
+      if (confirmed) {
+        const name = prompt('Your name?');
+        document.getElementById('multiple-result').textContent = `Completed: ${name || 'no name'}`;
+      }
+    });
+  </script>
+</body>
+</html>

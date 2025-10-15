@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Form Submitted - Playwright PHP Tests</title>
+<body>
+  <h1 id="result">Form Submitted</h1>
+  <p id="message">Thank you for submitting the form.</p>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const data = {};
+    for (const [key, value] of params) {
+      data[key] = value;
+    }
+    document.getElementById('message').textContent = JSON.stringify(data, null, 2);
+  </script>
+</body>
+</html>

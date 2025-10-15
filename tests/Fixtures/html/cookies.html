@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cookies - Playwright PHP Tests</title>
+<body>
+  <h1>Cookie Tests</h1>
+
+  <section id="cookie-management">
+    <h2>Set Cookies</h2>
+    <button id="set-simple-cookie">Set Simple Cookie</button>
+    <button id="set-multiple-cookies">Set Multiple Cookies</button>
+    <button id="set-cookie-with-options">Set Cookie with Options</button>
+    <button id="clear-all-cookies">Clear All Cookies</button>
+  </section>
+
+  <section id="cookie-display">
+    <h2>Current Cookies</h2>
+    <pre id="cookies-output"></pre>
+  </section>
+
+  <section id="cookie-test-results">
+    <div id="cookie-count"></div>
+    <div id="cookie-values"></div>
+  </section>
+
+  <script>
+    function displayCookies() {
+      const cookies = document.cookie;
+      document.getElementById('cookies-output').textContent = cookies || '(no cookies)';
+
+      const cookieArray = cookies.split(';').filter(c => c.trim());
+      document.getElementById('cookie-count').textContent = `Cookie count: ${cookieArray.length}`;
+    }
+
+    function getCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+      return null;
+    }
+
+    document.getElementById('set-simple-cookie').addEventListener('click', () => {
+      document.cookie = 'simple_cookie=test_value; path=/';
+      displayCookies();
+    });
+
+    document.getElementById('set-multiple-cookies').addEventListener('click', () => {
+      document.cookie = 'cookie1=value1; path=/';
+      document.cookie = 'cookie2=value2; path=/';
+      document.cookie = 'cookie3=value3; path=/';
+      displayCookies();
+    });
+
+    document.getElementById('set-cookie-with-options').addEventListener('click', () => {
+      const expires = new Date();
+      expires.setTime(expires.getTime() + (24 * 60 * 60 * 1000)); // 1 day
+      document.cookie = `persistent_cookie=persistent_value; expires=${expires.toUTCString()}; path=/`;
+      displayCookies();
+    });
+
+    document.getElementById('clear-all-cookies').addEventListener('click', () => {
+      document.cookie.split(';').forEach(cookie => {
+        const name = cookie.split('=')[0].trim();
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/`;
+      });
+      displayCookies();
+    });
+
+    // Display cookies on load
+    displayCookies();
+
+    // Update display every second to catch changes
+    setInterval(displayCookies, 1000);
+  </script>
+</body>
+</html>

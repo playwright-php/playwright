@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Forms - Playwright PHP Tests</title>
+<body>
+  <h1>Form Tests</h1>
+
+  <form id="test-form" action="/form-submit.html" method="get">
+    <label for="name">Name:</label>
+    <input type="text" id="name" name="name" value="">
+
+    <label for="email">Email:</label>
+    <input type="email" id="email" name="email">
+
+    <label for="password">Password:</label>
+    <input type="password" id="password" name="password">
+
+    <label for="color">Color:</label>
+    <select id="color" name="color">
+      <option value="">--Select--</option>
+      <option value="red">Red</option>
+      <option value="blue">Blue</option>
+      <option value="green">Green</option>
+    </select>
+
+    <label>
+      <input type="checkbox" id="agree" name="agree" value="yes">
+      I agree
+    </label>
+
+    <fieldset>
+      <legend>Choose size:</legend>
+      <label><input type="radio" name="size" value="small"> Small</label>
+      <label><input type="radio" name="size" value="medium"> Medium</label>
+      <label><input type="radio" name="size" value="large"> Large</label>
+    </fieldset>
+
+    <label for="comment">Comment:</label>
+    <textarea id="comment" name="comment" rows="3"></textarea>
+
+    <button type="submit" id="submit-btn">Submit</button>
+    <button type="reset" id="reset-btn">Reset</button>
+  </form>
+</body>
+</html>

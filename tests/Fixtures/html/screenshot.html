@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Screenshot - Playwright PHP Tests</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+  }
+  #full-page {
+    height: 2000px;
+    background: linear-gradient(to bottom, #ffffff, #cccccc);
+  }
+  #element-to-capture {
+    width: 300px;
+    height: 200px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    border-radius: 10px;
+    margin: 20px;
+  }
+  #colored-box {
+    width: 200px;
+    height: 200px;
+    background: #ff6b6b;
+    margin: 20px;
+  }
+</style>
+<body>
+  <h1 id="heading">Screenshot Test Page</h1>
+
+  <div id="element-to-capture">
+    Capture This Element
+  </div>
+
+  <div id="colored-box"></div>
+
+  <div id="full-page">
+    <p>This is a long page for full-page screenshot testing.</p>
+    <p>Content continues...</p>
+  </div>
+</body>
+</html>
