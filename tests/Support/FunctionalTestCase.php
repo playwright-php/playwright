@@ -43,7 +43,7 @@ abstract class FunctionalTestCase extends TestCase
     public static function setUpBeforeClass(): void
     {
         self::$fixtureServerHost = $_ENV['FIXTURE_SERVER_HOST'] ?? '127.0.0.1';
-        self::$fixtureServerPort = (int) ($_ENV['FIXTURE_SERVER_PORT'] ?? 8765);
+        self::$fixtureServerPort = (int) ($_ENV['FIXTURE_SERVER_PORT'] ?? 8888);
 
         // If the preferred port is in use, find a random available port
         if (!self::isPortAvailable(self::$fixtureServerHost, self::$fixtureServerPort)) {
