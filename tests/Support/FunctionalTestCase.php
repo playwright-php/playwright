@@ -44,11 +44,16 @@ abstract class FunctionalTestCase extends TestCase
     {
         self::$fixtureServerHost = $_ENV['FIXTURE_SERVER_HOST'] ?? '127.0.0.1';
         self::$fixtureServerPort = (int) ($_ENV['FIXTURE_SERVER_PORT'] ?? 8765);
-        self::$fixtureServerBaseUrl = $_ENV['FIXTURE_SERVER_BASE_URL'] ?? sprintf('http://%s:%d', self::$fixtureServerHost, self::$fixtureServerPort);
 
+        // If the preferred port is in use, find a random available port
         if (!self::isPortAvailable(self::$fixtureServerHost, self::$fixtureServerPort)) {
-            throw new \RuntimeException(sprintf('Port %d is already in use on %s. Cannot start fixture server.', self::$fixtureServerPort, self::$fixtureServerHost));
+            self::$fixtureServerPort = self::findAvailablePort(self::$fixtureServerHost);
+            if (0 === self::$fixtureServerPort) {
+                self::markTestSkipped('Could not find an available port for fixture server');
+            }
         }
+
+        self::$fixtureServerBaseUrl = $_ENV['FIXTURE_SERVER_BASE_URL'] ?? sprintf('http://%s:%d', self::$fixtureServerHost, self::$fixtureServerPort);
 
         $fixturesDir = \realpath(__DIR__.'/../Fixtures');
         if (false === $fixturesDir) {
@@ -153,6 +158,21 @@ abstract class FunctionalTestCase extends TestCase
         }
 
         return true;
+    }
+
+    /**
+     * Find a random available port in the range 8000-9000.
+     */
+    private static function findAvailablePort(string $host): int
+    {
+        for ($i = 0; $i < 20; ++$i) {
+            $port = \random_int(8000, 9000);
+            if (self::isPortAvailable($host, $port)) {
+                return $port;
+            }
+        }
+
+        return 0;
     }
 
     private static function isServerReady(string $host, int $port): bool
