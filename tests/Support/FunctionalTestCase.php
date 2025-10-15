@@ -44,22 +44,14 @@ abstract class FunctionalTestCase extends TestCase
         self::$fixtureServerBaseUrl = $_ENV['FIXTURE_SERVER_BASE_URL'] ?? sprintf('http://%s:%d', self::$fixtureServerHost, self::$fixtureServerPort);
 
         if (!self::isPortAvailable(self::$fixtureServerHost, self::$fixtureServerPort)) {
-            throw new \RuntimeException(
-                \sprintf(
-                    'Port %d is already in use on %s. Cannot start fixture server.',
-                    self::$fixtureServerPort,
-                    self::$fixtureServerHost
-                )
-            );
+            throw new \RuntimeException(\sprintf('Port %d is already in use on %s. Cannot start fixture server.', self::$fixtureServerPort, self::$fixtureServerHost));
         }
 
         $fixturesDir = __DIR__.'/../Fixtures';
         $serverScript = $fixturesDir.'/server.php';
 
         if (!file_exists($serverScript)) {
-            throw new \RuntimeException(
-                \sprintf('Server script not found at %s', $serverScript)
-            );
+            throw new \RuntimeException(\sprintf('Server script not found at %s', $serverScript));
         }
 
         self::$fixtureServer = new Process([
@@ -85,12 +77,7 @@ abstract class FunctionalTestCase extends TestCase
 
         if (!self::isServerReady(self::$fixtureServerHost, self::$fixtureServerPort)) {
             self::$fixtureServer->stop();
-            throw new \RuntimeException(
-                \sprintf(
-                    'Fixture server did not start within %d seconds',
-                    $maxWaitTime
-                )
-            );
+            throw new \RuntimeException(\sprintf('Fixture server did not start within %d seconds', $maxWaitTime));
         }
 
         // Register shutdown function to ensure cleanup
