@@ -88,7 +88,7 @@ abstract class FunctionalTestCase extends TestCase
                     $stderr = trim(self::$fixtureServer->getErrorOutput());
                 }
                 self::$fixtureServer?->stop();
-                throw new \RuntimeException('Fixture server failed to start'.($stderr !== '' ? ' - stderr: '.$stderr : ''));
+                throw new \RuntimeException('Fixture server failed to start'.('' !== $stderr ? ' - stderr: '.$stderr : ''));
             }
 
             self::$autoBaseUrl = sprintf('http://%s:%d', $host, $port);
@@ -241,8 +241,10 @@ abstract class FunctionalTestCase extends TestCase
         $conn = @fsockopen($host, $port, $errno, $errstr, 0.5);
         if (is_resource($conn)) {
             fclose($conn);
+
             return false;
         }
+
         return true;
     }
 
@@ -254,6 +256,7 @@ abstract class FunctionalTestCase extends TestCase
                 return $port;
             }
         }
+
         return 0;
     }
 
@@ -262,6 +265,7 @@ abstract class FunctionalTestCase extends TestCase
         $url = sprintf('http://%s:%d/index.html', $host, $port);
         $ctx = stream_context_create(['http' => ['timeout' => 0.5, 'ignore_errors' => true]]);
         $body = @file_get_contents($url, false, $ctx);
+
         return false !== $body;
     }
 }

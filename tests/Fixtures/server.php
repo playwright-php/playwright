@@ -37,10 +37,11 @@ if (file_exists($file) && is_file($file)) {
         'gif' => 'image/gif',
         'svg' => 'image/svg+xml',
     ];
-    
+
     $contentType = $contentTypes[$extension] ?? 'application/octet-stream';
     header('Content-Type: '.$contentType);
     readfile($file);
+
     return true;
 }
 
@@ -51,4 +52,5 @@ echo '<!doctype html>';
 echo '<html><head><meta charset="utf-8"><title>404 Not Found</title></head>';
 echo '<body><h1>404 Not Found</h1><p>File not found: '.htmlspecialchars($uri, \ENT_QUOTES, 'UTF-8').'</p></body>';
 echo '</html>';
+
 return true;
