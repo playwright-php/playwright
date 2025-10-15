@@ -16,6 +16,7 @@ namespace Playwright\Tests\Functional;
 
 use PHPUnit\Framework\TestCase;
 use Playwright\Testing\PlaywrightTestCaseTrait;
+use Symfony\Component\Process\Process;
 
 /**
  * Base class for functional tests using real Playwright browsers.
@@ -26,12 +27,80 @@ abstract class FunctionalTestCase extends TestCase
 {
     use PlaywrightTestCaseTrait;
 
+    // Auto-managed fixture server for local runs (when TEST_SERVER_BASE_URL is not set)
+    protected static ?Process $fixtureServer = null;
+    protected static ?string $autoBaseUrl = null;
+
     /**
-     * Start Playwright and launch browser once for all tests in the class.
+     * Start Playwright and (if needed) a local fixture server once for all tests in the class.
      */
     public static function setUpBeforeClass(): void
     {
         parent::setUpBeforeClass();
+
+        // If CI or caller provides a server URL, do not auto-start
+        $providedBase = $_ENV['TEST_SERVER_BASE_URL']
+            ?? (getenv('TEST_SERVER_BASE_URL') ?: null)
+            ?? $_ENV['FIXTURE_SERVER_BASE_URL']
+            ?? (getenv('FIXTURE_SERVER_BASE_URL') ?: null);
+
+        if (null === $providedBase) {
+            // Auto-start a local server serving tests/Fixtures via router
+            $host = '127.0.0.1';
+            $port = 8888;
+            if (!self::isPortAvailable($host, $port)) {
+                $port = self::findAvailablePort($host) ?: $port;
+            }
+
+            $fixturesDir = \realpath(__DIR__.'/../Fixtures');
+            if (false === $fixturesDir) {
+                throw new \RuntimeException('Fixtures directory not found');
+            }
+            $router = $fixturesDir.'/server.php';
+            if (!\file_exists($router)) {
+                throw new \RuntimeException('Router script not found: '.$router);
+            }
+
+            self::$fixtureServer = new Process([
+                PHP_BINARY,
+                '-S', sprintf('%s:%d', $host, $port),
+                '-t', $fixturesDir,
+                $router,
+            ], $fixturesDir);
+            self::$fixtureServer->setTimeout(null);
+            self::$fixtureServer->setIdleTimeout(null);
+            self::$fixtureServer->start();
+
+            // Wait until ready (index.html should exist according to fixtures)
+            $deadline = time() + 10; // 10s max
+            $ready = false;
+            while (time() < $deadline) {
+                if (self::isServerReady($host, $port)) {
+                    $ready = true;
+                    break;
+                }
+                usleep(100_000);
+            }
+
+            if (!$ready) {
+                $stderr = '';
+                if (self::$fixtureServer?->isStarted()) {
+                    $stderr = trim(self::$fixtureServer->getErrorOutput());
+                }
+                self::$fixtureServer?->stop();
+                throw new \RuntimeException('Fixture server failed to start'.('' !== $stderr ? ' - stderr: '.$stderr : ''));
+            }
+
+            self::$autoBaseUrl = sprintf('http://%s:%d', $host, $port);
+
+            // Ensure cleanup at process end
+            register_shutdown_function(static function (): void {
+                if (null !== self::$fixtureServer && self::$fixtureServer->isRunning()) {
+                    self::$fixtureServer->stop();
+                    self::$fixtureServer = null;
+                }
+            });
+        }
     }
 
     /**
@@ -61,17 +130,31 @@ abstract class FunctionalTestCase extends TestCase
     {
         self::closeSharedPlaywright();
 
+        // Stop auto-started server if any
+        if (null !== self::$fixtureServer && self::$fixtureServer->isRunning()) {
+            self::$fixtureServer->stop();
+            self::$fixtureServer = null;
+        }
+
         parent::tearDownAfterClass();
     }
 
     /**
      * Get the base URL for test fixtures.
      *
-     * Override this method if you need a different test server URL.
+     * Respects TEST_SERVER_BASE_URL (or FIXTURE_SERVER_BASE_URL) env vars; defaults to http://127.0.0.1:8888.
+     * If auto server is started, returns that server's base URL.
      */
     protected function getBaseUrl(): string
     {
-        return 'http://localhost:8888';
+        $base = $_ENV['TEST_SERVER_BASE_URL']
+            ?? (getenv('TEST_SERVER_BASE_URL') ?: null)
+            ?? $_ENV['FIXTURE_SERVER_BASE_URL']
+            ?? (getenv('FIXTURE_SERVER_BASE_URL') ?: null)
+            ?? self::$autoBaseUrl
+            ?? 'http://127.0.0.1:8888';
+
+        return rtrim($base, '/');
     }
 
     /**
@@ -151,5 +234,38 @@ abstract class FunctionalTestCase extends TestCase
             $actualText,
             \sprintf('Expected element "%s" to have text "%s", got "%s"', $selector, $expectedText, $actualText)
         );
+    }
+
+    private static function isPortAvailable(string $host, int $port): bool
+    {
+        $conn = @fsockopen($host, $port, $errno, $errstr, 0.5);
+        if (is_resource($conn)) {
+            fclose($conn);
+
+            return false;
+        }
+
+        return true;
+    }
+
+    private static function findAvailablePort(string $host): int
+    {
+        for ($i = 0; $i < 30; ++$i) {
+            $port = random_int(8000, 9000);
+            if (self::isPortAvailable($host, $port)) {
+                return $port;
+            }
+        }
+
+        return 0;
+    }
+
+    private static function isServerReady(string $host, int $port): bool
+    {
+        $url = sprintf('http://%s:%d/index.html', $host, $port);
+        $ctx = stream_context_create(['http' => ['timeout' => 0.5, 'ignore_errors' => true]]);
+        $body = @file_get_contents($url, false, $ctx);
+
+        return false !== $body;
     }
 }

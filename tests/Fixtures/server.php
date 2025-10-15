@@ -24,7 +24,25 @@ $file = __DIR__.'/html'.$uri;
 
 // Serve static file if it exists
 if (file_exists($file) && is_file($file)) {
-    return false; // Let PHP's built-in server handle it
+    // Determine content type
+    $extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+    $contentTypes = [
+        'html' => 'text/html; charset=utf-8',
+        'css' => 'text/css',
+        'js' => 'application/javascript',
+        'json' => 'application/json',
+        'png' => 'image/png',
+        'jpg' => 'image/jpeg',
+        'jpeg' => 'image/jpeg',
+        'gif' => 'image/gif',
+        'svg' => 'image/svg+xml',
+    ];
+
+    $contentType = $contentTypes[$extension] ?? 'application/octet-stream';
+    header('Content-Type: '.$contentType);
+    readfile($file);
+
+    return true;
 }
 
 // 404 for missing files
@@ -34,3 +52,5 @@ echo '<!doctype html>';
 echo '<html><head><meta charset="utf-8"><title>404 Not Found</title></head>';
 echo '<body><h1>404 Not Found</h1><p>File not found: '.htmlspecialchars($uri, \ENT_QUOTES, 'UTF-8').'</p></body>';
 echo '</html>';
+
+return true;
