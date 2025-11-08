@@ -10,13 +10,6 @@
 
 # Playwright PHP - Modern Browser Automation
 
-> [!IMPORTANT]  
-> This package is **experimental**. Its API may still change before the upcoming `1.0` release.  
->  
-> Curious or interested? Try it out, [share your feedback](https://github.com/playwright-php/playwright/issues), or ideas!
-
-
-
 ## About
 
 Playwright for PHP lets you launch real browsers (Chromium, Firefox, WebKit), drive pages and locators, and write reliable end‑to‑end tests — all from PHP.
@@ -135,6 +128,8 @@ $ctx = Playwright::chromium([
 ## PHPUnit integration
 
 The package provides a testing trait and fluent `expect()` assertions to write robust E2E tests.
+
+**Requirements**: PHPUnit 10.0 or higher is required to use the `PlaywrightTestCaseTrait`.
 
 Minimal example:
 

@@ -83,11 +83,13 @@ trait PlaywrightTestCaseTrait
 
     protected function tearDownPlaywright(): void
     {
-        $status = $this->status();
+        if (method_exists($this, 'status')) {
+            $status = $this->status();
 
-        if ($status->isFailure() || $status->isError()) {
-            $testName = method_exists($this, 'getName') && is_string($this->getName()) ? $this->getName() : 'test';
-            $this->captureFailureArtifacts($testName);
+            if ($status->isFailure() || $status->isError()) {
+                $testName = method_exists($this, 'getName') && is_string($this->getName()) ? $this->getName() : 'test';
+                $this->captureFailureArtifacts($testName);
+            }
         }
 
         $this->safeClose($this->context);
