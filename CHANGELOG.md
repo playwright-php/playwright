@@ -14,6 +14,4 @@
 - Marked package as stable (removed experimental warning)
 - Added PHPUnit 10+ requirement documentation for testing trait
 
-### Fixed
-- PHPUnit compatibility: Added check for `status()` method availability to support PHPUnit 10+ (#9)
 
