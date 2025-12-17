@@ -70,6 +70,13 @@ echo $page->title() . PHP_EOL; // Outputs: "Example Domain"
 // Take a screenshot and save it as 'screenshot.png'.
 $page->screenshot('screenshot.png');
 
+// Export the page to PDF on disk.
+$page->pdf('invoice.pdf', ['format' => 'A4']);
+
+// Or grab the PDF bytes directly without keeping files around.
+$pdfBytes = $page->pdfContent();
+file_put_contents('inline-invoice.pdf', $pdfBytes);
+
 // Close the browser context and all its pages.
 $context->close();
 ```

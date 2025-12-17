@@ -22,6 +22,7 @@ use Playwright\Input\KeyboardInterface;
 use Playwright\Input\MouseInterface;
 use Playwright\Locator\LocatorInterface;
 use Playwright\Network\ResponseInterface;
+use Playwright\Page\Options\PdfOptions;
 
 interface PageInterface
 {
@@ -93,6 +94,16 @@ interface PageInterface
      * @param array<string, mixed> $options
      */
     public function screenshot(?string $path = null, array $options = []): string;
+
+    /**
+     * @param array<string, mixed>|PdfOptions $options
+     */
+    public function pdf(?string $path = null, array|PdfOptions $options = []): string;
+
+    /**
+     * @param array<string, mixed>|PdfOptions $options
+     */
+    public function pdfContent(array|PdfOptions $options = []): string;
 
     public function content(): ?string;
 

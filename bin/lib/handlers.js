@@ -40,6 +40,7 @@ class ContextHandler extends BaseHandler {
       cookies: async () => ({ cookies: await context.cookies(command.urls) }),
       storageState: async () => ({ storageState: await context.storageState(command.options) }),
       clipboardText: () => this.getClipboardText(context),
+      close: () => this.closeContext(context, command.contextId),
       newPage: () => this.createNewPage(context, command)
     });
 
@@ -75,6 +76,35 @@ class ContextHandler extends BaseHandler {
     }
 
     return { pageId };
+  }
+
+  async closeContext(context, contextId) {
+    try {
+      await context.close();
+    } catch (error) {
+      logger.error('Failed to close context', { contextId, error: error?.message });
+      throw error;
+    } finally {
+      this.cleanupContextResources(contextId);
+    }
+  }
+
+  cleanupContextResources(contextId) {
+    this.contexts.delete(contextId);
+    this.contextThrottling?.delete?.(contextId);
+
+    for (const [pageId, mappedContextId] of this.pageContexts.entries()) {
+      if (mappedContextId === contextId) {
+        this.pageContexts.delete(pageId);
+        this.pages.delete(pageId);
+      }
+    }
+
+    for (const [routeId, info] of this.routes.entries()) {
+      if (info?.contextId === contextId) {
+        this.routes.delete(routeId);
+      }
+    }
   }
 
   async waitForPopup(context, command) {
@@ -155,6 +185,7 @@ class PageHandler extends BaseHandler {
       waitForURL: () => page.waitForURL(command.url, command.options),
       waitForSelector: () => page.waitForSelector(command.selector, command.options),
       screenshot: () => PromiseUtils.wrapBinary(page.screenshot(command.options)),
+      pdf: () => PromiseUtils.wrapBinary(page.pdf(command.options || {})),
       evaluateHandle: () => this.evaluateHandle(page, command),
       addScriptTag: () => page.addScriptTag(command.options),
       addStyleTag: () => page.addStyleTag(command.options).then(() => ({ success: true })),
