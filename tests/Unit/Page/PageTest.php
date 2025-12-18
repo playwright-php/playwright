@@ -19,6 +19,9 @@ use PHPUnit\Framework\TestCase;
 use Playwright\Browser\BrowserContextInterface;
 use Playwright\Input\KeyboardInterface;
 use Playwright\Input\MouseInterface;
+use Playwright\Locator\Locator;
+use Playwright\Locator\Options\GetByRoleOptions;
+use Playwright\Locator\Options\LocatorOptions;
 use Playwright\Page\Page;
 use Playwright\Page\PageEventHandlerInterface;
 use Playwright\Transport\TransportInterface;
@@ -56,5 +59,34 @@ class PageTest extends TestCase
         $events = $this->page->events();
 
         $this->assertInstanceOf(PageEventHandlerInterface::class, $events);
+    }
+
+    public function testLocatorAcceptsLocatorOptions(): void
+    {
+        $options = new LocatorOptions(hasText: 'Save', strict: true);
+
+        $locator = $this->page->locator('button.save', $options);
+
+        $this->assertInstanceOf(Locator::class, $locator);
+        $this->assertSame([
+            'hasText' => 'Save',
+            'strict' => true,
+        ], $locator->getOptions());
+    }
+
+    public function testGetByRoleAcceptsGetByRoleOptions(): void
+    {
+        $options = new GetByRoleOptions(
+            checked: true,
+            locatorOptions: new LocatorOptions(hasNotText: 'Loading')
+        );
+
+        $locator = $this->page->getByRole('button', $options);
+
+        $this->assertInstanceOf(Locator::class, $locator);
+        $result = $locator->getOptions();
+
+        $this->assertTrue($result['checked']);
+        $this->assertSame('Loading', $result['hasNotText']);
     }
 }

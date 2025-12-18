@@ -21,79 +21,101 @@ use Playwright\Frame\FrameLocatorInterface;
 use Playwright\Input\KeyboardInterface;
 use Playwright\Input\MouseInterface;
 use Playwright\Locator\LocatorInterface;
+use Playwright\Locator\Options\GetByRoleOptions;
+use Playwright\Locator\Options\LocatorOptions;
 use Playwright\Network\ResponseInterface;
+use Playwright\Page\Options\ClickOptions;
+use Playwright\Page\Options\FrameQueryOptions;
+use Playwright\Page\Options\GotoOptions;
+use Playwright\Page\Options\NavigationHistoryOptions;
 use Playwright\Page\Options\PdfOptions;
+use Playwright\Page\Options\ScreenshotOptions;
+use Playwright\Page\Options\ScriptTagOptions;
+use Playwright\Page\Options\SetContentOptions;
+use Playwright\Page\Options\SetInputFilesOptions;
+use Playwright\Page\Options\StyleTagOptions;
+use Playwright\Page\Options\TypeOptions;
+use Playwright\Page\Options\WaitForLoadStateOptions;
+use Playwright\Page\Options\WaitForPopupOptions;
+use Playwright\Page\Options\WaitForSelectorOptions;
+use Playwright\Page\Options\WaitForUrlOptions;
 
 interface PageInterface
 {
-    public function locator(string $selector): LocatorInterface;
+    /**
+     * @param array<string, mixed>|LocatorOptions $options
+     */
+    public function locator(string $selector, array|LocatorOptions $options = []): LocatorInterface;
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|LocatorOptions $options
      */
-    public function getByAltText(string $text, array $options = []): LocatorInterface;
+    public function getByAltText(string $text, array|LocatorOptions $options = []): LocatorInterface;
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|LocatorOptions $options
      */
-    public function getByLabel(string $text, array $options = []): LocatorInterface;
+    public function getByLabel(string $text, array|LocatorOptions $options = []): LocatorInterface;
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|LocatorOptions $options
      */
-    public function getByPlaceholder(string $text, array $options = []): LocatorInterface;
+    public function getByPlaceholder(string $text, array|LocatorOptions $options = []): LocatorInterface;
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|GetByRoleOptions $options
      */
-    public function getByRole(string $role, array $options = []): LocatorInterface;
-
-    public function getByTestId(string $testId): LocatorInterface;
+    public function getByRole(string $role, array|GetByRoleOptions $options = []): LocatorInterface;
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|LocatorOptions $options
      */
-    public function getByText(string $text, array $options = []): LocatorInterface;
+    public function getByTestId(string $testId, array|LocatorOptions $options = []): LocatorInterface;
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|LocatorOptions $options
      */
-    public function getByTitle(string $text, array $options = []): LocatorInterface;
+    public function getByText(string $text, array|LocatorOptions $options = []): LocatorInterface;
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|LocatorOptions $options
      */
-    public function goto(string $url, array $options = []): ?ResponseInterface;
+    public function getByTitle(string $text, array|LocatorOptions $options = []): LocatorInterface;
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|GotoOptions $options
      */
-    public function click(string $selector, array $options = []): self;
+    public function goto(string $url, array|GotoOptions $options = []): ?ResponseInterface;
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|ClickOptions $options
      */
-    public function altClick(string $selector, array $options = []): self;
+    public function click(string $selector, array|ClickOptions $options = []): self;
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|ClickOptions $options
      */
-    public function controlClick(string $selector, array $options = []): self;
+    public function altClick(string $selector, array|ClickOptions $options = []): self;
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|ClickOptions $options
      */
-    public function shiftClick(string $selector, array $options = []): self;
+    public function controlClick(string $selector, array|ClickOptions $options = []): self;
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|ClickOptions $options
      */
-    public function type(string $selector, string $text, array $options = []): self;
+    public function shiftClick(string $selector, array|ClickOptions $options = []): self;
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|TypeOptions $options
      */
-    public function screenshot(?string $path = null, array $options = []): string;
+    public function type(string $selector, string $text, array|TypeOptions $options = []): self;
+
+    /**
+     * @param array<string, mixed>|ScreenshotOptions $options
+     */
+    public function screenshot(?string $path = null, array|ScreenshotOptions $options = []): string;
 
     /**
      * @param array<string, mixed>|PdfOptions $options
@@ -110,9 +132,9 @@ interface PageInterface
     public function evaluate(string $expression, mixed $arg = null): mixed;
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|WaitForSelectorOptions $options
      */
-    public function waitForSelector(string $selector, array $options = []): ?LocatorInterface;
+    public function waitForSelector(string $selector, array|WaitForSelectorOptions $options = []): ?LocatorInterface;
 
     public function close(): void;
 
@@ -131,24 +153,24 @@ interface PageInterface
     public function cookies(?array $urls = null): array;
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|NavigationHistoryOptions $options
      */
-    public function goBack(array $options = []): self;
+    public function goBack(array|NavigationHistoryOptions $options = []): self;
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|NavigationHistoryOptions $options
      */
-    public function goForward(array $options = []): self;
+    public function goForward(array|NavigationHistoryOptions $options = []): self;
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|NavigationHistoryOptions $options
      */
-    public function reload(array $options = []): self;
+    public function reload(array|NavigationHistoryOptions $options = []): self;
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|SetContentOptions $options
      */
-    public function setContent(string $html, array $options = []): self;
+    public function setContent(string $html, array|SetContentOptions $options = []): self;
 
     public function url(): string;
 
@@ -166,25 +188,25 @@ interface PageInterface
     public function setDefaultTimeout(int $timeout): self;
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|WaitForLoadStateOptions $options
      */
-    public function waitForLoadState(string $state = 'load', array $options = []): self;
+    public function waitForLoadState(string $state = 'load', array|WaitForLoadStateOptions $options = []): self;
 
     /**
-     * @param string|callable      $url
-     * @param array<string, mixed> $options
+     * @param string|callable                        $url
+     * @param array<string, mixed>|WaitForUrlOptions $options
      */
-    public function waitForURL($url, array $options = []): self;
+    public function waitForURL($url, array|WaitForUrlOptions $options = []): self;
 
     /**
-     * @param array{url?: string, path?: string, content?: string, type?: string} $options
+     * @param array{url?: string, path?: string, content?: string, type?: string}|ScriptTagOptions $options
      */
-    public function addScriptTag(array $options): self;
+    public function addScriptTag(array|ScriptTagOptions $options): self;
 
     /**
-     * @param array{url?: string, path?: string, content?: string} $options
+     * @param array{url?: string, path?: string, content?: string}|StyleTagOptions $options
      */
-    public function addStyleTag(array $options): self;
+    public function addStyleTag(array|StyleTagOptions $options): self;
 
     public function frameLocator(string $selector): FrameLocatorInterface;
 
@@ -205,18 +227,18 @@ interface PageInterface
     public function waitForEvents(): void;
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|WaitForPopupOptions $options
      */
-    public function waitForPopup(callable $action, array $options = []): self;
+    public function waitForPopup(callable $action, array|WaitForPopupOptions $options = []): self;
 
     /**
      * Set files to an input element with type="file".
      *
-     * @param string               $selector The input selector
-     * @param array<string>        $files    Array of file paths to set
-     * @param array<string, mixed> $options  Additional options
+     * @param string                                    $selector The input selector
+     * @param array<string>                             $files    Array of file paths to set
+     * @param array<string, mixed>|SetInputFilesOptions $options  Additional options
      */
-    public function setInputFiles(string $selector, array $files, array $options = []): self;
+    public function setInputFiles(string $selector, array $files, array|SetInputFilesOptions $options = []): self;
 
     /**
      * Get a handle to the main frame.
@@ -233,9 +255,9 @@ interface PageInterface
     /**
      * Find a top-level frame by name or URL.
      *
-     * @param array{name?: string, url?: string, urlRegex?: string} $options
+     * @param array{name?: string, url?: string, urlRegex?: string}|FrameQueryOptions $options
      */
-    public function frame(array $options): ?FrameInterface;
+    public function frame(array|FrameQueryOptions $options): ?FrameInterface;
 
     /**
      * API testing helper associated with this page.

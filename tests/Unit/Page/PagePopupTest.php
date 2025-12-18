@@ -75,7 +75,7 @@ final class PagePopupTest extends TestCase
                 $this->assertTrue($actionExecuted);
 
                 return 'page.waitForPopup' === $payload['action']
-                    && 5000 === $payload['timeout'];
+                    && 5000.0 === (float) $payload['timeout'];
             }))
             ->willReturn(['popupPageId' => 'popup456']);
 
