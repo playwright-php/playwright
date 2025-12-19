@@ -23,7 +23,7 @@ use Playwright\Transport\TransportInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
-final class Frame implements FrameInterface
+final class Frame implements \Stringable, FrameInterface
 {
     private LoggerInterface $logger;
 

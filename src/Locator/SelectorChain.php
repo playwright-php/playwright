@@ -14,7 +14,7 @@ declare(strict_types=1);
 
 namespace Playwright\Locator;
 
-final class SelectorChain implements SelectorChainInterface
+final class SelectorChain implements \Stringable, SelectorChainInterface
 {
     /** @var array<string> */
     private array $selectors = [];

@@ -21,7 +21,7 @@ use Playwright\Transport\TransportInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
-final class FrameLocator implements FrameLocatorInterface
+final class FrameLocator implements \Stringable, FrameLocatorInterface
 {
     private LoggerInterface $logger;
 
