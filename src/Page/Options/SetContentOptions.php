@@ -14,8 +14,6 @@ declare(strict_types=1);
 
 namespace Playwright\Page\Options;
 
-use Playwright\Exception\InvalidArgumentException;
-
 class SetContentOptions
 {
     /**
@@ -27,6 +25,9 @@ class SetContentOptions
     ) {
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(): array
     {
         $options = [];
@@ -49,13 +50,11 @@ class SetContentOptions
             return $options;
         }
 
-        if (!\is_array($options)) {
-            throw new InvalidArgumentException('Options must be an array or an instance of SetContentOptions');
-        }
+        /** @var 'load'|'domcontentloaded'|'networkidle'|'commit'|null $waitUntil */
+        $waitUntil = $options['waitUntil'] ?? null;
+        /** @var float|null $timeout */
+        $timeout = $options['timeout'] ?? null;
 
-        return new self(
-            $options['waitUntil'] ?? null,
-            $options['timeout'] ?? null,
-        );
+        return new self($waitUntil, $timeout);
     }
 }

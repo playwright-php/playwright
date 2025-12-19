@@ -14,8 +14,6 @@ declare(strict_types=1);
 
 namespace Playwright\Page\Options;
 
-use Playwright\Exception\InvalidArgumentException;
-
 class FrameQueryOptions
 {
     public function __construct(
@@ -25,6 +23,9 @@ class FrameQueryOptions
     ) {
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(): array
     {
         $options = [];
@@ -42,7 +43,7 @@ class FrameQueryOptions
     }
 
     /**
-     * @param array{name?: string, url?: string, urlRegex?: string}|self $options
+     * @param array<string, mixed>|self $options
      */
     public static function from(array|self $options = []): self
     {
@@ -50,14 +51,13 @@ class FrameQueryOptions
             return $options;
         }
 
-        if (!\is_array($options)) {
-            throw new InvalidArgumentException('Options must be an array or an instance of FrameQueryOptions');
-        }
+        /** @var string|null $name */
+        $name = $options['name'] ?? null;
+        /** @var string|null $url */
+        $url = $options['url'] ?? null;
+        /** @var string|null $urlRegex */
+        $urlRegex = $options['urlRegex'] ?? null;
 
-        return new self(
-            $options['name'] ?? null,
-            $options['url'] ?? null,
-            $options['urlRegex'] ?? null,
-        );
+        return new self($name, $url, $urlRegex);
     }
 }

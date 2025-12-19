@@ -14,8 +14,6 @@ declare(strict_types=1);
 
 namespace Playwright\Locator\Options;
 
-use Playwright\Exception\InvalidArgumentException;
-
 class FillOptions
 {
     public function __construct(
@@ -25,6 +23,9 @@ class FillOptions
     ) {
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(): array
     {
         $options = [];
@@ -50,14 +51,13 @@ class FillOptions
             return $options;
         }
 
-        if (!\is_array($options)) {
-            throw new InvalidArgumentException('Options must be an array or an instance of FillOptions');
-        }
+        /** @var bool|null $force */
+        $force = $options['force'] ?? null;
+        /** @var bool|null $noWaitAfter */
+        $noWaitAfter = $options['noWaitAfter'] ?? null;
+        /** @var float|null $timeout */
+        $timeout = $options['timeout'] ?? null;
 
-        return new self(
-            $options['force'] ?? null,
-            $options['noWaitAfter'] ?? null,
-            $options['timeout'] ?? null,
-        );
+        return new self($force, $noWaitAfter, $timeout);
     }
 }

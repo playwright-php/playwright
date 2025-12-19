@@ -14,8 +14,6 @@ declare(strict_types=1);
 
 namespace Playwright\Page\Options;
 
-use Playwright\Exception\InvalidArgumentException;
-
 class WaitForUrlOptions
 {
     /**
@@ -27,6 +25,9 @@ class WaitForUrlOptions
     ) {
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(): array
     {
         $options = [];
@@ -49,13 +50,11 @@ class WaitForUrlOptions
             return $options;
         }
 
-        if (!\is_array($options)) {
-            throw new InvalidArgumentException('Options must be an array or an instance of WaitForUrlOptions');
-        }
+        /** @var float|null $timeout */
+        $timeout = $options['timeout'] ?? null;
+        /** @var 'load'|'domcontentloaded'|'networkidle'|'commit'|null $waitUntil */
+        $waitUntil = $options['waitUntil'] ?? null;
 
-        return new self(
-            $options['timeout'] ?? null,
-            $options['waitUntil'] ?? null,
-        );
+        return new self($timeout, $waitUntil);
     }
 }

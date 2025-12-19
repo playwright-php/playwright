@@ -14,8 +14,6 @@ declare(strict_types=1);
 
 namespace Playwright\Page\Options;
 
-use Playwright\Exception\InvalidArgumentException;
-
 class StyleTagOptions
 {
     public function __construct(
@@ -25,6 +23,9 @@ class StyleTagOptions
     ) {
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(): array
     {
         $options = [];
@@ -42,7 +43,7 @@ class StyleTagOptions
     }
 
     /**
-     * @param array{url?: string, path?: string, content?: string}|self $options
+     * @param array<string, mixed>|self $options
      */
     public static function from(array|self $options = []): self
     {
@@ -50,14 +51,13 @@ class StyleTagOptions
             return $options;
         }
 
-        if (!\is_array($options)) {
-            throw new InvalidArgumentException('Options must be an array or an instance of StyleTagOptions');
-        }
+        /** @var string|null $url */
+        $url = $options['url'] ?? null;
+        /** @var string|null $path */
+        $path = $options['path'] ?? null;
+        /** @var string|null $content */
+        $content = $options['content'] ?? null;
 
-        return new self(
-            $options['url'] ?? null,
-            $options['path'] ?? null,
-            $options['content'] ?? null,
-        );
+        return new self($url, $path, $content);
     }
 }

@@ -14,8 +14,6 @@ declare(strict_types=1);
 
 namespace Playwright\Locator\Options;
 
-use Playwright\Exception\InvalidArgumentException;
-
 class DblClickOptions
 {
     /**
@@ -36,6 +34,9 @@ class DblClickOptions
     ) {
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(): array
     {
         $options = [];
@@ -79,20 +80,25 @@ class DblClickOptions
             return $options;
         }
 
-        if (!\is_array($options)) {
-            throw new InvalidArgumentException('Options must be an array or an instance of DblClickOptions');
-        }
+        /** @var 'left'|'right'|'middle'|null $button */
+        $button = $options['button'] ?? null;
+        /** @var float|null $delay */
+        $delay = $options['delay'] ?? null;
+        /** @var array<string>|null $modifiers */
+        $modifiers = $options['modifiers'] ?? null;
+        /** @var array{x: float, y: float}|null $position */
+        $position = $options['position'] ?? null;
+        /** @var bool|null $force */
+        $force = $options['force'] ?? null;
+        /** @var bool|null $noWaitAfter */
+        $noWaitAfter = $options['noWaitAfter'] ?? null;
+        /** @var int|null $steps */
+        $steps = $options['steps'] ?? null;
+        /** @var float|null $timeout */
+        $timeout = $options['timeout'] ?? null;
+        /** @var bool|null $trial */
+        $trial = $options['trial'] ?? null;
 
-        return new self(
-            $options['button'] ?? null,
-            $options['delay'] ?? null,
-            $options['modifiers'] ?? null,
-            $options['position'] ?? null,
-            $options['force'] ?? null,
-            $options['noWaitAfter'] ?? null,
-            $options['steps'] ?? null,
-            $options['timeout'] ?? null,
-            $options['trial'] ?? null,
-        );
+        return new self($button, $delay, $modifiers, $position, $force, $noWaitAfter, $steps, $timeout, $trial);
     }
 }

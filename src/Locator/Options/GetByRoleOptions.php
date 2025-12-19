@@ -88,6 +88,9 @@ final readonly class GetByRoleOptions
         return $options;
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     private static function extractBool(array $options, string $key): ?bool
     {
         if (!array_key_exists($key, $options)) {
@@ -106,6 +109,9 @@ final readonly class GetByRoleOptions
         return $value;
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     private static function extractLevel(array $options): ?int
     {
         if (!array_key_exists('level', $options)) {
@@ -128,6 +134,9 @@ final readonly class GetByRoleOptions
         throw new RuntimeException('getByRole option "level" must be an integer.');
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     private static function extractName(array $options): ?string
     {
         if (!array_key_exists('name', $options)) {
@@ -146,16 +155,24 @@ final readonly class GetByRoleOptions
         throw new RuntimeException('getByRole option "name" must be stringable.');
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     private function filteredLocatorOptions(): array
     {
         $options = $this->locatorOptions->toArray();
         foreach (self::ROLE_KEYS as $key) {
-            unset($options[$key]);
+            if (array_key_exists($key, $options)) {
+                unset($options[$key]);
+            }
         }
 
         return $options;
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     private function appendIfNotNull(array &$options, string $key, mixed $value): void
     {
         if (null === $value) {

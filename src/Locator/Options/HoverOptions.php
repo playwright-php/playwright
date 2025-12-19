@@ -14,8 +14,6 @@ declare(strict_types=1);
 
 namespace Playwright\Locator\Options;
 
-use Playwright\Exception\InvalidArgumentException;
-
 class HoverOptions
 {
     /**
@@ -32,6 +30,9 @@ class HoverOptions
     ) {
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(): array
     {
         $options = [];
@@ -66,17 +67,19 @@ class HoverOptions
             return $options;
         }
 
-        if (!\is_array($options)) {
-            throw new InvalidArgumentException('Options must be an array or an instance of HoverOptions');
-        }
+        /** @var array<string>|null $modifiers */
+        $modifiers = $options['modifiers'] ?? null;
+        /** @var array{x: float, y: float}|null $position */
+        $position = $options['position'] ?? null;
+        /** @var bool|null $force */
+        $force = $options['force'] ?? null;
+        /** @var bool|null $noWaitAfter */
+        $noWaitAfter = $options['noWaitAfter'] ?? null;
+        /** @var float|null $timeout */
+        $timeout = $options['timeout'] ?? null;
+        /** @var bool|null $trial */
+        $trial = $options['trial'] ?? null;
 
-        return new self(
-            $options['modifiers'] ?? null,
-            $options['position'] ?? null,
-            $options['force'] ?? null,
-            $options['noWaitAfter'] ?? null,
-            $options['timeout'] ?? null,
-            $options['trial'] ?? null,
-        );
+        return new self($modifiers, $position, $force, $noWaitAfter, $timeout, $trial);
     }
 }

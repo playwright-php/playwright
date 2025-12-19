@@ -14,8 +14,6 @@ declare(strict_types=1);
 
 namespace Playwright\Page\Options;
 
-use Playwright\Exception\InvalidArgumentException;
-
 final readonly class TypeOptions
 {
     public function __construct(
@@ -26,6 +24,9 @@ final readonly class TypeOptions
     ) {
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(): array
     {
         $options = [];
@@ -54,15 +55,15 @@ final readonly class TypeOptions
             return $options;
         }
 
-        if (!\is_array($options)) {
-            throw new InvalidArgumentException('Options must be an array or an instance of TypeOptions');
-        }
+        /** @var float|null $delay */
+        $delay = $options['delay'] ?? null;
+        /** @var bool|null $noWaitAfter */
+        $noWaitAfter = $options['noWaitAfter'] ?? null;
+        /** @var float|null $timeout */
+        $timeout = $options['timeout'] ?? null;
+        /** @var bool|null $strict */
+        $strict = $options['strict'] ?? null;
 
-        return new self(
-            $options['delay'] ?? null,
-            $options['noWaitAfter'] ?? null,
-            $options['timeout'] ?? null,
-            $options['strict'] ?? null,
-        );
+        return new self($delay, $noWaitAfter, $timeout, $strict);
     }
 }

@@ -14,8 +14,6 @@ declare(strict_types=1);
 
 namespace Playwright\Page\Options;
 
-use Playwright\Exception\InvalidArgumentException;
-
 class WaitForPopupOptions
 {
     /**
@@ -27,6 +25,9 @@ class WaitForPopupOptions
     ) {
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(): array
     {
         $options = [];
@@ -49,13 +50,11 @@ class WaitForPopupOptions
             return $options;
         }
 
-        if (!\is_array($options)) {
-            throw new InvalidArgumentException('Options must be an array or an instance of WaitForPopupOptions');
-        }
+        /** @var callable|null $predicate */
+        $predicate = $options['predicate'] ?? null;
+        /** @var float|null $timeout */
+        $timeout = $options['timeout'] ?? null;
 
-        return new self(
-            $options['predicate'] ?? null,
-            $options['timeout'] ?? null,
-        );
+        return new self($predicate, $timeout);
     }
 }

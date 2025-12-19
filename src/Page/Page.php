@@ -48,7 +48,6 @@ use Playwright\Page\Options\ClickOptions;
 use Playwright\Page\Options\FrameQueryOptions;
 use Playwright\Page\Options\GotoOptions;
 use Playwright\Page\Options\NavigationHistoryOptions;
-use Playwright\Page\Options\PdfOptions;
 use Playwright\Page\Options\ScreenshotOptions;
 use Playwright\Page\Options\ScriptTagOptions;
 use Playwright\Page\Options\SetContentOptions;
@@ -529,7 +528,7 @@ final class Page implements PageInterface, EventDispatcherInterface
     public function altClick(string $selector, array|ClickOptions $options = []): self
     {
         $options = ClickOptions::from($options)->toArray();
-        $options['modifiers'] = [...($options['modifiers'] ?? []), ModifierKey::Alt->value];
+        $options['modifiers'] = [...((array) ($options['modifiers'] ?? [])), ModifierKey::Alt->value];
 
         return $this->click($selector, $options);
     }
@@ -540,7 +539,7 @@ final class Page implements PageInterface, EventDispatcherInterface
     public function controlClick(string $selector, array|ClickOptions $options = []): self
     {
         $options = ClickOptions::from($options)->toArray();
-        $options['modifiers'] = [...($options['modifiers'] ?? []), ModifierKey::Control->value];
+        $options['modifiers'] = [...((array) ($options['modifiers'] ?? [])), ModifierKey::Control->value];
 
         return $this->click($selector, $options);
     }
@@ -551,7 +550,7 @@ final class Page implements PageInterface, EventDispatcherInterface
     public function shiftClick(string $selector, array|ClickOptions $options = []): self
     {
         $options = ClickOptions::from($options)->toArray();
-        $options['modifiers'] = [...($options['modifiers'] ?? []), ModifierKey::Shift->value];
+        $options['modifiers'] = [...((array) ($options['modifiers'] ?? [])), ModifierKey::Shift->value];
 
         return $this->click($selector, $options);
     }

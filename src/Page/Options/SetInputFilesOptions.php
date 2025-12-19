@@ -14,8 +14,6 @@ declare(strict_types=1);
 
 namespace Playwright\Page\Options;
 
-use Playwright\Exception\InvalidArgumentException;
-
 class SetInputFilesOptions
 {
     public function __construct(
@@ -24,6 +22,9 @@ class SetInputFilesOptions
     ) {
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(): array
     {
         $options = [];
@@ -46,13 +47,11 @@ class SetInputFilesOptions
             return $options;
         }
 
-        if (!\is_array($options)) {
-            throw new InvalidArgumentException('Options must be an array or an instance of SetInputFilesOptions');
-        }
+        /** @var bool|null $noWaitAfter */
+        $noWaitAfter = $options['noWaitAfter'] ?? null;
+        /** @var float|null $timeout */
+        $timeout = $options['timeout'] ?? null;
 
-        return new self(
-            $options['noWaitAfter'] ?? null,
-            $options['timeout'] ?? null,
-        );
+        return new self($noWaitAfter, $timeout);
     }
 }

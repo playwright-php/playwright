@@ -14,8 +14,6 @@ declare(strict_types=1);
 
 namespace Playwright\Page\Options;
 
-use Playwright\Exception\InvalidArgumentException;
-
 final readonly class WaitForSelectorOptions
 {
     /**
@@ -28,6 +26,9 @@ final readonly class WaitForSelectorOptions
     ) {
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(): array
     {
         $options = [];
@@ -53,14 +54,13 @@ final readonly class WaitForSelectorOptions
             return $options;
         }
 
-        if (!\is_array($options)) {
-            throw new InvalidArgumentException('Options must be an array or an instance of WaitForSelectorOptions');
-        }
+        /** @var 'attached'|'detached'|'visible'|'hidden'|null $state */
+        $state = $options['state'] ?? null;
+        /** @var float|null $timeout */
+        $timeout = $options['timeout'] ?? null;
+        /** @var bool|null $strict */
+        $strict = $options['strict'] ?? null;
 
-        return new self(
-            $options['state'] ?? null,
-            $options['timeout'] ?? null,
-            $options['strict'] ?? null,
-        );
+        return new self($state, $timeout, $strict);
     }
 }

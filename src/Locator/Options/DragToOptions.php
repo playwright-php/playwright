@@ -14,8 +14,6 @@ declare(strict_types=1);
 
 namespace Playwright\Locator\Options;
 
-use Playwright\Exception\InvalidArgumentException;
-
 class DragToOptions
 {
     /**
@@ -33,6 +31,9 @@ class DragToOptions
     ) {
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(): array
     {
         $options = [];
@@ -70,18 +71,21 @@ class DragToOptions
             return $options;
         }
 
-        if (!\is_array($options)) {
-            throw new InvalidArgumentException('Options must be an array or an instance of DragToOptions');
-        }
+        /** @var array{x: float, y: float}|null $sourcePosition */
+        $sourcePosition = $options['sourcePosition'] ?? null;
+        /** @var array{x: float, y: float}|null $targetPosition */
+        $targetPosition = $options['targetPosition'] ?? null;
+        /** @var bool|null $force */
+        $force = $options['force'] ?? null;
+        /** @var bool|null $noWaitAfter */
+        $noWaitAfter = $options['noWaitAfter'] ?? null;
+        /** @var int|null $steps */
+        $steps = $options['steps'] ?? null;
+        /** @var float|null $timeout */
+        $timeout = $options['timeout'] ?? null;
+        /** @var bool|null $trial */
+        $trial = $options['trial'] ?? null;
 
-        return new self(
-            $options['sourcePosition'] ?? null,
-            $options['targetPosition'] ?? null,
-            $options['force'] ?? null,
-            $options['noWaitAfter'] ?? null,
-            $options['steps'] ?? null,
-            $options['timeout'] ?? null,
-            $options['trial'] ?? null,
-        );
+        return new self($sourcePosition, $targetPosition, $force, $noWaitAfter, $steps, $timeout, $trial);
     }
 }

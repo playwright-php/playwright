@@ -72,7 +72,7 @@ final readonly class LocatorOptions
     }
 
     /**
-     * @return LocatorOptionsArray&array<string, mixed>
+     * @return array<string, mixed>
      */
     public function toArray(): array
     {
@@ -97,6 +97,9 @@ final readonly class LocatorOptions
         return $options;
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     private static function extractLocator(array $options, string $key): ?LocatorInterface
     {
         if (!array_key_exists($key, $options)) {
@@ -115,6 +118,9 @@ final readonly class LocatorOptions
         return $value;
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     private static function extractString(array $options, string $key): ?string
     {
         if (!array_key_exists($key, $options)) {

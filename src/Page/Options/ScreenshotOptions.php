@@ -14,8 +14,6 @@ declare(strict_types=1);
 
 namespace Playwright\Page\Options;
 
-use Playwright\Exception\InvalidArgumentException;
-
 final readonly class ScreenshotOptions
 {
     /**
@@ -42,6 +40,9 @@ final readonly class ScreenshotOptions
     ) {
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(): array
     {
         $options = [];
@@ -94,23 +95,31 @@ final readonly class ScreenshotOptions
             return $options;
         }
 
-        if (!\is_array($options)) {
-            throw new InvalidArgumentException('Options must be an array or an instance of ScreenshotOptions');
-        }
+        /** @var string|null $path */
+        $path = $options['path'] ?? null;
+        /** @var 'png'|'jpeg'|null $type */
+        $type = $options['type'] ?? null;
+        /** @var int|null $quality */
+        $quality = $options['quality'] ?? null;
+        /** @var bool|null $fullPage */
+        $fullPage = $options['fullPage'] ?? null;
+        /** @var array{x: float, y: float, width: float, height: float}|null $clip */
+        $clip = $options['clip'] ?? null;
+        /** @var bool|null $omitBackground */
+        $omitBackground = $options['omitBackground'] ?? null;
+        /** @var float|null $timeout */
+        $timeout = $options['timeout'] ?? null;
+        /** @var 'disabled'|'allow'|null $animations */
+        $animations = $options['animations'] ?? null;
+        /** @var 'hide'|'initial'|null $caret */
+        $caret = $options['caret'] ?? null;
+        /** @var 'css'|'device'|null $scale */
+        $scale = $options['scale'] ?? null;
+        /** @var array<mixed>|null $mask */
+        $mask = $options['mask'] ?? null;
+        /** @var string|null $maskColor */
+        $maskColor = $options['maskColor'] ?? null;
 
-        return new self(
-            $options['path'] ?? null,
-            $options['type'] ?? null,
-            $options['quality'] ?? null,
-            $options['fullPage'] ?? null,
-            $options['clip'] ?? null,
-            $options['omitBackground'] ?? null,
-            $options['timeout'] ?? null,
-            $options['animations'] ?? null,
-            $options['caret'] ?? null,
-            $options['scale'] ?? null,
-            $options['mask'] ?? null,
-            $options['maskColor'] ?? null,
-        );
+        return new self($path, $type, $quality, $fullPage, $clip, $omitBackground, $timeout, $animations, $caret, $scale, $mask, $maskColor);
     }
 }

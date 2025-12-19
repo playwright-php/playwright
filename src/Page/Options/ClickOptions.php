@@ -14,7 +14,6 @@ declare(strict_types=1);
 
 namespace Playwright\Page\Options;
 
-use Playwright\Exception\InvalidArgumentException;
 use Playwright\Input\ModifierKey;
 
 final readonly class ClickOptions
@@ -38,6 +37,9 @@ final readonly class ClickOptions
     ) {
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(): array
     {
         $options = [];
@@ -84,21 +86,27 @@ final readonly class ClickOptions
             return $options;
         }
 
-        if (!\is_array($options)) {
-            throw new InvalidArgumentException('Options must be an array or an instance of ClickOptions');
-        }
+        /** @var 'left'|'right'|'middle'|null $button */
+        $button = $options['button'] ?? null;
+        /** @var int|null $clickCount */
+        $clickCount = $options['clickCount'] ?? null;
+        /** @var float|null $delay */
+        $delay = $options['delay'] ?? null;
+        /** @var array{x: float, y: float}|null $position */
+        $position = $options['position'] ?? null;
+        /** @var array<ModifierKey::*>|null $modifiers */
+        $modifiers = $options['modifiers'] ?? null;
+        /** @var bool|null $force */
+        $force = $options['force'] ?? null;
+        /** @var bool|null $noWaitAfter */
+        $noWaitAfter = $options['noWaitAfter'] ?? null;
+        /** @var float|null $timeout */
+        $timeout = $options['timeout'] ?? null;
+        /** @var bool|null $trial */
+        $trial = $options['trial'] ?? null;
+        /** @var bool|null $strict */
+        $strict = $options['strict'] ?? null;
 
-        return new self(
-            $options['button'] ?? null,
-            $options['clickCount'] ?? null,
-            $options['delay'] ?? null,
-            $options['position'] ?? null,
-            $options['modifiers'] ?? null,
-            $options['force'] ?? null,
-            $options['noWaitAfter'] ?? null,
-            $options['timeout'] ?? null,
-            $options['trial'] ?? null,
-            $options['strict'] ?? null,
-        );
+        return new self($button, $clickCount, $delay, $position, $modifiers, $force, $noWaitAfter, $timeout, $trial, $strict);
     }
 }

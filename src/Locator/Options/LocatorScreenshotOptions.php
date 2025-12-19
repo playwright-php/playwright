@@ -14,8 +14,6 @@ declare(strict_types=1);
 
 namespace Playwright\Locator\Options;
 
-use Playwright\Exception\InvalidArgumentException;
-
 class LocatorScreenshotOptions
 {
     /**
@@ -40,6 +38,9 @@ class LocatorScreenshotOptions
     ) {
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(): array
     {
         $options = [];
@@ -89,22 +90,29 @@ class LocatorScreenshotOptions
             return $options;
         }
 
-        if (!\is_array($options)) {
-            throw new InvalidArgumentException('Options must be an array or an instance of LocatorScreenshotOptions');
-        }
+        /** @var string|null $path */
+        $path = $options['path'] ?? null;
+        /** @var 'png'|'jpeg'|null $type */
+        $type = $options['type'] ?? null;
+        /** @var int|null $quality */
+        $quality = $options['quality'] ?? null;
+        /** @var bool|null $omitBackground */
+        $omitBackground = $options['omitBackground'] ?? null;
+        /** @var float|null $timeout */
+        $timeout = $options['timeout'] ?? null;
+        /** @var 'disabled'|'allow'|null $animations */
+        $animations = $options['animations'] ?? null;
+        /** @var 'hide'|'initial'|null $caret */
+        $caret = $options['caret'] ?? null;
+        /** @var 'css'|'device'|null $scale */
+        $scale = $options['scale'] ?? null;
+        /** @var array<mixed>|null $mask */
+        $mask = $options['mask'] ?? null;
+        /** @var string|null $maskColor */
+        $maskColor = $options['maskColor'] ?? null;
+        /** @var string|null $style */
+        $style = $options['style'] ?? null;
 
-        return new self(
-            $options['path'] ?? null,
-            $options['type'] ?? null,
-            $options['quality'] ?? null,
-            $options['omitBackground'] ?? null,
-            $options['timeout'] ?? null,
-            $options['animations'] ?? null,
-            $options['caret'] ?? null,
-            $options['scale'] ?? null,
-            $options['mask'] ?? null,
-            $options['maskColor'] ?? null,
-            $options['style'] ?? null,
-        );
+        return new self($path, $type, $quality, $omitBackground, $timeout, $animations, $caret, $scale, $mask, $maskColor, $style);
     }
 }

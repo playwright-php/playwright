@@ -14,8 +14,6 @@ declare(strict_types=1);
 
 namespace Playwright\Page\Options;
 
-use Playwright\Exception\InvalidArgumentException;
-
 final readonly class GotoOptions
 {
     public function __construct(
@@ -26,6 +24,9 @@ final readonly class GotoOptions
     ) {
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(): array
     {
         $options = [];
@@ -54,15 +55,15 @@ final readonly class GotoOptions
             return $options;
         }
 
-        if (!\is_array($options)) {
-            throw new InvalidArgumentException('Options must be an array or an instance of GotoOptions');
-        }
+        /** @var string|null $referer */
+        $referer = $options['referer'] ?? null;
+        /** @var float|null $timeout */
+        $timeout = $options['timeout'] ?? null;
+        /** @var string|null $waitUntil */
+        $waitUntil = $options['waitUntil'] ?? null;
+        /** @var bool|null $navigationRequest */
+        $navigationRequest = $options['navigationRequest'] ?? null;
 
-        return new self(
-            $options['referer'] ?? null,
-            $options['timeout'] ?? null,
-            $options['waitUntil'] ?? null,
-            $options['navigationRequest'] ?? null
-        );
+        return new self($referer, $timeout, $waitUntil, $navigationRequest);
     }
 }
