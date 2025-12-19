@@ -23,7 +23,7 @@ use Playwright\Transport\TransportInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
-final class Locator implements LocatorInterface
+final class Locator implements \Stringable, LocatorInterface
 {
     private SelectorChain $selectorChain;
 
