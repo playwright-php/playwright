@@ -74,4 +74,31 @@ final class GetByRoleOptionsTest extends TestCase
         $this->assertTrue($result['pressed']);
         $this->assertSame('disabled', $result['hasNotText']);
     }
+
+    public function testFromReturnsSameInstance(): void
+    {
+        $options = new GetByRoleOptions(checked: true);
+        $this->assertSame($options, GetByRoleOptions::from($options));
+    }
+
+    public function testFromArrayRejectsInvalidName(): void
+    {
+        $this->expectExceptionMessage('getByRole option "name" must be stringable.');
+        GetByRoleOptions::from(['name' => []]);
+    }
+
+    public function testFromArrayHandlesNullValues(): void
+    {
+        $options = GetByRoleOptions::from([
+            'checked' => null,
+            'level' => null,
+            'name' => null,
+        ]);
+
+        $result = $options->toArray();
+
+        $this->assertArrayNotHasKey('checked', $result);
+        $this->assertArrayNotHasKey('level', $result);
+        $this->assertArrayNotHasKey('name', $result);
+    }
 }

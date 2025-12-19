@@ -47,4 +47,48 @@ final class LocatorOptionsTest extends TestCase
 
         LocatorOptions::from(['strict' => 'yes']);
     }
+
+    public function testFromReturnsSameInstance(): void
+    {
+        $options = new LocatorOptions(strict: true);
+        $this->assertSame($options, LocatorOptions::from($options));
+    }
+
+    public function testFromArrayRejectsInvalidLocator(): void
+    {
+        $this->expectExceptionMessage('Locator option "has" must be a Locator instance or null.');
+        LocatorOptions::from(['has' => 'invalid']);
+    }
+
+    public function testFromArrayRejectsInvalidString(): void
+    {
+        $this->expectExceptionMessage('Locator option "hasText" must be stringable.');
+        LocatorOptions::from(['hasText' => []]);
+    }
+
+    public function testFromArrayHandlesNullValues(): void
+    {
+        $options = LocatorOptions::from([
+            'has' => null,
+            'hasText' => null,
+        ]);
+
+        $result = $options->toArray();
+
+        $this->assertArrayNotHasKey('has', $result);
+        $this->assertArrayNotHasKey('hasText', $result);
+    }
+
+    public function testFromArrayIgnoresNonStringKeys(): void
+    {
+        $options = LocatorOptions::from([
+            'valid' => 'value',
+            0 => 'ignored',
+        ]);
+
+        $result = $options->toArray();
+
+        $this->assertArrayHasKey('valid', $result);
+        $this->assertArrayNotHasKey(0, $result);
+    }
 }
