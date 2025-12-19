@@ -14,8 +14,7 @@ declare(strict_types=1);
 
 namespace Playwright\Testing;
 
-use PHPUnit\Framework\Assert;
-use PHPUnit\Framework\AssertionFailedError;
+use Playwright\Assertions\Failure\AssertionException;
 use Playwright\Locator\LocatorInterface;
 use Playwright\Page\PageInterface;
 
@@ -383,12 +382,10 @@ final class Expect implements ExpectInterface
                 $actualResult = $condition();
 
                 if ($actualResult === $expectedResult) {
-                    Assert::assertEquals($expectedResult, $actualResult);
-
                     return;
                 }
 
-                $lastException = new AssertionFailedError($message);
+                $lastException = new AssertionException($message);
             } catch (\Throwable $e) {
                 $lastException = $e;
             }
@@ -407,15 +404,15 @@ final class Expect implements ExpectInterface
             }
         }
 
-        if ($lastException instanceof AssertionFailedError) {
+        if ($lastException instanceof AssertionException) {
             throw $lastException;
         }
 
         if ($lastException) {
-            throw new AssertionFailedError(\sprintf('Assertion timed out after %dms: %s. Last error: %s', $this->timeoutMs, $finalMessage, $lastException->getMessage()), 0, $lastException);
+            throw new AssertionException(\sprintf('Assertion timed out after %dms: %s. Last error: %s', $this->timeoutMs, $finalMessage, $lastException->getMessage()));
         }
 
-        throw new AssertionFailedError(\sprintf('Assertion timed out after %dms: %s', $this->timeoutMs, $finalMessage));
+        throw new AssertionException(\sprintf('Assertion timed out after %dms: %s', $this->timeoutMs, $finalMessage));
     }
 
     public function toHaveCSS(string $name, string $value): void
