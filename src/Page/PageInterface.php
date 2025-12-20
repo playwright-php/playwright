@@ -36,6 +36,7 @@ use Playwright\Page\Options\StyleTagOptions;
 use Playwright\Page\Options\TypeOptions;
 use Playwright\Page\Options\WaitForLoadStateOptions;
 use Playwright\Page\Options\WaitForPopupOptions;
+use Playwright\Page\Options\WaitForResponseOptions;
 use Playwright\Page\Options\WaitForSelectorOptions;
 use Playwright\Page\Options\WaitForUrlOptions;
 
@@ -229,6 +230,12 @@ interface PageInterface
      * @param array<string, mixed>|WaitForPopupOptions $options
      */
     public function waitForPopup(callable $action, array|WaitForPopupOptions $options = []): self;
+
+    /**
+     * @param string|callable                             $url
+     * @param array<string, mixed>|WaitForResponseOptions $options
+     */
+    public function waitForResponse($url, array|WaitForResponseOptions $options = []): ResponseInterface;
 
     /**
      * Set files to an input element with type="file".

@@ -56,6 +56,7 @@ use Playwright\Page\Options\StyleTagOptions;
 use Playwright\Page\Options\TypeOptions;
 use Playwright\Page\Options\WaitForLoadStateOptions;
 use Playwright\Page\Options\WaitForPopupOptions;
+use Playwright\Page\Options\WaitForResponseOptions;
 use Playwright\Page\Options\WaitForSelectorOptions;
 use Playwright\Page\Options\WaitForUrlOptions;
 use Playwright\Screenshot\ScreenshotHelper;
@@ -860,15 +861,19 @@ final class Page implements PageInterface, EventDispatcherInterface
     }
 
     /**
-     * @param string|callable      $url
-     * @param array<string, mixed> $options
+     * @param string|callable                             $url
+     * @param array<string, mixed>|WaitForResponseOptions $options
      */
-    public function waitForResponse($url, array $options = []): ResponseInterface
+    public function waitForResponse($url, array|WaitForResponseOptions $options = []): ResponseInterface
     {
-        $action = $options['action'] ?? null;
-        unset($options['action']);
+        $action = null;
+        if (is_array($options)) {
+            $action = $options['action'] ?? null;
+            unset($options['action']);
+        }
 
-        $response = $this->sendCommand('waitForResponse', ['url' => $url, 'options' => $options, 'jsAction' => $action]);
+        $options = WaitForResponseOptions::from($options);
+        $response = $this->sendCommand('waitForResponse', ['url' => $url, 'options' => $options->toArray(), 'jsAction' => $action]);
 
         return $this->createResponse($this->pageId, $response['response']);
     }
