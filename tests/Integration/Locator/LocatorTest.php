@@ -352,6 +352,40 @@ class LocatorTest extends TestCase
         $this->assertSame('Home', $locator->textContent());
     }
 
+    #[Test]
+    public function testClickWithOptionsObject(): void
+    {
+        $this->page->setContent('<button id="btn" onclick="window.clicked = (window.clicked || 0) + 1">Click me</button>');
+        $locator = $this->page->locator('#btn');
+
+        $locator->click(new \Playwright\Locator\Options\ClickOptions(clickCount: 2));
+
+        $clicked = $this->page->evaluate('window.clicked');
+        $this->assertEquals(2, $clicked);
+    }
+
+    #[Test]
+    public function testTypeWithOptionsObject(): void
+    {
+        $this->page->setContent('<input id="input" type="text" />');
+        $locator = $this->page->locator('#input');
+
+        $locator->type('hello', new \Playwright\Locator\Options\TypeOptions(delay: 10.0));
+
+        $this->assertEquals('hello', $locator->inputValue());
+    }
+
+    #[Test]
+    public function testUncheckWithOptionsObject(): void
+    {
+        $this->page->setContent('<input id="checkbox" type="checkbox" checked />');
+        $locator = $this->page->locator('#checkbox');
+
+        $locator->uncheck(new \Playwright\Locator\Options\UncheckOptions(force: true));
+
+        $this->assertFalse($locator->isChecked());
+    }
+
     private static function findFreePort(): int
     {
         return 0;

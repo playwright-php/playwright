@@ -48,6 +48,39 @@ final class GetByRoleOptionsTest extends TestCase
         $this->assertSame(250, $result['timeout']);
     }
 
+    public function testFromArrayAcceptsIntLevel(): void
+    {
+        $options = GetByRoleOptions::from(['level' => 3]);
+        $this->assertSame(3, $options->level);
+    }
+
+    public function testFromArrayAcceptsStringName(): void
+    {
+        $options = GetByRoleOptions::from(['name' => 'Submit']);
+        $this->assertSame('Submit', $options->name);
+    }
+
+    public function testFromArrayAcceptsPressedOptions(): void
+    {
+        // Boolean true
+        $options1 = GetByRoleOptions::from(['pressed' => true]);
+        $this->assertTrue($options1->pressed);
+
+        // Boolean false
+        $options2 = GetByRoleOptions::from(['pressed' => false]);
+        $this->assertFalse($options2->pressed);
+
+        // String "mixed"
+        $options3 = GetByRoleOptions::from(['pressed' => 'mixed']);
+        $this->assertSame('mixed', $options3->pressed);
+    }
+
+    public function testFromArrayRejectsInvalidPressedOption(): void
+    {
+        $this->expectExceptionMessage('getByRole option "pressed" must be boolean or "mixed".');
+        GetByRoleOptions::from(['pressed' => 'invalid']);
+    }
+
     public function testFromArrayRejectsInvalidCheckedFlag(): void
     {
         $this->expectExceptionMessage('getByRole option "checked" must be boolean.');
@@ -66,13 +99,22 @@ final class GetByRoleOptionsTest extends TestCase
     {
         $options = new GetByRoleOptions(
             pressed: true,
+            exact: true,
             locatorOptions: new LocatorOptions(hasNotText: 'disabled')
         );
 
         $result = $options->toArray();
 
         $this->assertTrue($result['pressed']);
+        $this->assertTrue($result['exact']);
         $this->assertSame('disabled', $result['hasNotText']);
+    }
+
+    public function testExactOption(): void
+    {
+        $options = GetByRoleOptions::from(['exact' => true]);
+        $this->assertTrue($options->exact);
+        $this->assertTrue($options->toArray()['exact']);
     }
 
     public function testFromReturnsSameInstance(): void

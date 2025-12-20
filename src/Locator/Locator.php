@@ -19,6 +19,25 @@ use Playwright\Exception\ProtocolErrorException;
 use Playwright\Exception\TimeoutException;
 use Playwright\Frame\FrameLocator;
 use Playwright\Frame\FrameLocatorInterface;
+use Playwright\Locator\Options\CheckOptions;
+use Playwright\Locator\Options\ClearOptions;
+use Playwright\Locator\Options\ClickOptions;
+use Playwright\Locator\Options\DblClickOptions;
+use Playwright\Locator\Options\DragToOptions;
+use Playwright\Locator\Options\FillOptions;
+use Playwright\Locator\Options\FilterOptions;
+use Playwright\Locator\Options\GetAttributeOptions;
+use Playwright\Locator\Options\GetByOptions;
+use Playwright\Locator\Options\GetByRoleOptions;
+use Playwright\Locator\Options\HoverOptions;
+use Playwright\Locator\Options\LocatorScreenshotOptions;
+use Playwright\Locator\Options\PressOptions;
+use Playwright\Locator\Options\SelectOptionOptions;
+use Playwright\Locator\Options\SetInputFilesOptions;
+use Playwright\Locator\Options\TextContentOptions;
+use Playwright\Locator\Options\TypeOptions;
+use Playwright\Locator\Options\UncheckOptions;
+use Playwright\Locator\Options\WaitForOptions;
 use Playwright\Transport\TransportInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -75,28 +94,31 @@ final class Locator implements \Stringable, LocatorInterface
     }
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|ClickOptions $options
      */
-    public function click(array $options = []): void
+    public function click(array|ClickOptions $options = []): void
     {
+        $options = ClickOptions::from($options);
         $this->waitForActionable();
-        $this->sendCommand('locator.click', ['options' => $options]);
+        $this->sendCommand('locator.click', ['options' => $options->toArray()]);
     }
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|DblClickOptions $options
      */
-    public function dblclick(array $options = []): void
+    public function dblclick(array|DblClickOptions $options = []): void
     {
-        $this->sendCommand('locator.dblclick', ['options' => $options]);
+        $options = DblClickOptions::from($options);
+        $this->sendCommand('locator.dblclick', ['options' => $options->toArray()]);
     }
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|ClearOptions $options
      */
-    public function clear(array $options = []): void
+    public function clear(array|ClearOptions $options = []): void
     {
-        $this->sendCommand('locator.clear', ['options' => $options]);
+        $options = ClearOptions::from($options);
+        $this->sendCommand('locator.clear', ['options' => $options->toArray()]);
     }
 
     public function focus(): void
@@ -110,14 +132,15 @@ final class Locator implements \Stringable, LocatorInterface
     }
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|LocatorScreenshotOptions $options
      */
-    public function screenshot(?string $path = null, array $options = []): ?string
+    public function screenshot(?string $path = null, array|LocatorScreenshotOptions $options = []): ?string
     {
+        $options = LocatorScreenshotOptions::from($options);
         if ($path) {
-            $options['path'] = $path;
+            $options->path = $path;
         }
-        $response = $this->sendCommand('locator.screenshot', ['options' => $options]);
+        $response = $this->sendCommand('locator.screenshot', ['options' => $options->toArray()]);
 
         if ($path) {
             return null;
@@ -255,33 +278,43 @@ final class Locator implements \Stringable, LocatorInterface
     /**
      * @param array<string, mixed> $options
      */
-    public function getByAltText(string $text, array $options = []): self
+    /**
+     * @param array<string, mixed>|GetByOptions $options
+     */
+    public function getByAltText(string $text, array|GetByOptions $options = []): self
     {
+        $options = GetByOptions::from($options);
+
         return $this->locator(\sprintf('[alt="%s"]', $text));
     }
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|GetByOptions $options
      */
-    public function getByLabel(string $text, array $options = []): self
+    public function getByLabel(string $text, array|GetByOptions $options = []): self
     {
+        $options = GetByOptions::from($options);
+
         return $this->locator(\sprintf('label:text-is("%s") >> nth=0', $text));
     }
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|GetByOptions $options
      */
-    public function getByPlaceholder(string $text, array $options = []): self
+    public function getByPlaceholder(string $text, array|GetByOptions $options = []): self
     {
+        $options = GetByOptions::from($options);
+
         return $this->locator(\sprintf('[placeholder="%s"]', $text));
     }
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|GetByRoleOptions $options
      */
-    public function getByRole(string $role, array $options = []): self
+    public function getByRole(string $role, array|GetByRoleOptions $options = []): self
     {
-        $selector = RoleSelectorBuilder::buildSelector($role, $options);
+        $options = GetByRoleOptions::from($options);
+        $selector = RoleSelectorBuilder::buildSelector($role, $options->toArray());
 
         return $this->locator($selector);
     }
@@ -292,38 +325,44 @@ final class Locator implements \Stringable, LocatorInterface
     }
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|GetByOptions $options
      */
-    public function getByText(string $text, array $options = []): self
+    public function getByText(string $text, array|GetByOptions $options = []): self
     {
+        $options = GetByOptions::from($options);
+
         return $this->locator(\sprintf('text="%s"', $text));
     }
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|GetByOptions $options
      */
-    public function getByTitle(string $text, array $options = []): self
+    public function getByTitle(string $text, array|GetByOptions $options = []): self
     {
+        $options = GetByOptions::from($options);
+
         return $this->locator(\sprintf('[title="%s"]', $text));
     }
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|WaitForOptions $options
      */
-    public function waitFor(array $options = []): void
+    public function waitFor(array|WaitForOptions $options = []): void
     {
-        $this->sendCommand('locator.waitFor', ['options' => $options]);
+        $options = WaitForOptions::from($options);
+        $this->sendCommand('locator.waitFor', ['options' => $options->toArray()]);
     }
 
     /**
-     * @param string|array<string> $values
-     * @param array<string, mixed> $options
+     * @param string|array<string>                     $values
+     * @param array<string, mixed>|SelectOptionOptions $options
      *
      * @return array<string>
      */
-    public function selectOption(string|array $values, array $options = []): array
+    public function selectOption(string|array $values, array|SelectOptionOptions $options = []): array
     {
-        $response = $this->sendCommand('locator.selectOption', ['values' => $values, 'options' => $options]);
+        $options = SelectOptionOptions::from($options);
+        $response = $this->sendCommand('locator.selectOption', ['values' => $values, 'options' => $options->toArray()]);
         $values = $response['values'] ?? [];
         if (!is_array($values)) {
             return [];
@@ -333,11 +372,12 @@ final class Locator implements \Stringable, LocatorInterface
     }
 
     /**
-     * @param string|array<string> $files
-     * @param array<string, mixed> $options
+     * @param string|array<string>                      $files
+     * @param array<string, mixed>|SetInputFilesOptions $options
      */
-    public function setInputFiles(string|array $files, array $options = []): void
+    public function setInputFiles(string|array $files, array|SetInputFilesOptions $options = []): void
     {
+        $options = SetInputFilesOptions::from($options);
         $fileArray = \is_array($files) ? $files : [$files];
 
         $this->logger->debug('Setting input files on locator', [
@@ -353,7 +393,7 @@ final class Locator implements \Stringable, LocatorInterface
         }
 
         try {
-            $this->sendCommand('locator.setInputFiles', ['files' => $fileArray, 'options' => $options]);
+            $this->sendCommand('locator.setInputFiles', ['files' => $fileArray, 'options' => $options->toArray()]);
             $this->logger->info('Successfully set input files on locator', [
                 'selector' => (string) $this->selectorChain,
                 'fileCount' => \count($fileArray),
@@ -370,52 +410,58 @@ final class Locator implements \Stringable, LocatorInterface
     }
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|FillOptions $options
      */
-    public function fill(string $value, array $options = []): void
+    public function fill(string $value, array|FillOptions $options = []): void
     {
+        $options = FillOptions::from($options);
         $this->waitForActionable();
-        $this->sendCommand('locator.fill', ['value' => $value, 'options' => $options]);
+        $this->sendCommand('locator.fill', ['value' => $value, 'options' => $options->toArray()]);
     }
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|TypeOptions $options
      */
-    public function type(string $text, array $options = []): void
+    public function type(string $text, array|TypeOptions $options = []): void
     {
-        $this->sendCommand('locator.type', ['text' => $text, 'options' => $options]);
+        $options = TypeOptions::from($options);
+        $this->sendCommand('locator.type', ['text' => $text, 'options' => $options->toArray()]);
     }
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|PressOptions $options
      */
-    public function press(string $key, array $options = []): void
+    public function press(string $key, array|PressOptions $options = []): void
     {
-        $this->sendCommand('locator.press', ['key' => $key, 'options' => $options]);
+        $options = PressOptions::from($options);
+        $this->sendCommand('locator.press', ['key' => $key, 'options' => $options->toArray()]);
     }
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|CheckOptions $options
      */
-    public function check(array $options = []): void
+    public function check(array|CheckOptions $options = []): void
     {
-        $this->sendCommand('locator.check', ['options' => $options]);
+        $options = CheckOptions::from($options);
+        $this->sendCommand('locator.check', ['options' => $options->toArray()]);
     }
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|UncheckOptions $options
      */
-    public function uncheck(array $options = []): void
+    public function uncheck(array|UncheckOptions $options = []): void
     {
-        $this->sendCommand('locator.uncheck', ['options' => $options]);
+        $options = UncheckOptions::from($options);
+        $this->sendCommand('locator.uncheck', ['options' => $options->toArray()]);
     }
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|HoverOptions $options
      */
-    public function hover(array $options = []): void
+    public function hover(array|HoverOptions $options = []): void
     {
-        $this->sendCommand('locator.hover', ['options' => $options]);
+        $options = HoverOptions::from($options);
+        $this->sendCommand('locator.hover', ['options' => $options->toArray()]);
 
         $this->transport->processEvents();
     }
@@ -429,39 +475,42 @@ final class Locator implements \Stringable, LocatorInterface
      * - force: bool - Whether to bypass the actionability checks
      * - timeout: int - Maximum time in milliseconds
      *
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|DragToOptions $options
      */
-    public function dragTo(LocatorInterface $target, array $options = []): void
+    public function dragTo(LocatorInterface $target, array|DragToOptions $options = []): void
     {
+        $options = DragToOptions::from($options);
         $this->waitForActionable();
 
         $targetSelector = $target->getSelector();
 
         $this->sendCommand('locator.dragAndDrop', [
             'target' => $targetSelector,
-            'options' => $options,
+            'options' => $options->toArray(),
         ]);
 
         $this->transport->processEvents();
     }
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|TextContentOptions $options
      */
-    public function textContent(array $options = []): ?string
+    public function textContent(array|TextContentOptions $options = []): ?string
     {
-        $response = $this->sendCommand('locator.textContent', ['options' => $options]);
+        $options = TextContentOptions::from($options);
+        $response = $this->sendCommand('locator.textContent', ['options' => $options->toArray()]);
         $value = $response['value'] ?? null;
 
         return is_string($value) ? $value : null;
     }
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|GetAttributeOptions $options
      */
-    public function getAttribute(string $name, array $options = []): ?string
+    public function getAttribute(string $name, array|GetAttributeOptions $options = []): ?string
     {
-        $response = $this->sendCommand('locator.getAttribute', ['name' => $name, 'options' => $options]);
+        $options = GetAttributeOptions::from($options);
+        $response = $this->sendCommand('locator.getAttribute', ['name' => $name, 'options' => $options->toArray()]);
         $value = $response['value'] ?? null;
 
         return is_string($value) ? $value : null;
@@ -695,21 +744,27 @@ final class Locator implements \Stringable, LocatorInterface
     }
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|FilterOptions $options
      */
-    public function filter(array $options = []): self
+    public function filter(array|FilterOptions $options = []): self
     {
+        $options = FilterOptions::from($options);
         $chain = clone $this->selectorChain;
 
-        if (isset($options['hasText']) && is_scalar($options['hasText'])) {
-            $chain = $chain->append(\sprintf(':has-text("%s")', $options['hasText']));
+        if (null !== $options->hasText) {
+            $chain->addFilter(\sprintf(':has-text("%s")', $options->hasText));
         }
 
-        if (isset($options['has'])) {
-            $has = $options['has'];
-            if ($has instanceof LocatorInterface) {
-                $chain = $chain->append(\sprintf(':has(%s)', $has->getSelector()));
-            }
+        if (null !== $options->hasNotText) {
+            $chain->addFilter(\sprintf(':not(:has-text("%s"))', $options->hasNotText));
+        }
+
+        if (null !== $options->has) {
+            $chain->addFilter(\sprintf(':has(%s)', $options->has->getSelector()));
+        }
+
+        if (null !== $options->hasNot) {
+            $chain->addFilter(\sprintf(':not(:has(%s))', $options->hasNot->getSelector()));
         }
 
         return new self($this->transport, $this->pageId, $chain, $this->frameSelector, $this->logger);

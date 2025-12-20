@@ -30,16 +30,17 @@ use Playwright\Exception\RuntimeException;
  */
 final readonly class GetByRoleOptions
 {
-    private const ROLE_KEYS = ['checked', 'disabled', 'expanded', 'includeHidden', 'level', 'name', 'pressed', 'selected'];
+    private const ROLE_KEYS = ['checked', 'disabled', 'expanded', 'includeHidden', 'level', 'name', 'pressed', 'selected', 'exact'];
 
     public function __construct(
         public ?bool $checked = null,
         public ?bool $disabled = null,
+        public ?bool $exact = null,
         public ?bool $expanded = null,
         public ?bool $includeHidden = null,
         public ?int $level = null,
         public ?string $name = null,
-        public ?bool $pressed = null,
+        public bool|string|null $pressed = null,
         public ?bool $selected = null,
         public LocatorOptions $locatorOptions = new LocatorOptions(),
     ) {
@@ -59,11 +60,12 @@ final readonly class GetByRoleOptions
         return new self(
             checked: self::extractBool($options, 'checked'),
             disabled: self::extractBool($options, 'disabled'),
+            exact: self::extractBool($options, 'exact'),
             expanded: self::extractBool($options, 'expanded'),
             includeHidden: self::extractBool($options, 'includeHidden'),
             level: self::extractLevel($options),
             name: self::extractName($options),
-            pressed: self::extractBool($options, 'pressed'),
+            pressed: self::extractPressed($options),
             selected: self::extractBool($options, 'selected'),
             locatorOptions: $locatorOptions,
         );
@@ -78,6 +80,7 @@ final readonly class GetByRoleOptions
 
         $this->appendIfNotNull($options, 'checked', $this->checked);
         $this->appendIfNotNull($options, 'disabled', $this->disabled);
+        $this->appendIfNotNull($options, 'exact', $this->exact);
         $this->appendIfNotNull($options, 'expanded', $this->expanded);
         $this->appendIfNotNull($options, 'includeHidden', $this->includeHidden);
         $this->appendIfNotNull($options, 'level', $this->level);
@@ -132,6 +135,31 @@ final readonly class GetByRoleOptions
         }
 
         throw new RuntimeException('getByRole option "level" must be an integer.');
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    private static function extractPressed(array $options): bool|string|null
+    {
+        if (!array_key_exists('pressed', $options)) {
+            return null;
+        }
+
+        $value = $options['pressed'];
+        if (null === $value) {
+            return null;
+        }
+
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        if (is_string($value) && 'mixed' === $value) {
+            return 'mixed';
+        }
+
+        throw new RuntimeException('getByRole option "pressed" must be boolean or "mixed".');
     }
 
     /**
