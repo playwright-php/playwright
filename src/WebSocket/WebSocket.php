@@ -18,6 +18,7 @@ use Playwright\Event\EventDispatcherInterface;
 use Playwright\Event\EventEmitter;
 use Playwright\Exception\TimeoutException;
 use Playwright\Transport\TransportInterface;
+use Playwright\WebSocket\Options\WaitForEventOptions;
 
 /**
  * WebSocket implementation aligned with Playwright's WebSocket API.
@@ -84,14 +85,15 @@ final class WebSocket implements WebSocketInterface, EventDispatcherInterface
      * Wait locally for an event, optionally filtered by predicate, with timeout.
      * Falls back to pumping transport events via processEvents.
      *
-     * @param array{predicate?: callable, timeout?: int} $options
+     * @param array<string, mixed>|WaitForEventOptions $options
      *
      * @return array<string, mixed>
      */
-    public function waitForEvent(string $event, array $options = []): array
+    public function waitForEvent(string $event, array|WaitForEventOptions $options = []): array
     {
-        $timeout = isset($options['timeout']) && \is_int($options['timeout']) ? $options['timeout'] : 30000;
-        $predicate = isset($options['predicate']) && \is_callable($options['predicate']) ? $options['predicate'] : null;
+        $options = WaitForEventOptions::from($options);
+        $timeout = isset($options->timeout) ? (int) $options->timeout : 30000;
+        $predicate = isset($options->predicate) && \is_callable($options->predicate) ? $options->predicate : null;
 
         $resolved = false;
         /** @var array<string, mixed> $result */
