@@ -31,6 +31,18 @@ final class SelectorChain implements \Stringable, SelectorChainInterface
         return $this;
     }
 
+    public function addFilter(string $filter): self
+    {
+        if (empty($this->selectors)) {
+            $this->selectors[] = $filter;
+        } else {
+            $last = array_pop($this->selectors);
+            $this->selectors[] = $last.$filter;
+        }
+
+        return $this;
+    }
+
     public function __toString(): string
     {
         return implode(' >> ', $this->selectors);

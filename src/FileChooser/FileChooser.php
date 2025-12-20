@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 namespace Playwright\FileChooser;
 
+use Playwright\FileChooser\Options\SetFilesOptions;
 use Playwright\Page\PageInterface;
 use Playwright\Transport\TransportInterface;
 
@@ -50,10 +51,11 @@ final class FileChooser implements FileChooserInterface
 
     /**
      * @param string|array<string>|array{name: string, mimeType: string, buffer: string}|array<array{name: string, mimeType: string, buffer: string}> $files
-     * @param array{noWaitAfter?: bool, timeout?: int}                                                                                                $options
+     * @param array<string, mixed>|SetFilesOptions                                                                                                    $options
      */
-    public function setFiles(string|array $files, array $options = []): void
+    public function setFiles(string|array $files, array|SetFilesOptions $options = []): void
     {
+        $options = SetFilesOptions::from($options);
         $normalizedFiles = $this->normalizeFiles($files);
 
         $payload = [
@@ -62,8 +64,9 @@ final class FileChooser implements FileChooserInterface
             'files' => $normalizedFiles,
         ];
 
-        if (!empty($options)) {
-            $payload['options'] = $options;
+        $optionsArray = $options->toArray();
+        if (!empty($optionsArray)) {
+            $payload['options'] = $optionsArray;
         }
 
         $fileChooserId = $this->data['fileChooserId'] ?? null;

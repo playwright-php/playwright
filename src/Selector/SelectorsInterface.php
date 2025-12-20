@@ -14,6 +14,8 @@ declare(strict_types=1);
 
 namespace Playwright\Selector;
 
+use Playwright\Selector\Options\RegisterOptions;
+
 /**
  * @author Simon André <smn.andre@gmail.com>
  */
@@ -22,9 +24,9 @@ interface SelectorsInterface
     /**
      * Register a custom selector engine.
      *
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|RegisterOptions $options
      */
-    public function register(string $name, string $script, array $options = []): void;
+    public function register(string $name, string $script, array|RegisterOptions $options = []): void;
 
     /**
      * Set the test id attribute name.

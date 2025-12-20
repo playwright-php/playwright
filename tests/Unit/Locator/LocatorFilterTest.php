@@ -36,7 +36,7 @@ final class LocatorFilterTest extends TestCase
         $filtered = $this->locator->filter(['hasText' => 'foo']);
 
         $this->assertInstanceOf(Locator::class, $filtered);
-        $this->assertSame('Locator(selector=".items >> :has-text("foo")")', (string) $filtered);
+        $this->assertSame('Locator(selector=".items:has-text("foo")")', (string) $filtered);
     }
 
     public function testFilterWithHas(): void
@@ -45,7 +45,24 @@ final class LocatorFilterTest extends TestCase
         $filtered = $this->locator->filter(['has' => $inner]);
 
         $this->assertInstanceOf(Locator::class, $filtered);
-        $this->assertSame('Locator(selector=".items >> :has(.inner)")', (string) $filtered);
+        $this->assertSame('Locator(selector=".items:has(.inner)")', (string) $filtered);
+    }
+
+    public function testFilterWithHasNotText(): void
+    {
+        $filtered = $this->locator->filter(['hasNotText' => 'bar']);
+
+        $this->assertInstanceOf(Locator::class, $filtered);
+        $this->assertSame('Locator(selector=".items:not(:has-text("bar"))")', (string) $filtered);
+    }
+
+    public function testFilterWithHasNot(): void
+    {
+        $inner = new Locator($this->transport, 'page1', '.inner');
+        $filtered = $this->locator->filter(['hasNot' => $inner]);
+
+        $this->assertInstanceOf(Locator::class, $filtered);
+        $this->assertSame('Locator(selector=".items:not(:has(.inner))")', (string) $filtered);
     }
 
     public function testAnd(): void
@@ -100,12 +117,5 @@ final class LocatorFilterTest extends TestCase
         $this->assertInstanceOf(Locator::class, $filtered);
         $this->assertStringContainsString(':has-text("foo")', (string) $filtered);
         $this->assertStringContainsString(':has(.inner)', (string) $filtered);
-    }
-
-    public function testFilterWithNonLocatorHas(): void
-    {
-        $filtered = $this->locator->filter(['has' => 'not-a-locator']);
-
-        $this->assertInstanceOf(Locator::class, $filtered);
     }
 }

@@ -126,23 +126,64 @@ final class PdfOptions
             $scale = (float) $options['scale'];
         }
 
+        $path = self::extractString($options, 'path');
+        $format = self::extractString($options, 'format');
+        $width = self::extractString($options, 'width');
+        $height = self::extractString($options, 'height');
+        $footerTemplate = self::extractString($options, 'footerTemplate');
+        $headerTemplate = self::extractString($options, 'headerTemplate');
+        $pageRanges = self::extractString($options, 'pageRanges');
+
+        $landscape = self::extractBool($options, 'landscape');
+        $printBackground = self::extractBool($options, 'printBackground');
+        $displayHeaderFooter = self::extractBool($options, 'displayHeaderFooter');
+        $outline = self::extractBool($options, 'outline');
+        $preferCSSPageSize = self::extractBool($options, 'preferCSSPageSize');
+        $tagged = self::extractBool($options, 'tagged');
+
         return new self(
-            path: isset($options['path']) ? (string) $options['path'] : null,
-            format: isset($options['format']) ? (string) $options['format'] : null,
-            landscape: isset($options['landscape']) ? (bool) $options['landscape'] : null,
+            path: $path,
+            format: $format,
+            landscape: $landscape,
             scale: $scale,
-            printBackground: isset($options['printBackground']) ? (bool) $options['printBackground'] : null,
-            width: isset($options['width']) ? (string) $options['width'] : null,
-            height: isset($options['height']) ? (string) $options['height'] : null,
+            printBackground: $printBackground,
+            width: $width,
+            height: $height,
             margin: $options['margin'] ?? null,
-            displayHeaderFooter: isset($options['displayHeaderFooter']) ? (bool) $options['displayHeaderFooter'] : null,
-            footerTemplate: isset($options['footerTemplate']) ? (string) $options['footerTemplate'] : null,
-            headerTemplate: isset($options['headerTemplate']) ? (string) $options['headerTemplate'] : null,
-            outline: isset($options['outline']) ? (bool) $options['outline'] : null,
-            pageRanges: isset($options['pageRanges']) ? (string) $options['pageRanges'] : null,
-            preferCSSPageSize: isset($options['preferCSSPageSize']) ? (bool) $options['preferCSSPageSize'] : null,
-            tagged: isset($options['tagged']) ? (bool) $options['tagged'] : null,
+            displayHeaderFooter: $displayHeaderFooter,
+            footerTemplate: $footerTemplate,
+            headerTemplate: $headerTemplate,
+            outline: $outline,
+            pageRanges: $pageRanges,
+            preferCSSPageSize: $preferCSSPageSize,
+            tagged: $tagged,
         );
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    private static function extractString(array $options, string $key): ?string
+    {
+        if (!isset($options[$key])) {
+            return null;
+        }
+
+        $value = $options[$key];
+
+        return is_scalar($value) ? (string) $value : null;
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    private static function extractBool(array $options, string $key): ?bool
+    {
+        if (!isset($options[$key])) {
+            return null;
+        }
+
+        return (bool) $options[$key];
     }
 
     public function path(): ?string
@@ -262,7 +303,12 @@ final class PdfOptions
                 continue;
             }
 
-            $normalizedValue = self::normalizeNullableString((string) $value);
+            if (!is_scalar($value)) {
+                continue;
+            }
+
+            $stringValue = (string) $value;
+            $normalizedValue = self::normalizeNullableString($stringValue);
             if (null !== $normalizedValue) {
                 $normalized[$edge] = $normalizedValue;
             }

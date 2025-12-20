@@ -68,4 +68,23 @@ class LocatorFilterTest extends TestCase
         $heading = $frameLocator->locator('h1');
         $this->assertSame('Frame Content', $heading->textContent());
     }
+
+    #[Test]
+    public function itFiltersLocatorsWithOptionsObject(): void
+    {
+        $items = $this->page->locator('.item');
+
+        // Debug: check if manual selector works
+        $manual = $this->page->locator('.item >> :has-text("First")');
+        // echo "Manual count: " . $manual->count() . "\n";
+
+        // Filter by text
+        $first = $items->filter(new \Playwright\Locator\Options\FilterOptions(hasText: 'First'));
+        $this->assertSame(1, $first->count(), 'Filter by hasText failed');
+        $this->assertSame('First item', $first->textContent());
+
+        // Filter by not text
+        $notFirst = $items->filter(new \Playwright\Locator\Options\FilterOptions(hasNotText: 'First'));
+        $this->assertSame(2, $notFirst->count(), 'Filter by hasNotText failed');
+    }
 }

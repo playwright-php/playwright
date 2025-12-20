@@ -38,12 +38,28 @@ use Playwright\Input\Mouse;
 use Playwright\Input\MouseInterface;
 use Playwright\Locator\Locator;
 use Playwright\Locator\LocatorInterface;
-use Playwright\Locator\RoleSelectorBuilder;
+use Playwright\Locator\Options\GetByRoleOptions;
+use Playwright\Locator\Options\LocatorOptions;
 use Playwright\Network\Request;
 use Playwright\Network\Response;
 use Playwright\Network\ResponseInterface;
 use Playwright\Network\Route;
+use Playwright\Page\Options\ClickOptions;
+use Playwright\Page\Options\FrameQueryOptions;
+use Playwright\Page\Options\GotoOptions;
+use Playwright\Page\Options\NavigationHistoryOptions;
 use Playwright\Page\Options\PdfOptions;
+use Playwright\Page\Options\ScreenshotOptions;
+use Playwright\Page\Options\ScriptTagOptions;
+use Playwright\Page\Options\SetContentOptions;
+use Playwright\Page\Options\SetInputFilesOptions;
+use Playwright\Page\Options\StyleTagOptions;
+use Playwright\Page\Options\TypeOptions;
+use Playwright\Page\Options\WaitForLoadStateOptions;
+use Playwright\Page\Options\WaitForPopupOptions;
+use Playwright\Page\Options\WaitForResponseOptions;
+use Playwright\Page\Options\WaitForSelectorOptions;
+use Playwright\Page\Options\WaitForUrlOptions;
 use Playwright\Screenshot\ScreenshotHelper;
 use Playwright\Transport\TransportInterface;
 use Psr\Log\LoggerInterface;
@@ -180,77 +196,83 @@ final class Page implements PageInterface, EventDispatcherInterface
     }
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|LocatorOptions $options
      */
-    public function locator(string $selector, array $options = []): LocatorInterface
+    public function locator(string $selector, array|LocatorOptions $options = []): LocatorInterface
     {
-        return new Locator($this->transport, $this->pageId, $selector, null, null, $options);
+        return new Locator(
+            $this->transport,
+            $this->pageId,
+            $selector,
+            null,
+            null,
+            $this->normalizeLocatorOptions($options)
+        );
     }
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|LocatorOptions $options
      */
-    public function getByAltText(string $text, array $options = []): LocatorInterface
+    public function getByAltText(string $text, array|LocatorOptions $options = []): LocatorInterface
     {
-        return $this->locator(\sprintf('[alt="%s"]', $text), $options);
+        return $this->locator(\sprintf('[alt="%s"]', $text), $this->normalizeLocatorOptions($options));
     }
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|LocatorOptions $options
      */
-    public function getByLabel(string $text, array $options = []): LocatorInterface
+    public function getByLabel(string $text, array|LocatorOptions $options = []): LocatorInterface
     {
-        return $this->locator(\sprintf('label:text-is("%s") >> nth=0', $text), $options);
+        return $this->locator(\sprintf('label:text-is("%s") >> nth=0', $text), $this->normalizeLocatorOptions($options));
     }
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|LocatorOptions $options
      */
-    public function getByPlaceholder(string $text, array $options = []): LocatorInterface
+    public function getByPlaceholder(string $text, array|LocatorOptions $options = []): LocatorInterface
     {
-        return $this->locator(\sprintf('[placeholder="%s"]', $text), $options);
+        return $this->locator(\sprintf('[placeholder="%s"]', $text), $this->normalizeLocatorOptions($options));
     }
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|GetByRoleOptions $options
      */
-    public function getByRole(string $role, array $options = []): LocatorInterface
+    public function getByRole(string $role, array|GetByRoleOptions $options = []): LocatorInterface
     {
-        $selector = RoleSelectorBuilder::buildSelector($role, $options);
-        $locatorOptions = RoleSelectorBuilder::filterLocatorOptions($options);
-
-        return $this->locator($selector, $locatorOptions);
+        return $this->locator($role, $this->normalizeGetByRoleOptions($options));
     }
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|LocatorOptions $options
      */
-    public function getByTestId(string $testId, array $options = []): LocatorInterface
+    public function getByTestId(string $testId, array|LocatorOptions $options = []): LocatorInterface
     {
         return $this->locator(\sprintf('[data-testid="%s"]', $testId), $options);
     }
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|LocatorOptions $options
      */
-    public function getByText(string $text, array $options = []): LocatorInterface
+    public function getByText(string $text, array|LocatorOptions $options = []): LocatorInterface
     {
-        return $this->locator(\sprintf('text="%s"', $text), $options);
+        return $this->locator(\sprintf('text="%s"', $text), $this->normalizeLocatorOptions($options));
     }
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|LocatorOptions $options
      */
-    public function getByTitle(string $text, array $options = []): LocatorInterface
+    public function getByTitle(string $text, array|LocatorOptions $options = []): LocatorInterface
     {
-        return $this->locator(\sprintf('[title="%s"]', $text), $options);
+        return $this->locator(\sprintf('[title="%s"]', $text), $this->normalizeLocatorOptions($options));
     }
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|GotoOptions $options
      */
-    public function goto(string $url, array $options = []): ?ResponseInterface
+    public function goto(string $url, array|GotoOptions $options = []): ?ResponseInterface
     {
+        $options = GotoOptions::from($options)->toArray();
+
         $this->logger->debug('Navigating to URL', ['url' => $url, 'options' => $options]);
 
         try {
@@ -273,13 +295,15 @@ final class Page implements PageInterface, EventDispatcherInterface
     /**
      * Take a screenshot of the page.
      *
-     * @param string|null          $path    Screenshot path. If null, auto-generates based on current URL and datetime
-     * @param array<string, mixed> $options Screenshot options (quality, fullPage, etc.)
+     * @param string|null                            $path    Screenshot path. If null, auto-generates based on current URL and datetime
+     * @param array<string, mixed>|ScreenshotOptions $options Screenshot options (quality, fullPage, etc.)
      *
      * @return string Returns the screenshot file path
      */
-    public function screenshot(?string $path = null, array $options = []): string
+    public function screenshot(?string $path = null, array|ScreenshotOptions $options = []): string
     {
+        $options = ScreenshotOptions::from($options)->toArray();
+
         $finalPath = $path ?? $options['path'] ?? ScreenshotHelper::generateFilename(
             $this->url(),
             $this->getScreenshotDirectory()
@@ -404,7 +428,7 @@ final class Page implements PageInterface, EventDispatcherInterface
 
             return $content;
         } finally {
-            if (is_string($tempPath) && file_exists($tempPath)) {
+            if (file_exists($tempPath)) {
                 @unlink($tempPath);
             }
         }
@@ -465,10 +489,11 @@ final class Page implements PageInterface, EventDispatcherInterface
     }
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|WaitForSelectorOptions $options
      */
-    public function waitForSelector(string $selector, array $options = []): LocatorInterface
+    public function waitForSelector(string $selector, array|WaitForSelectorOptions $options = []): LocatorInterface
     {
+        $options = WaitForSelectorOptions::from($options)->toArray();
         $this->sendCommand('waitForSelector', ['selector' => $selector, 'options' => $options]);
 
         return $this->locator($selector);
@@ -487,10 +512,11 @@ final class Page implements PageInterface, EventDispatcherInterface
     }
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|ClickOptions $options
      */
-    public function click(string $selector, array $options = []): self
+    public function click(string $selector, array|ClickOptions $options = []): self
     {
+        $options = ClickOptions::from($options)->toArray();
         $this->locator($selector)->click($options);
 
         $this->transport->processEvents();
@@ -499,34 +525,44 @@ final class Page implements PageInterface, EventDispatcherInterface
     }
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|ClickOptions $options
      */
-    public function altClick(string $selector, array $options = []): self
+    public function altClick(string $selector, array|ClickOptions $options = []): self
     {
-        return $this->click($selector, [...$options, 'modifiers' => ModifierKey::Alt]);
+        $options = ClickOptions::from($options)->toArray();
+        $options['modifiers'] = [...((array) ($options['modifiers'] ?? [])), ModifierKey::Alt->value];
+
+        return $this->click($selector, $options);
     }
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|ClickOptions $options
      */
-    public function controlClick(string $selector, array $options = []): self
+    public function controlClick(string $selector, array|ClickOptions $options = []): self
     {
-        return $this->click($selector, [...$options, 'modifiers' => ModifierKey::Control]);
+        $options = ClickOptions::from($options)->toArray();
+        $options['modifiers'] = [...((array) ($options['modifiers'] ?? [])), ModifierKey::Control->value];
+
+        return $this->click($selector, $options);
     }
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|ClickOptions $options
      */
-    public function shiftClick(string $selector, array $options = []): self
+    public function shiftClick(string $selector, array|ClickOptions $options = []): self
     {
-        return $this->click($selector, [...$options, 'modifiers' => ModifierKey::Shift]);
+        $options = ClickOptions::from($options)->toArray();
+        $options['modifiers'] = [...((array) ($options['modifiers'] ?? [])), ModifierKey::Shift->value];
+
+        return $this->click($selector, $options);
     }
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|TypeOptions $options
      */
-    public function type(string $selector, string $text, array $options = []): self
+    public function type(string $selector, string $text, array|TypeOptions $options = []): self
     {
+        $options = TypeOptions::from($options)->toArray();
         $this->locator($selector)->type($text, $options);
 
         return $this;
@@ -540,6 +576,26 @@ final class Page implements PageInterface, EventDispatcherInterface
         $this->sendCommand('pause');
 
         return $this;
+    }
+
+    /**
+     * @param array<string, mixed>|LocatorOptions $options
+     *
+     * @return array<string, mixed>
+     */
+    private function normalizeLocatorOptions(array|LocatorOptions $options): array
+    {
+        return LocatorOptions::from($options)->toArray();
+    }
+
+    /**
+     * @param array<string, mixed>|GetByRoleOptions $options
+     *
+     * @return array<string, mixed>
+     */
+    private function normalizeGetByRoleOptions(array|GetByRoleOptions $options): array
+    {
+        return GetByRoleOptions::from($options)->toArray();
     }
 
     /**
@@ -670,40 +726,44 @@ final class Page implements PageInterface, EventDispatcherInterface
     }
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|NavigationHistoryOptions $options
      */
-    public function goBack(array $options = []): self
+    public function goBack(array|NavigationHistoryOptions $options = []): self
     {
+        $options = NavigationHistoryOptions::from($options)->toArray();
         $this->sendCommand('goBack', ['options' => $options]);
 
         return $this;
     }
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|NavigationHistoryOptions $options
      */
-    public function goForward(array $options = []): self
+    public function goForward(array|NavigationHistoryOptions $options = []): self
     {
+        $options = NavigationHistoryOptions::from($options)->toArray();
         $this->sendCommand('goForward', ['options' => $options]);
 
         return $this;
     }
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|NavigationHistoryOptions $options
      */
-    public function reload(array $options = []): self
+    public function reload(array|NavigationHistoryOptions $options = []): self
     {
+        $options = NavigationHistoryOptions::from($options)->toArray();
         $this->sendCommand('reload', ['options' => $options]);
 
         return $this;
     }
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|SetContentOptions $options
      */
-    public function setContent(string $html, array $options = []): self
+    public function setContent(string $html, array|SetContentOptions $options = []): self
     {
+        $options = SetContentOptions::from($options)->toArray();
         $this->sendCommand('setContent', ['html' => $html, 'options' => $options]);
 
         return $this;
@@ -778,20 +838,22 @@ final class Page implements PageInterface, EventDispatcherInterface
     }
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|WaitForLoadStateOptions $options
      */
-    public function waitForLoadState(string $state = 'load', array $options = []): self
+    public function waitForLoadState(string $state = 'load', array|WaitForLoadStateOptions $options = []): self
     {
+        $options = WaitForLoadStateOptions::from($options)->toArray();
         $this->sendCommand('waitForLoadState', ['state' => $state, 'options' => $options]);
 
         return $this;
     }
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|WaitForUrlOptions $options
      */
-    public function waitForURL($url, array $options = []): self
+    public function waitForURL($url, array|WaitForUrlOptions $options = []): self
     {
+        $options = WaitForUrlOptions::from($options)->toArray();
         $this->sendCommand('waitForURL', ['url' => $url, 'options' => $options]);
 
         $this->transport->processEvents();
@@ -800,28 +862,34 @@ final class Page implements PageInterface, EventDispatcherInterface
     }
 
     /**
-     * @param string|callable      $url
-     * @param array<string, mixed> $options
+     * @param string|callable                             $url
+     * @param array<string, mixed>|WaitForResponseOptions $options
      */
-    public function waitForResponse($url, array $options = []): ResponseInterface
+    public function waitForResponse($url, array|WaitForResponseOptions $options = []): ResponseInterface
     {
-        $action = $options['action'] ?? null;
-        unset($options['action']);
+        $action = null;
+        if (is_array($options)) {
+            $action = $options['action'] ?? null;
+            unset($options['action']);
+        }
 
-        $response = $this->sendCommand('waitForResponse', ['url' => $url, 'options' => $options, 'jsAction' => $action]);
+        $options = WaitForResponseOptions::from($options);
+        $response = $this->sendCommand('waitForResponse', ['url' => $url, 'options' => $options->toArray(), 'jsAction' => $action]);
 
         return $this->createResponse($this->pageId, $response['response']);
     }
 
-    public function addScriptTag(array $options): self
+    public function addScriptTag(array|ScriptTagOptions $options): self
     {
+        $options = ScriptTagOptions::from($options)->toArray();
         $this->sendCommand('addScriptTag', ['options' => $options]);
 
         return $this;
     }
 
-    public function addStyleTag(array $options): self
+    public function addStyleTag(array|StyleTagOptions $options): self
     {
+        $options = StyleTagOptions::from($options)->toArray();
         $this->sendCommand('addStyleTag', ['options' => $options]);
 
         return $this;
@@ -859,10 +927,11 @@ final class Page implements PageInterface, EventDispatcherInterface
     }
 
     /**
-     * @param array{name?: string, url?: string, urlRegex?: string} $options
+     * @param array{name?: string, url?: string, urlRegex?: string}|FrameQueryOptions $options
      */
-    public function frame(array $options): ?FrameInterface
+    public function frame(array|FrameQueryOptions $options): ?FrameInterface
     {
+        $options = FrameQueryOptions::from($options)->toArray();
         $response = $this->sendCommand('frame', ['options' => $options]);
         $selector = $response['selector'] ?? null;
         if (\is_string($selector)) {
@@ -908,10 +977,11 @@ final class Page implements PageInterface, EventDispatcherInterface
     }
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|WaitForPopupOptions $options
      */
-    public function waitForPopup(callable $action, array $options = []): self
+    public function waitForPopup(callable $action, array|WaitForPopupOptions $options = []): self
     {
+        $options = WaitForPopupOptions::from($options)->toArray();
         $timeout = $options['timeout'] ?? 30000;
         $requestId = uniqid('popup_', true);
 
@@ -937,10 +1007,12 @@ final class Page implements PageInterface, EventDispatcherInterface
     }
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|SetInputFilesOptions $options
      */
-    public function setInputFiles(string $selector, array $files, array $options = []): self
+    public function setInputFiles(string $selector, array $files, array|SetInputFilesOptions $options = []): self
     {
+        $options = SetInputFilesOptions::from($options)->toArray();
+
         $this->logger->debug('Setting input files', ['selector' => $selector, 'files' => $files]);
 
         foreach ($files as $file) {

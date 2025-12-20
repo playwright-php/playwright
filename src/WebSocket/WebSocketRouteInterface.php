@@ -14,14 +14,16 @@ declare(strict_types=1);
 
 namespace Playwright\WebSocket;
 
+use Playwright\WebSocket\Options\CloseOptions;
+
 interface WebSocketRouteInterface
 {
     /**
      * Closes one side of the WebSocket connection.
      *
-     * @param array{code?: int, reason?: string} $options
+     * @param array<string, mixed>|CloseOptions $options
      */
-    public function close(array $options = []): void;
+    public function close(array|CloseOptions $options = []): void;
 
     /**
      * Connects to the actual WebSocket server.

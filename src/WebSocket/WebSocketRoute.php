@@ -16,6 +16,7 @@ namespace Playwright\WebSocket;
 
 use Playwright\Event\EventDispatcherInterface;
 use Playwright\Transport\TransportInterface;
+use Playwright\WebSocket\Options\CloseOptions;
 
 final class WebSocketRoute implements WebSocketRouteInterface, EventDispatcherInterface
 {
@@ -45,12 +46,13 @@ final class WebSocketRoute implements WebSocketRouteInterface, EventDispatcherIn
     }
 
     /**
-     * @param array{code?: int, reason?: string} $options
+     * @param array<string, mixed>|CloseOptions $options
      */
-    public function close(array $options = []): void
+    public function close(array|CloseOptions $options = []): void
     {
-        $code = isset($options['code']) && \is_int($options['code']) ? $options['code'] : null;
-        $reason = isset($options['reason']) && \is_string($options['reason']) ? $options['reason'] : null;
+        $options = CloseOptions::from($options);
+        $code = $options->code;
+        $reason = $options->reason;
 
         $this->transport->sendAsync([
             'action' => 'websocketRoute.close',

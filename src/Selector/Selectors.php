@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 namespace Playwright\Selector;
 
+use Playwright\Selector\Options\RegisterOptions;
 use Playwright\Transport\TransportInterface;
 
 /**
@@ -29,15 +30,16 @@ final class Selectors implements SelectorsInterface
     }
 
     /**
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>|RegisterOptions $options
      */
-    public function register(string $name, string $script, array $options = []): void
+    public function register(string $name, string $script, array|RegisterOptions $options = []): void
     {
+        $options = RegisterOptions::from($options);
         $this->transport->send([
             'action' => 'selectors.register',
             'name' => $name,
             'script' => $script,
-            'options' => $options,
+            'options' => $options->toArray(),
         ]);
     }
 

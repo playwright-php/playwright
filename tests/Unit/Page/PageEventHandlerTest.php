@@ -129,4 +129,42 @@ final class PageEventHandlerTest extends TestCase
         $this->assertTrue($wasCalled);
         $this->assertSame($response, $receivedResponse);
     }
+
+    public function testOnRequestFailedRegistersRequestFailedHandler(): void
+    {
+        $handler = new PageEventHandler();
+        $wasCalled = false;
+        $receivedRequest = null;
+
+        $request = new Request(['url' => 'https://example.com', 'method' => 'GET', 'headers' => [], 'resourceType' => 'document', 'failure' => 'net::ERR_FAILED']);
+
+        $handler->onRequestFailed(function (Request $r) use (&$wasCalled, &$receivedRequest) {
+            $wasCalled = true;
+            $receivedRequest = $r;
+        });
+
+        $handler->publicEmit('requestfailed', [$request]);
+
+        $this->assertTrue($wasCalled);
+        $this->assertSame($request, $receivedRequest);
+    }
+
+    public function testOnRouteRegistersRouteHandler(): void
+    {
+        $handler = new PageEventHandler();
+        $wasCalled = false;
+        $receivedRoute = null;
+
+        $route = new \Playwright\Network\Route($this->transport, 'route1', ['url' => 'https://example.com']);
+
+        $handler->onRoute(function ($r) use (&$wasCalled, &$receivedRoute) {
+            $wasCalled = true;
+            $receivedRoute = $r;
+        });
+
+        $handler->publicEmit('route', [$route]);
+
+        $this->assertTrue($wasCalled);
+        $this->assertSame($route, $receivedRoute);
+    }
 }

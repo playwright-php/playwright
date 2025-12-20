@@ -99,7 +99,7 @@ final class FileChooserTest extends TestCase
             ->with($this->callback(function ($payload) {
                 return 'fileChooser.setFiles' === $payload['action']
                     && isset($payload['options'])
-                    && 1000 === $payload['options']['timeout'];
+                    && 1000.0 === $payload['options']['timeout'];
             }));
 
         $page = $this->createMock(PageInterface::class);

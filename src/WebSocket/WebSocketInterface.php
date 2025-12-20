@@ -14,6 +14,8 @@ declare(strict_types=1);
 
 namespace Playwright\WebSocket;
 
+use Playwright\WebSocket\Options\WaitForEventOptions;
+
 interface WebSocketInterface
 {
     /**
@@ -45,9 +47,9 @@ interface WebSocketInterface
     /**
      * Waits for event to fire and passes its value into the predicate function.
      *
-     * @param array{predicate?: callable, timeout?: int} $options
+     * @param array<string, mixed>|WaitForEventOptions $options
      *
      * @return array<string, mixed>
      */
-    public function waitForEvent(string $event, array $options = []): array;
+    public function waitForEvent(string $event, array|WaitForEventOptions $options = []): array;
 }
