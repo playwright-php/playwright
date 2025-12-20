@@ -82,4 +82,17 @@ final class FileUploadIntegrationTest extends TestCase
         $name = $this->page->evaluate('() => document.body.dataset.filename');
         $this->assertSame(basename($this->tempFile), $name);
     }
+
+    #[Test]
+    public function itUploadsAFileWithLocatorAndOptionsObject(): void
+    {
+        $this->page->locator('#file')->setInputFiles(
+            [$this->tempFile],
+            new \Playwright\Locator\Options\SetInputFilesOptions(noWaitAfter: true)
+        );
+        usleep(100000);
+
+        $name = $this->page->evaluate('() => document.body.dataset.filename');
+        $this->assertSame(basename($this->tempFile), $name);
+    }
 }
