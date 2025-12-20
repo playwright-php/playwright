@@ -118,7 +118,7 @@ trait PlaywrightTestCaseTrait
 
     protected function expect(LocatorInterface|PageInterface $subject): ExpectInterface
     {
-        return new Expect($subject);
+        return new ExpectDecorator(new Expect($subject), $this);
     }
 
     private function resolveLogger(?LoggerInterface $logger): ?LoggerInterface

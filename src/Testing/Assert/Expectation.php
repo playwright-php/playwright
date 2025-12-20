@@ -14,7 +14,7 @@ declare(strict_types=1);
 
 namespace Playwright\Testing\Assert;
 
-use PHPUnit\Framework\AssertionFailedError;
+use Playwright\Assertions\Failure\AssertionException;
 use Playwright\Locator\LocatorInterface;
 use Playwright\Page\PageInterface;
 
@@ -48,7 +48,7 @@ final class Expectation
     public function toBeVisible(?LocatorOptions $o = null): void
     {
         if (!$this->subject instanceof LocatorInterface) {
-            throw new AssertionFailedError('Subject is not a Locator');
+            throw new AssertionException('Subject is not a Locator');
         }
         $timeout = $this->timeoutMs;
         if (!is_int($timeout)) {
@@ -71,13 +71,13 @@ final class Expectation
         } while (\microtime(true) < $deadline);
 
         $msg = $this->negated ? 'not to be visible' : 'to be visible';
-        throw new AssertionFailedError("Expected locator {$msg}, last state: {$last}");
+        throw new AssertionException("Expected locator {$msg}, last state: {$last}");
     }
 
     public function toHaveURL(string|\Stringable|Regex $url, ?PageOptions $o = null): void
     {
         if (!$this->subject instanceof PageInterface) {
-            throw new AssertionFailedError('Subject is not a Page');
+            throw new AssertionException('Subject is not a Page');
         }
         $timeout = $this->timeoutMs;
         if (!is_int($timeout)) {
@@ -114,6 +114,6 @@ final class Expectation
         } while (\microtime(true) < $deadline);
 
         $expectText = $this->negated ? 'not to match' : 'to match';
-        throw new AssertionFailedError("Expected page URL {$expectText} {$pattern}, last observed: {$last}");
+        throw new AssertionException("Expected page URL {$expectText} {$pattern}, last observed: {$last}");
     }
 }

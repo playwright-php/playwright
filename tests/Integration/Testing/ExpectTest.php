@@ -69,8 +69,6 @@ class ExpectTest extends TestCase
 
         $expect = $this->expect($this->page->locator('#div-2'));
         $expect->toBeHidden();
-
-        $this->addToAssertionCount(2);
     }
 
     #[Test]
@@ -81,8 +79,6 @@ class ExpectTest extends TestCase
 
         $expect = $this->expect($this->page->locator('h1'));
         $expect->not()->toHaveText('Wrong Text');
-
-        $this->addToAssertionCount(2);
     }
 
     #[Test]
@@ -105,8 +101,6 @@ class ExpectTest extends TestCase
 
         $expect = $this->expect($this->page->locator('#input-text'));
         $expect->not()->toHaveValue('wrong value');
-
-        $this->addToAssertionCount(2);
     }
 
     #[Test]
@@ -117,8 +111,6 @@ class ExpectTest extends TestCase
 
         $expect = $this->expect($this->page->locator('#input-text'));
         $expect->not()->toHaveAttribute('type', 'password');
-
-        $this->addToAssertionCount(2);
     }
 
     #[Test]
@@ -131,8 +123,6 @@ class ExpectTest extends TestCase
 
         $expect = $this->expect($this->page->locator('#input-checkbox'));
         $expect->not()->toBeChecked();
-
-        $this->addToAssertionCount(2);
     }
 
     #[Test]
@@ -146,8 +136,6 @@ class ExpectTest extends TestCase
 
         $expect = $this->expect($this->page->locator('#button-2'));
         $expect->toBeDisabled();
-
-        $this->addToAssertionCount(2);
     }
 
     #[Test]
@@ -158,8 +146,6 @@ class ExpectTest extends TestCase
 
         $expect = $this->expect($this->page->locator('button'));
         $expect->not()->toHaveCount(1);
-
-        $this->addToAssertionCount(2);
     }
 
     #[Test]
