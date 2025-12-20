@@ -106,8 +106,10 @@ jobs:
           - php-version: '8.2'
             dependencies: 'low' 
           - php-version: '8.3'
-            dependencies: 'high'
+            dependencies: 'low'
           - php-version: '8.4'
+            dependencies: 'high'
+          - php-version: '8.5'
             dependencies: 'high'
       fail-fast: false
     steps:
@@ -150,7 +152,7 @@ jobs:
 
       - name: "Codecov: upload coverage"
         uses: codecov/codecov-action@v5
-        if: matrix.php-version == '8.4' && matrix.dependencies == 'high'
+        if: matrix.php-version == '8.5' && matrix.dependencies == 'high'
         with:
           files: ./coverage.xml
           flags: unittests
