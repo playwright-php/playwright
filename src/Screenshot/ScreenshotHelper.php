@@ -26,18 +26,19 @@ final class ScreenshotHelper
     /**
      * Generate an auto screenshot filename based on current datetime and URL.
      *
-     * Format: YYYYMMDD_HHMMSS_mmm_url-slug.png
+     * Format: YYYYMMDD_HHMMSS_mmm_url-slug.<extension>
      * Example: 20240811_143052_123_github-com-smnandre.png
      */
-    public static function generateFilename(string $url, string $directory): string
+    public static function generateFilename(string $url, string $directory, string $extension = 'png'): string
     {
         $now = microtime(true);
         $datetime = date('Ymd_His', (int) $now);
         $milliseconds = sprintf('%03d', ($now - floor($now)) * 1000);
 
         $urlSlug = self::slugifyUrl($url, 40);
+        $safeExtension = ltrim($extension, '.');
 
-        $filename = sprintf('%s_%s_%s.png', $datetime, $milliseconds, $urlSlug);
+        $filename = sprintf('%s_%s_%s.%s', $datetime, $milliseconds, $urlSlug, $safeExtension ?: 'png');
 
         self::ensureDirectoryExists($directory);
 

@@ -43,6 +43,7 @@ use Playwright\Network\Request;
 use Playwright\Network\Response;
 use Playwright\Network\ResponseInterface;
 use Playwright\Network\Route;
+use Playwright\Page\Options\PdfOptions;
 use Playwright\Screenshot\ScreenshotHelper;
 use Playwright\Transport\TransportInterface;
 use Psr\Log\LoggerInterface;
@@ -339,6 +340,77 @@ final class Page implements PageInterface, EventDispatcherInterface
     }
 
     /**
+     * Generate a PDF of the page.
+     *
+     * @param array<string, mixed>|PdfOptions $options
+     */
+    public function pdf(?string $path = null, array|PdfOptions $options = []): string
+    {
+        $options = PdfOptions::from($options);
+        $providedPath = $path ?? $options->path();
+        $finalPath = $this->resolvePdfPath(is_string($providedPath) ? $providedPath : null);
+
+        $options = $options->withPath($finalPath)->toArray();
+
+        $this->logger->debug('Generating PDF', ['path' => $finalPath, 'options' => $options]);
+
+        try {
+            $this->sendCommand('pdf', ['options' => $options]);
+            $this->logger->info('PDF saved successfully', ['path' => $finalPath]);
+        } catch (\Throwable $e) {
+            $this->logger->error('Failed to generate PDF', [
+                'path' => $finalPath,
+                'error' => $e->getMessage(),
+                'exception' => $e,
+            ]);
+
+            throw $e;
+        }
+
+        return $finalPath;
+    }
+
+    /**
+     * Generate a PDF and return its binary contents without persisting the file.
+     *
+     * @param array<string, mixed>|PdfOptions $options
+     */
+    public function pdfContent(array|PdfOptions $options = []): string
+    {
+        $options = PdfOptions::from($options);
+
+        if (null !== $options->path()) {
+            throw new RuntimeException('Do not provide a "path" option when requesting inline PDF content.');
+        }
+
+        $directory = $this->getPdfDirectory();
+        ScreenshotHelper::ensureDirectoryExists($directory);
+
+        $tempPath = tempnam($directory, 'pw_pdf_');
+        if (false === $tempPath) {
+            throw new RuntimeException('Failed to allocate a temporary PDF file.');
+        }
+
+        // Remove the placeholder so Playwright can create the file fresh.
+        @unlink($tempPath);
+
+        try {
+            $this->pdf($tempPath, $options);
+
+            $content = file_get_contents($tempPath);
+            if (false === $content) {
+                throw new RuntimeException('Unable to read generated PDF content.');
+            }
+
+            return $content;
+        } finally {
+            if (is_string($tempPath) && file_exists($tempPath)) {
+                @unlink($tempPath);
+            }
+        }
+    }
+
+    /**
      * Get the effective screenshot directory.
      */
     private function getScreenshotDirectory(): string
@@ -348,6 +420,32 @@ final class Page implements PageInterface, EventDispatcherInterface
         }
 
         return rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.'playwright';
+    }
+
+    private function getPdfDirectory(): string
+    {
+        return $this->getScreenshotDirectory();
+    }
+
+    private function resolvePdfPath(?string $path): string
+    {
+        $candidate = null;
+        if (is_string($path) && '' !== trim($path)) {
+            $candidate = $path;
+        }
+
+        if (null !== $candidate) {
+            $directory = dirname($candidate) ?: '.';
+            ScreenshotHelper::ensureDirectoryExists($directory);
+
+            return $candidate;
+        }
+
+        return ScreenshotHelper::generateFilename(
+            $this->url(),
+            $this->getPdfDirectory(),
+            'pdf'
+        );
     }
 
     public function content(): ?string

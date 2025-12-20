@@ -30,7 +30,8 @@ class PlaywrightServer extends BaseHandler {
       pageContexts: this.pageContexts, dialogs: this.dialogs, elementHandles: this.elementHandles,
       responses: this.responses, routes: this.routes, generateId: this.generateId.bind(this),
       extractRequestData: this.extractRequestData.bind(this), serializeResponse: this.serializeResponse.bind(this),
-      sendFramedResponse, routeCounter: { value: this.counters.route },
+      sendFramedResponse,
+      routeCounter: { value: this.counters.route },
       setupPageEventListeners: this.setupPageEventListeners.bind(this)
     };
     this.contextHandler = new ContextHandler(deps);
