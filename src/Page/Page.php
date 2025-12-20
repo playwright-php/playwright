@@ -48,6 +48,7 @@ use Playwright\Page\Options\ClickOptions;
 use Playwright\Page\Options\FrameQueryOptions;
 use Playwright\Page\Options\GotoOptions;
 use Playwright\Page\Options\NavigationHistoryOptions;
+use Playwright\Page\Options\PdfOptions;
 use Playwright\Page\Options\ScreenshotOptions;
 use Playwright\Page\Options\ScriptTagOptions;
 use Playwright\Page\Options\SetContentOptions;
@@ -427,7 +428,7 @@ final class Page implements PageInterface, EventDispatcherInterface
 
             return $content;
         } finally {
-            if (is_string($tempPath) && file_exists($tempPath)) {
+            if (file_exists($tempPath)) {
                 @unlink($tempPath);
             }
         }

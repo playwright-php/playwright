@@ -28,6 +28,7 @@ use Playwright\Page\Options\ClickOptions;
 use Playwright\Page\Options\FrameQueryOptions;
 use Playwright\Page\Options\GotoOptions;
 use Playwright\Page\Options\NavigationHistoryOptions;
+use Playwright\Page\Options\PdfOptions;
 use Playwright\Page\Options\ScreenshotOptions;
 use Playwright\Page\Options\ScriptTagOptions;
 use Playwright\Page\Options\SetContentOptions;
