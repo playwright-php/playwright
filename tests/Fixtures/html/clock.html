@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<body>
+    <div id="time"></div>
+    <button id="btn">Refresh</button>
+
+    <section id="long-timeout">
+        <button id="schedule-long-timeout">Schedule Long Timeout</button>
+        <div id="long-timeout-status">idle</div>
+    </section>
+
+    <section id="short-timeout">
+        <button id="schedule-short-timeout">Schedule Short Timeout</button>
+        <div id="short-timeout-status">idle</div>
+    </section>
+
+    <script>
+      const time = document.getElementById('time');
+      const refreshButton = document.getElementById('btn');
+      function updateTime() {
+        time.textContent = Date.now().toString();
+      }
+      refreshButton.addEventListener('click', updateTime);
+      updateTime();
+
+      const longStatus = document.getElementById('long-timeout-status');
+      const longButton = document.getElementById('schedule-long-timeout');
+      let longTimeoutId = null;
+      longButton.addEventListener('click', () => {
+        if (longTimeoutId) {
+          clearTimeout(longTimeoutId);
+        }
+        longStatus.textContent = 'waiting';
+        longTimeoutId = setTimeout(() => {
+          longStatus.textContent = Date.now().toString();
+        }, 5000);
+      });
+
+      const shortStatus = document.getElementById('short-timeout-status');
+      const shortButton = document.getElementById('schedule-short-timeout');
+      let shortTimeoutId = null;
+      shortButton.addEventListener('click', () => {
+        if (shortTimeoutId) {
+          clearTimeout(shortTimeoutId);
+        }
+        shortStatus.textContent = 'waiting';
+        shortTimeoutId = setTimeout(() => {
+          shortStatus.textContent = Date.now().toString();
+        }, 2000);
+      });
+    </script>
+</body>
+</html>
