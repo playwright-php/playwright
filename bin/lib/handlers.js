@@ -48,6 +48,44 @@ class ContextHandler extends BaseHandler {
     return this.wrapResult(result);
   }
 
+  async handleClock(command, method) {
+    const context = this.validateResource(this.contexts, command.contextId, 'Context')?.context;
+    
+    const registry = CommandRegistry.create({
+      install: async () => {
+        await context.clock.install(command.options);
+        return {};
+      },
+      fastForward: async () => {
+        await context.clock.fastForward(command.ticks);
+        return {};
+      },
+      pauseAt: async () => {
+        await context.clock.pauseAt(command.time);
+        return {};
+      },
+      resume: async () => {
+        await context.clock.resume();
+        return {};
+      },
+      runFor: async () => {
+        await context.clock.runFor(command.ticks);
+        return {};
+      },
+      setFixedTime: async () => {
+        await context.clock.setFixedTime(command.time);
+        return {};
+      },
+      setSystemTime: async () => {
+        await context.clock.setSystemTime(command.time);
+        return {};
+      }
+    });
+
+    const result = await ErrorHandler.safeExecute(() => this.executeWithRegistry(registry, method), { method, contextId: command.contextId });
+    return this.wrapResult(result);
+  }
+
   setThrottling(command) {
     if (command.throttling && typeof command.throttling === 'object') {
       this.contextThrottling.set(command.contextId, {
