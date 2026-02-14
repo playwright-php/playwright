@@ -83,6 +83,47 @@ final class StorageStateTest extends TestCase
     }
 
     #[Test]
+    public function itCreatesStorageStateWithCookieDataWithFloatExpires(): void
+    {
+        $cookies = [
+            [
+                'name' => 'session_id',
+                'value' => 'abc123',
+                'domain' => 'example.com',
+                'path' => '/',
+                'expires' => 12345678.90,
+                'httpOnly' => true,
+                'secure' => true,
+                'sameSite' => 'Strict',
+            ],
+        ];
+
+        $storageState = StorageState::fromArray(['cookies' => $cookies]);
+
+        $this->assertEquals($cookies, $storageState->cookies);
+        $this->assertFalse($storageState->isEmpty());
+        $this->assertEquals(1, $storageState->getCookieCount());
+    }
+
+    #[Test]
+    public function itThrowsExceptionForInvalidCookieData(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid cookie fields');
+
+        StorageState::fromArray(['cookies' => [['invalid' => 'data']]]);
+    }
+
+    #[Test]
+    public function itThrowsExceptionForInvalidCookies(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid cookie data structure');
+
+        StorageState::fromArray(['cookies' => ['invalid' => 'data']]);
+    }
+
+    #[Test]
     public function itCreatesFromJson(): void
     {
         $json = '{

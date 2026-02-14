@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 namespace Playwright\Browser;
 
+use Playwright\Cookie;
 use Playwright\Exception\RuntimeException;
 
 /**
@@ -22,8 +23,8 @@ use Playwright\Exception\RuntimeException;
 final readonly class StorageState
 {
     /**
-     * @param array<array{name: string, value: string, domain: string, path: string, expires: int, httpOnly: bool, secure: bool, sameSite: 'Strict'|'Lax'|'None'}> $cookies
-     * @param array<array{origin: string, localStorage?: array<array{name: string, value: string}>}>                                                               $origins
+     * @param array<array{name: string, value: string, domain: string, path: string, expires: int|float, httpOnly: bool, secure: bool, sameSite: 'Strict'|'Lax'|'None'}> $cookies
+     * @param array<array{origin: string, localStorage?: array<array{name: string, value: string}>}>                                                                     $origins
      */
     public function __construct(
         public array $cookies = [],
@@ -140,7 +141,7 @@ final readonly class StorageState
     }
 
     /**
-     * @return array<array{name: string, value: string, domain: string, path: string, expires: int, httpOnly: bool, secure: bool, sameSite: 'Strict'|'Lax'|'None'}>
+     * @return array<array{name: string, value: string, domain: string, path: string, expires: int|float, httpOnly: bool, secure: bool, sameSite: 'Strict'|'Lax'|'None'}>
      */
     public function getCookiesForDomain(string $domain): array
     {
@@ -164,7 +165,7 @@ final readonly class StorageState
     /**
      * @param array<mixed, mixed> $cookies
      *
-     * @return array<array{name: string, value: string, domain: string, path: string, expires: int, httpOnly: bool, secure: bool, sameSite: 'Lax'|'None'|'Strict'}>
+     * @return array<array{name: string, value: string, domain: string, path: string, expires: int|float, httpOnly: bool, secure: bool, sameSite: 'Lax'|'None'|'Strict'}>
      */
     private static function validateCookies(array $cookies): array
     {
@@ -174,38 +175,7 @@ final readonly class StorageState
                 throw new \InvalidArgumentException('Invalid cookie data structure');
             }
 
-            $name = $cookie['name'] ?? null;
-            $value = $cookie['value'] ?? null;
-            $domain = $cookie['domain'] ?? null;
-            $path = $cookie['path'] ?? null;
-            $expires = $cookie['expires'] ?? null;
-            $httpOnly = $cookie['httpOnly'] ?? null;
-            $secure = $cookie['secure'] ?? null;
-            $sameSite = $cookie['sameSite'] ?? null;
-
-            if (!is_string($name)
-                || !is_string($value)
-                || !is_string($domain)
-                || !is_string($path)
-                || !is_int($expires)
-                || !is_bool($httpOnly)
-                || !is_bool($secure)
-                || !is_string($sameSite)
-                || !in_array($sameSite, ['Lax', 'None', 'Strict'], true)
-            ) {
-                throw new \InvalidArgumentException('Invalid cookie fields');
-            }
-
-            $result[] = [
-                'name' => $name,
-                'value' => $value,
-                'domain' => $domain,
-                'path' => $path,
-                'expires' => $expires,
-                'httpOnly' => $httpOnly,
-                'secure' => $secure,
-                'sameSite' => $sameSite,
-            ];
+            $result[] = Cookie::fromArray($cookie)->toArray();
         }
 
         return $result;

@@ -20,6 +20,7 @@ use Playwright\Clock\ClockInterface;
 use Playwright\Clock\NullClock;
 use Playwright\Configuration\PlaywrightConfig;
 use Playwright\Console\ConsoleMessage;
+use Playwright\Cookie;
 use Playwright\Dialog\Dialog;
 use Playwright\Event\EventDispatcherInterface;
 use Playwright\Exception\NetworkException;
@@ -673,6 +674,11 @@ final class Page implements PageInterface, EventDispatcherInterface
         return $this->context;
     }
 
+    /**
+     * @param array<string>|null $urls
+     *
+     * @return array<array{name: string, value: string, domain: string, path: string, expires: int|float, httpOnly: bool, secure: bool, sameSite: 'Strict'|'Lax'|'None'}>
+     */
     public function cookies(?array $urls = null): array
     {
         $response = $this->sendCommand('cookies', ['urls' => $urls]);
@@ -688,38 +694,11 @@ final class Page implements PageInterface, EventDispatcherInterface
                 continue;
             }
 
-            $name = $cookie['name'] ?? null;
-            $value = $cookie['value'] ?? null;
-            $domain = $cookie['domain'] ?? null;
-            $path = $cookie['path'] ?? null;
-            $expires = $cookie['expires'] ?? null;
-            $httpOnly = $cookie['httpOnly'] ?? null;
-            $secure = $cookie['secure'] ?? null;
-            $sameSite = $cookie['sameSite'] ?? null;
-
-            if (!is_string($name)
-                || !is_string($value)
-                || !is_string($domain)
-                || !is_string($path)
-                || !is_int($expires)
-                || !is_bool($httpOnly)
-                || !is_bool($secure)
-                || !is_string($sameSite)
-                || !in_array($sameSite, ['Lax', 'None', 'Strict'], true)
-            ) {
+            try {
+                $validatedCookies[] = Cookie::fromArray($cookie)->toArray();
+            } catch (\InvalidArgumentException) {
                 continue;
             }
-
-            $validatedCookies[] = [
-                'name' => $name,
-                'value' => $value,
-                'domain' => $domain,
-                'path' => $path,
-                'expires' => $expires,
-                'httpOnly' => $httpOnly,
-                'secure' => $secure,
-                'sameSite' => $sameSite,
-            ];
         }
 
         return $validatedCookies;
