@@ -12,7 +12,8 @@
 
 ## About
 
-Playwright for PHP lets you launch real browsers (Chromium, Firefox, WebKit), drive pages and locators, and write reliable end‑to‑end tests — all from PHP.
+Playwright for PHP lets you launch real browsers (Chromium, Firefox, WebKit), drive pages and locators, and write
+reliable end‑to‑end tests — all from PHP.
 
 - **Familiar model**: browser → context → page → locator
 - **Auto‑waiting** interactions reduce flakiness
@@ -21,6 +22,7 @@ Playwright for PHP lets you launch real browsers (Chromium, Firefox, WebKit), dr
 - No separate server to manage — a lightweight Node server is started for you
 
 Requirements:
+
 - PHP 8.2+
 - Node.js 20+ (used by the bundled Playwright server and browsers)
 
@@ -48,7 +50,6 @@ vendor/bin/playwright-install --with-deps
 vendor/bin/playwright-install --dry-run --with-deps
 ```
 
-
 ## Quick start
 
 Open a page and print its title:
@@ -69,13 +70,20 @@ echo $page->title().PHP_EOL; // Example Domain
 $context->close();
 ```
 
+## Documentation
+
+- [Quick Start Guide](docs/guide.md)
+- [Playwright Inspector](docs/inspector.md)
+- [Contributing: Testing](docs/contributing/testing.md)
+
 ## Usage
 
 ### Browser
 
 - Choose a browser: `Playwright::chromium()`, `Playwright::firefox()`, or `Playwright::webkit()`.
 - `Playwright::safari()` is an alias of `webkit()`.
-- Common launch options: `headless` (bool), `slowMo` (ms), `args` (array of CLI args), and an optional `context` array with context options.
+- Common launch options: `headless` (bool), `slowMo` (ms), `args` (array of CLI args), and an optional `context` array
+  with context options.
 
 ```php
 $context = Playwright::webkit([
@@ -165,6 +173,7 @@ final class HomePageTest extends TestCase
 ```
 
 Notes:
+
 - The trait provides `$this->playwright`, `$this->browser`, `$this->context`, and `$this->page` properties.
 - Call `setUpPlaywright()` in `setUp()` and `tearDownPlaywright()` in `tearDown()` for proper lifecycle management.
 - Use `$this->expect($locator)` or `$this->expect($page)` for fluent assertions.
@@ -198,12 +207,14 @@ jobs:
 ```
 
 Tips:
+
 - Cache Node and Composer if you need faster builds.
 - You can also cache Playwright browsers under `~/.cache/ms-playwright`.
 
 ## Contributing
 
-Contributions are welcome. Please use Conventional Commits, include tests for behavior changes, and ensure docs/examples are updated when relevant. A typical first run inside the repository is:
+Contributions are welcome. Please use Conventional Commits, include tests for behavior changes, and ensure docs/examples
+are updated when relevant. A typical first run inside the repository is:
 
 ```bash
 composer install                                # installs PHP deps and the bundled Playwright server
@@ -214,5 +225,5 @@ See `docs/contributing/testing.md` for more details on the local workflow.
 
 ## License
 
-This package is released by the [Playwright PHP](https://playwright-php.dev) 
+This package is released by the [Playwright PHP](https://playwright-php.dev)
 project under the MIT License. See the [LICENSE](LICENSE) file for details.

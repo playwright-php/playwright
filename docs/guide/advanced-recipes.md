@@ -3,6 +3,15 @@
 This page contains recipes for common but more advanced automation scenarios. Use these examples to leverage the full
 power of Playwright for PHP.
 
+## Table of Contents
+
+* [File Uploads](#file-uploads)
+* [Network Interception](#network-interception)
+* [Handling Dialogs](#handling-dialogs)
+* [Working with Frames](#working-with-frames)
+* [Connecting to External Browsers](#connecting-to-external-browsers)
+* [Browser Configuration with `PlaywrightConfigBuilder`](#browser-configuration-with-playwrightconfigbuilder)
+
 ## File Uploads
 
 You can upload one or more files to an `<input type="file">` element using the `setInputFiles()` method on a `Locator`.
@@ -87,6 +96,10 @@ $frameInput->fill('This is inside a frame');
 $frameButton = $frame->locator('button:has-text("Submit")');
 $frameButton->click();
 ```
+
+## Connecting to External Browsers
+
+This topic has its own page: **[Connecting to External Browsers](connect-browser.md)**.
 
 ## Browser Configuration with `PlaywrightConfigBuilder`
 
