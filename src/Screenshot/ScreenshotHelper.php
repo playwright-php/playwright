@@ -55,11 +55,7 @@ final class ScreenshotHelper
      */
     public static function slugifyUrl(string $url, int $maxLength = 40): string
     {
-        $slug = preg_replace('/^https?:\/\//', '', $url);
-
-        if (is_string($slug)) {
-            $slug = preg_replace('/^www\./', '', $slug);
-        }
+        $slug = preg_replace('#^(https?://)?(www\.)?#i', '', $url);
         if (null === $slug) {
             $slug = 'invalid-url';
         }
@@ -67,23 +63,15 @@ final class ScreenshotHelper
         $slug = preg_replace('/[^a-zA-Z0-9]+/', '-', $slug);
         if (null === $slug) {
             $slug = 'invalid-url';
+        } else {
+            $slug = trim($slug, '-');
+            $slug = strtolower($slug);
         }
 
-        $slug = trim($slug, '-');
+        $slug = substr($slug, 0, $maxLength);
+        $slug = rtrim($slug, '-');
 
-        $slug = strtolower($slug);
-
-        if (strlen($slug) > $maxLength) {
-            $slug = substr($slug, 0, $maxLength);
-
-            $slug = rtrim($slug, '-');
-        }
-
-        if (empty($slug)) {
-            $slug = 'screenshot';
-        }
-
-        return $slug;
+        return $slug ?: 'screenshot';
     }
 
     /**
