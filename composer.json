@@ -40,7 +40,7 @@
         "friendsofphp/php-cs-fixer": "^3.40",
         "monolog/monolog": "^3.9",
         "phpstan/phpstan": "^2.1",
-        "phpunit/phpunit": "^12.3",
+        "phpunit/phpunit": "^11.5",
         "symfony/var-dumper": "^6.4 || ^7.3 || ^8.0"
     },
     "minimum-stability": "stable",

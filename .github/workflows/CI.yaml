@@ -10,6 +10,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   cs:
     name: "Code style"
@@ -18,21 +22,17 @@ jobs:
       - name: "Git: checkout"
         uses: actions/checkout@v4
 
-      - name: "PHP: setup 8.3"
+      - name: "PHP: setup 8.2"
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: '8.2'
           coverage: none
-          tools: php-cs-fixer
 
       - name: "Composer: validate"
         run: composer validate --strict
 
       - name: "Composer: install"
         run: composer install --prefer-dist --no-interaction --no-progress
-
-      - name: "Php-CS-Fixer: version"
-        run: vendor/bin/php-cs-fixer -V
 
       - name: "Php-CS-Fixer: check"
         run: vendor/bin/php-cs-fixer fix --diff --dry-run
@@ -48,16 +48,13 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
-          tools: phpstan
+          coverage: none
 
       - name: "Composer: install"
         run: composer install --prefer-dist --no-interaction --no-progress
 
-      - name: "PHPStan: version"
-        run: phpstan --version
-
       - name: "PHPStan: analyze"
-        run: phpstan
+        run: vendor/bin/phpstan
 
   unit-tests:
     name: "Unit Tests (PHP ${{ matrix.php-version }})"
@@ -74,14 +71,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-version }}
-          coverage: pcov
-          tools: phpunit
-          
-      # Force PHPUnit 11.5 on PHP 8.2 to keep support for it
-      # https://phpunit.de/supported-versions.html
-      - name: "PHPUnit: install 11.5"      
-        if: matrix.php-version == '8.2'
-        run: composer require --no-update phpunit/phpunit:^11.5
+          coverage: none
 
       - name: "Composer: install (${{ matrix.dependencies }})"
         run: |
@@ -91,11 +81,8 @@ jobs:
             composer install --prefer-dist --no-interaction --no-progress
           fi
 
-      - name: "PHPUnit: version"
-        run: phpunit --version
-
       - name: "PHPUnit: tests"
-        run: phpunit --testsuite=unit
+        run: vendor/bin/phpunit --no-coverage --testsuite=unit
 
   integration-tests:
     name: "Integration Tests (PHP ${{ matrix.php-version }} ${{ matrix.dependencies }})"
@@ -121,12 +108,6 @@ jobs:
         with:
           php-version: ${{ matrix.php-version }}
           coverage: pcov
-          tools: phpunit
-
-      # Force PHPUnit 11.5 on PHP 8.2 to keep support for it
-      # https://phpunit.de/supported-versions.html
-      - if: matrix.php-version == '8.2'
-        run: composer require --no-update phpunit/phpunit:^11.5
 
       - name: "Node: setup"
         uses: actions/setup-node@v4
@@ -143,9 +124,6 @@ jobs:
 
       - name: "Playwright: install browsers"
         run: php bin/playwright-install --browsers
-
-      - name: "PHPUnit: version"
-        run: vendor/bin/phpunit --version
 
       - name: "PHPUnit: all tests with coverage"
         run: vendor/bin/phpunit --coverage-clover=coverage.xml
