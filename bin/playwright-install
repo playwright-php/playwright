@@ -407,6 +407,9 @@ if ($help) {
     echo "\n";
     echo "This script automatically detects and uses the fastest available package manager.\n";
     echo "Preference order: pnpm > yarn > npm\n";
+    echo "\n";
+    echo "Environment:\n";
+    echo "  PLAYWRIGHT_BROWSERS_PATH   Custom directory for Playwright browser binaries\n";
     exit(0);
 }
 

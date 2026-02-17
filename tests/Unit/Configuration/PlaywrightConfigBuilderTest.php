@@ -29,6 +29,7 @@ class PlaywrightConfigBuilderTest extends TestCase
         $envVars = [
             'PLAYWRIGHT_NODE_PATH',
             'PLAYWRIGHT_NODE_MIN_VERSION',
+            'PLAYWRIGHT_BROWSERS_PATH',
             'PW_BROWSER',
             'PW_CHANNEL',
             'PW_HEADLESS',
@@ -234,6 +235,7 @@ class PlaywrightConfigBuilderTest extends TestCase
     {
         putenv('PLAYWRIGHT_NODE_PATH=/env/node');
         putenv('PLAYWRIGHT_NODE_MIN_VERSION=19.0.0');
+        putenv('PLAYWRIGHT_BROWSERS_PATH=/env/ms-playwright');
         putenv('PW_BROWSER=firefox');
         putenv('PW_CHANNEL=nightly');
         putenv('PW_HEADLESS=false');
@@ -252,6 +254,7 @@ class PlaywrightConfigBuilderTest extends TestCase
 
         $this->assertEquals('/env/node', $config->nodePath);
         $this->assertEquals('19.0.0', $config->minNodeVersion);
+        $this->assertEquals('/env/ms-playwright', $config->env['PLAYWRIGHT_BROWSERS_PATH'] ?? null);
         $this->assertEquals(BrowserType::FIREFOX, $config->browser);
         $this->assertEquals('nightly', $config->channel);
         $this->assertFalse($config->headless);
