@@ -29,12 +29,17 @@ use Psr\Log\LoggerInterface;
 final class PlaywrightConfigBuilder
 {
     private ?string $nodePath = null;
+
     private string $minNodeVersion = '20.0.0';
 
     private BrowserType $browser = BrowserType::CHROMIUM;
+
     private ?string $channel = null;
+
     private bool $headless = true;
+
     private int $timeoutMs = 30_000;
+
     private int $slowMoMs = 0;
 
     /** @var array<int, string> */
@@ -44,11 +49,15 @@ final class PlaywrightConfigBuilder
     private array $env = [];
 
     private ?string $downloadsDir = null;
+
     private ?string $videosDir = null;
 
     private bool $tracingEnabled = false;
+
     private ?string $traceDir = null;
+
     private bool $traceScreenshots = true;
+
     private bool $traceSnapshots = true;
 
     /** @var array{server?: string, username?: string, password?: string, bypass?: string}|null */
@@ -76,6 +85,9 @@ final class PlaywrightConfigBuilder
         }
         if ($min = $get('PLAYWRIGHT_NODE_MIN_VERSION')) {
             $b->withMinNodeVersion($min);
+        }
+        if ($browsersPath = $get('PLAYWRIGHT_BROWSERS_PATH')) {
+            $b->addEnv('PLAYWRIGHT_BROWSERS_PATH', $browsersPath);
         }
 
         if ($browser = $get('PW_BROWSER')) {

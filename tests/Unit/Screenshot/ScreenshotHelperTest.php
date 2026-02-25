@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace Playwright\Tests\Unit\Screenshot;
 
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Playwright\Screenshot\ScreenshotHelper;
 
@@ -37,30 +38,26 @@ class ScreenshotHelperTest extends TestCase
         }
     }
 
-    public function testSlugifyUrl(): void
+    #[DataProvider('provideUrls')]
+    public function testSlugifyUrl(string $input, string $expected, int $maxLength = 40): void
     {
-        $testCases = [
+        $result = ScreenshotHelper::slugifyUrl($input, $maxLength);
+        $this->assertSame($expected, $result, "Failed for input: $input");
+    }
+
+    public static function provideUrls(): array
+    {
+        return [
             ['https://example.com', 'example-com'],
             ['https://www.github.com/user/repo', 'github-com-user-repo'],
             ['http://api.service.com/v1/users?id=123', 'api-service-com-v1-users-id-123'],
             ['https://sub.domain.co.uk/path/file.html', 'sub-domain-co-uk-path-file-html'],
             ['invalid-chars!@#$%^&*()', 'invalid-chars'],
+            ['!@#$%^&*()', 'screenshot'],
             ['', 'screenshot'],
+            ['https://sub.domain.co.uk/path/file.html', 'sub-domain', 11],
+            ['https://example.com/very-long-path-that-exceeds-the-maximum-length-limit', 'example-com-very-lon', 20],
         ];
-
-        foreach ($testCases as [$input, $expected]) {
-            $result = ScreenshotHelper::slugifyUrl($input);
-            $this->assertEquals($expected, $result, "Failed for input: $input");
-        }
-    }
-
-    public function testSlugifyUrlWithMaxLength(): void
-    {
-        $longUrl = 'https://example.com/very-long-path-that-exceeds-the-maximum-length-limit';
-        $result = ScreenshotHelper::slugifyUrl($longUrl, 20);
-
-        $this->assertLessThanOrEqual(20, strlen($result));
-        $this->assertEquals('example-com-very-lon', $result);
     }
 
     public function testGenerateFilename(): void
@@ -75,7 +72,7 @@ class ScreenshotHelperTest extends TestCase
         );
 
         $this->assertDirectoryExists($this->testDir);
-        $this->assertEquals($this->testDir.'/'.$basename, $filename);
+        $this->assertSame($this->testDir.'/'.$basename, $filename);
     }
 
     public function testGenerateFilenameCreatesDirectory(): void
@@ -118,7 +115,7 @@ class ScreenshotHelperTest extends TestCase
             'newestFile' => null,
         ];
 
-        $this->assertEquals($expected, $info);
+        $this->assertSame($expected, $info);
     }
 
     public function testGetDirectoryInfoWithFiles(): void
@@ -152,7 +149,7 @@ class ScreenshotHelperTest extends TestCase
 
         $cleaned = ScreenshotHelper::cleanupOldScreenshots($this->testDir, 3600);
 
-        $this->assertEquals(1, $cleaned);
+        $this->assertSame(1, $cleaned);
         $this->assertFileDoesNotExist($oldFile);
         $this->assertFileExists($newFile);
     }
@@ -168,7 +165,7 @@ class ScreenshotHelperTest extends TestCase
 
         $cleaned = ScreenshotHelper::cleanupOldScreenshots($this->testDir, 86400, 3);
 
-        $this->assertEquals(2, $cleaned);
+        $this->assertSame(2, $cleaned);
 
         $remaining = glob($this->testDir.'/*.png');
         $this->assertCount(3, $remaining);

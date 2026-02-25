@@ -43,6 +43,12 @@ vendor/bin/playwright-install --with-deps
 Both commands ensure the bundled Playwright server is up to date and then download the latest browser versions into the
 local Playwright cache.
 
+If you need a custom browsers cache location (for example in CI), set `PLAYWRIGHT_BROWSERS_PATH`:
+
+```bash
+PLAYWRIGHT_BROWSERS_PATH=/path/to/.playwright-browsers vendor/bin/playwright-install --browsers
+```
+
 ## Your First Script
 
 You're now ready to write your first script. Create a new file named `example.php` and add the following code:

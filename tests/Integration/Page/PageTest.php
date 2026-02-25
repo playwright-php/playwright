@@ -17,6 +17,8 @@ namespace Playwright\Tests\Integration\Page;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Playwright\Locator\LocatorInterface;
+use Playwright\Network\ResponseInterface;
 use Playwright\Page\Page;
 use Playwright\Testing\PlaywrightTestCaseTrait;
 use Playwright\Tests\Support\RouteServerTestTrait;
@@ -151,16 +153,25 @@ class PageTest extends TestCase
     {
         $response = $this->page->waitForResponse('**/page2.html', ['action' => "document.querySelector('a').click()"]);
 
-        $this->assertInstanceOf(\Playwright\Network\ResponseInterface::class, $response);
+        $this->assertInstanceOf(ResponseInterface::class, $response);
         $this->assertStringContainsString('/page2.html', $response->url());
         $this->assertEquals(200, $response->status());
+    }
+
+    #[Test]
+    public function itWaitsForLoadState(): void
+    {
+        $this->page->click('a');
+        $this->page->waitForLoadState();
+
+        $this->assertStringContainsString('/page2.html', $this->page->url());
     }
 
     #[Test]
     public function itCanGetByText(): void
     {
         $locator = $this->page->getByText('Hello World');
-        $this->assertInstanceOf(\Playwright\Locator\LocatorInterface::class, $locator);
+        $this->assertInstanceOf(LocatorInterface::class, $locator);
         $text = $locator->textContent();
         $this->assertSame('Hello World', $text);
     }
@@ -169,7 +180,7 @@ class PageTest extends TestCase
     public function itCanGetByPlaceholder(): void
     {
         $locator = $this->page->getByPlaceholder('Username');
-        $this->assertInstanceOf(\Playwright\Locator\LocatorInterface::class, $locator);
+        $this->assertInstanceOf(LocatorInterface::class, $locator);
         $placeholder = $locator->getAttribute('placeholder');
         $this->assertSame('Username', $placeholder);
     }
@@ -179,7 +190,7 @@ class PageTest extends TestCase
     {
         $this->page->evaluate("document.querySelector('h1').setAttribute('title', 'Main Heading')");
         $locator = $this->page->getByTitle('Main Heading');
-        $this->assertInstanceOf(\Playwright\Locator\LocatorInterface::class, $locator);
+        $this->assertInstanceOf(LocatorInterface::class, $locator);
         $text = $locator->textContent();
         $this->assertSame('Hello World', $text);
     }
@@ -189,7 +200,7 @@ class PageTest extends TestCase
     {
         $this->page->evaluate("document.querySelector('button').setAttribute('data-testid', 'submit-button')");
         $locator = $this->page->getByTestId('submit-button');
-        $this->assertInstanceOf(\Playwright\Locator\LocatorInterface::class, $locator);
+        $this->assertInstanceOf(LocatorInterface::class, $locator);
         $text = $locator->textContent();
         $this->assertSame('Test Button', $text);
     }
@@ -199,7 +210,7 @@ class PageTest extends TestCase
     {
         $this->page->setContent('<img src="/logo.png" alt="Company Logo" />');
         $locator = $this->page->getByAltText('Company Logo');
-        $this->assertInstanceOf(\Playwright\Locator\LocatorInterface::class, $locator);
+        $this->assertInstanceOf(LocatorInterface::class, $locator);
         $alt = $locator->getAttribute('alt');
         $this->assertSame('Company Logo', $alt);
     }
@@ -217,10 +228,5 @@ class PageTest extends TestCase
         $this->page->getByPlaceholder('Username')->fill('testuser');
         $value = $this->page->getByPlaceholder('Username')->inputValue();
         $this->assertSame('testuser', $value);
-    }
-
-    private static function findFreePort(): int
-    {
-        return 0;
     }
 }

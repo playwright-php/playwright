@@ -50,6 +50,10 @@ vendor/bin/playwright-install --with-deps
 vendor/bin/playwright-install --dry-run --with-deps
 ```
 
+For advanced install options (including browser cache location), see the
+[Getting Started guide](docs/guide/getting-started.md).
+
+
 ## Quick start
 
 Open a page and print its title:
