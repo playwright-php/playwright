@@ -26,25 +26,19 @@ final class PlaywrightFactoryTest extends TestCase
 {
     public function testCreateWithDefaultConfig(): void
     {
-        $factory = new PlaywrightFactory();
-
-        $client = $factory->create();
-
-        $this->assertInstanceOf(PlaywrightClient::class, $client);
+        $this->assertInstanceOf(PlaywrightClient::class, PlaywrightFactory::create());
     }
 
     public function testCreateWithCustomConfig(): void
     {
         $config = new PlaywrightConfig(
             nodePath: '/usr/bin/node',
-            timeoutMs: 60000,
             headless: false,
+            timeoutMs: 60000,
             tracingEnabled: true
         );
 
-        $factory = new PlaywrightFactory();
-
-        $client = $factory->create($config);
+        $client = PlaywrightFactory::create($config);
 
         $this->assertInstanceOf(PlaywrightClient::class, $client);
     }
@@ -52,9 +46,8 @@ final class PlaywrightFactoryTest extends TestCase
     public function testCreateWithLogger(): void
     {
         $logger = $this->createMock(LoggerInterface::class);
-        $factory = new PlaywrightFactory();
 
-        $client = $factory->create(null, $logger);
+        $client = PlaywrightFactory::create(logger: $logger);
 
         $this->assertInstanceOf(PlaywrightClient::class, $client);
     }
@@ -63,15 +56,14 @@ final class PlaywrightFactoryTest extends TestCase
     {
         $config = new PlaywrightConfig(
             nodePath: '/opt/node/bin/node',
-            timeoutMs: 45000,
             headless: true,
+            timeoutMs: 45000,
             tracingEnabled: false
         );
 
         $logger = $this->createMock(LoggerInterface::class);
-        $factory = new PlaywrightFactory();
 
-        $client = $factory->create($config, $logger);
+        $client = PlaywrightFactory::create($config, $logger);
 
         $this->assertInstanceOf(PlaywrightClient::class, $client);
     }

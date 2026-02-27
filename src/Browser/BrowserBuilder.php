@@ -30,7 +30,7 @@ final class BrowserBuilder
         private readonly string $browserType,
         private readonly TransportInterface $transport,
         private readonly LoggerInterface $logger,
-        private readonly ?PlaywrightConfig $config = null,
+        private readonly PlaywrightConfig $config,
     ) {
     }
 

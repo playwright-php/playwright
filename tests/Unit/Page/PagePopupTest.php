@@ -17,6 +17,7 @@ namespace Playwright\Tests\Unit\Page;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Playwright\Browser\BrowserContextInterface;
+use Playwright\Configuration\PlaywrightConfig;
 use Playwright\Exception\TimeoutException;
 use Playwright\Page\Page;
 use Playwright\Transport\TransportInterface;
@@ -32,7 +33,7 @@ final class PagePopupTest extends TestCase
     {
         $this->transport = $this->createMock(TransportInterface::class);
         $this->context = $this->createMock(BrowserContextInterface::class);
-        $this->page = new Page($this->transport, $this->context, 'page1');
+        $this->page = new Page($this->transport, $this->context, 'page1', new PlaywrightConfig());
     }
 
     public function testWaitForPopupSuccess(): void

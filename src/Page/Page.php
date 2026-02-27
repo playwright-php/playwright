@@ -76,8 +76,6 @@ final class Page implements PageInterface, EventDispatcherInterface
 
     private PageEventHandlerInterface $eventHandler;
 
-    private LoggerInterface $logger;
-
     private ?APIRequestContextInterface $apiRequestContext = null;
 
     private bool $isClosed = false;
@@ -91,11 +89,9 @@ final class Page implements PageInterface, EventDispatcherInterface
         private readonly TransportInterface $transport,
         private readonly BrowserContextInterface $context,
         private readonly string $pageId,
-        private readonly ?PlaywrightConfig $config = null,
-        ?LoggerInterface $logger = null,
+        private readonly PlaywrightConfig $config,
+        private readonly LoggerInterface $logger = new NullLogger(),
     ) {
-        $this->logger = $logger ?? new NullLogger();
-
         $this->keyboard = new Keyboard($this->transport, $this->pageId);
         $this->mouse = new Mouse($this->transport, $this->pageId);
         $this->eventHandler = new PageEventHandler();
@@ -440,11 +436,7 @@ final class Page implements PageInterface, EventDispatcherInterface
      */
     private function getScreenshotDirectory(): string
     {
-        if (null !== $this->config) {
-            return $this->config->getScreenshotDirectory();
-        }
-
-        return rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.'playwright';
+        return $this->config->getScreenshotDirectory();
     }
 
     private function getPdfDirectory(): string

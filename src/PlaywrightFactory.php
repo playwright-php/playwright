@@ -42,15 +42,9 @@ use Psr\Log\NullLogger;
 class PlaywrightFactory
 {
     public static function create(
-        ?PlaywrightConfig $config = null,
-        ?LoggerInterface $logger = null,
+        PlaywrightConfig $config = new PlaywrightConfig(),
+        LoggerInterface $logger = new NullLogger(),
     ): PlaywrightClient {
-        $config ??= new PlaywrightConfig();
-        $logger ??= new NullLogger();
-
-        $transportFactory = new TransportFactory();
-        $transport = $transportFactory->create($config, $logger);
-
-        return new PlaywrightClient($transport, $logger, $config);
+        return new PlaywrightClient((new TransportFactory())->create($config, $logger), $logger, $config);
     }
 }

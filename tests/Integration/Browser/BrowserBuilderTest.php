@@ -19,6 +19,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Playwright\Browser\Browser;
 use Playwright\Browser\BrowserBuilder;
+use Playwright\Configuration\PlaywrightConfig;
 use Playwright\Transport\TransportInterface;
 use Psr\Log\NullLogger;
 
@@ -33,7 +34,7 @@ class BrowserBuilderTest extends TestCase
     {
         $this->transport = $this->createMock(TransportInterface::class);
         $this->logger = new NullLogger();
-        $this->builder = new BrowserBuilder('chromium', $this->transport, $this->logger);
+        $this->builder = new BrowserBuilder('chromium', $this->transport, $this->logger, new PlaywrightConfig());
     }
 
     #[Test]
@@ -133,8 +134,8 @@ class BrowserBuilderTest extends TestCase
     #[Test]
     public function itWorksWithDifferentBrowserTypes(): void
     {
-        $firefoxBuilder = new BrowserBuilder('firefox', $this->transport, $this->logger);
-        $webkitBuilder = new BrowserBuilder('webkit', $this->transport, $this->logger);
+        $firefoxBuilder = new BrowserBuilder('firefox', $this->transport, $this->logger, new PlaywrightConfig());
+        $webkitBuilder = new BrowserBuilder('webkit', $this->transport, $this->logger, new PlaywrightConfig());
 
         $this->assertInstanceOf(BrowserBuilder::class, $firefoxBuilder);
         $this->assertInstanceOf(BrowserBuilder::class, $webkitBuilder);

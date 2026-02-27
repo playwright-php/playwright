@@ -56,7 +56,7 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
     public function __construct(
         private readonly TransportInterface $transport,
         private readonly string $contextId,
-        private readonly ?PlaywrightConfig $config = null,
+        private readonly PlaywrightConfig $config,
     ) {
         if (method_exists($this->transport, 'addEventDispatcher')) {
             $this->transport->addEventDispatcher($this->contextId, $this);

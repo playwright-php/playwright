@@ -17,6 +17,7 @@ namespace Playwright\Tests\Unit\Page;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Playwright\Browser\BrowserContextInterface;
+use Playwright\Configuration\PlaywrightConfig;
 use Playwright\Input\KeyboardInterface;
 use Playwright\Input\MouseInterface;
 use Playwright\Locator\Locator;
@@ -38,7 +39,7 @@ class PageTest extends TestCase
         $context = $this->createMock(BrowserContextInterface::class);
         $pageId = 'page-id';
 
-        $this->page = new Page($this->transport, $context, $pageId);
+        $this->page = new Page($this->transport, $context, $pageId, new PlaywrightConfig());
     }
 
     public function testGetKeyboard(): void

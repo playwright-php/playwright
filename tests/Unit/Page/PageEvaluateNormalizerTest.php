@@ -17,6 +17,7 @@ namespace Playwright\Tests\Unit\Page;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Playwright\Browser\BrowserContextInterface;
+use Playwright\Configuration\PlaywrightConfig;
 use Playwright\Page\Page;
 use Playwright\Transport\TransportInterface;
 
@@ -37,7 +38,7 @@ final class PageEvaluateNormalizerTest extends TestCase
             }))
             ->willReturn(['result' => 42]);
 
-        $page = new Page($transport, $context, 'p1');
+        $page = new Page($transport, $context, 'p1', new PlaywrightConfig());
         $result = $page->evaluate('return 42;');
         $this->assertSame(42, $result);
     }
@@ -56,7 +57,7 @@ final class PageEvaluateNormalizerTest extends TestCase
             }))
             ->willReturn(['result' => 'Hello']);
 
-        $page = new Page($transport, $context, 'p1');
+        $page = new Page($transport, $context, 'p1', new PlaywrightConfig());
         $result = $page->evaluate('document.title');
         $this->assertSame('Hello', $result);
     }

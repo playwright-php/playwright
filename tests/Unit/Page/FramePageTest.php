@@ -18,6 +18,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Playwright\Browser\BrowserContextInterface;
+use Playwright\Configuration\PlaywrightConfig;
 use Playwright\Page\Page;
 use Playwright\Page\PageInterface;
 use Playwright\Transport\TransportInterface;
@@ -37,7 +38,7 @@ class FramePageTest extends TestCase
 
     private function createPage(): PageInterface
     {
-        return new Page($this->transport, $this->context, 'page-1');
+        return new Page($this->transport, $this->context, 'page-1', new PlaywrightConfig());
     }
 
     public function testMainFrame(): void

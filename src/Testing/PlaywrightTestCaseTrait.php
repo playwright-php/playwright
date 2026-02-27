@@ -25,6 +25,7 @@ use Playwright\Page\PageInterface;
 use Playwright\PlaywrightClient;
 use Playwright\PlaywrightFactory;
 use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use Symfony\Component\Process\ExecutableFinder;
 
 trait PlaywrightTestCaseTrait
@@ -45,16 +46,22 @@ trait PlaywrightTestCaseTrait
 
     private bool $traceThisTest = false;
 
-    protected function setUpPlaywright(?LoggerInterface $logger = null, ?PlaywrightConfig $customConfig = null): void
+    private static ?string $nodePath = null;
+
+    protected function setUpPlaywright(LoggerInterface $logger = new NullLogger(), ?PlaywrightConfig $customConfig = null): void
     {
         $logger = $this->resolveLogger($logger);
 
-        $node = (new ExecutableFinder())->find('node');
-        if (null === $node) {
-            self::markTestSkipped('Node.js executable not found.');
+        if (null === self::$nodePath) {
+            $node = (new ExecutableFinder())->find('node');
+            if (null === $node) {
+                self::markTestSkipped('Node.js executable not found.');
+            }
+
+            self::$nodePath = $node;
         }
 
-        $config = $this->buildConfig($node, $customConfig);
+        $config = $this->buildConfig(self::$nodePath, $customConfig);
 
         if (null !== $customConfig) {
             $this->usingShared = false;
@@ -121,7 +128,7 @@ trait PlaywrightTestCaseTrait
         return new ExpectDecorator(new Expect($subject), $this);
     }
 
-    private function resolveLogger(?LoggerInterface $logger): ?LoggerInterface
+    private function resolveLogger(LoggerInterface $logger): LoggerInterface
     {
         $loggerUrl = $_SERVER['PLAYWRIGHT_PHP_TEST_LOGGER_URL'] ?? null;
         if (is_string($loggerUrl)) {
@@ -140,7 +147,7 @@ trait PlaywrightTestCaseTrait
         return $custom->withNodePath($node);
     }
 
-    private function initializeShared(PlaywrightConfig $config, ?LoggerInterface $logger): void
+    private function initializeShared(PlaywrightConfig $config, LoggerInterface $logger): void
     {
         if (null === self::$sharedPlaywright) {
             self::$sharedPlaywright = PlaywrightFactory::create($config, $logger);

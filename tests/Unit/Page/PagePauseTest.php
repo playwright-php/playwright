@@ -18,6 +18,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Playwright\Browser\BrowserContextInterface;
+use Playwright\Configuration\PlaywrightConfig;
 use Playwright\Page\Page;
 use Playwright\Transport\TransportInterface;
 
@@ -39,7 +40,7 @@ class PagePauseTest extends TestCase
             }))
             ->willReturn(['success' => true]);
 
-        $page = new Page($transport, $context, 'page_1');
+        $page = new Page($transport, $context, 'page_1', new PlaywrightConfig());
         $page->pause();
         $this->assertTrue(true, 'pause() should dispatch page.pause');
     }

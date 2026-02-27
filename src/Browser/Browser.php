@@ -35,7 +35,7 @@ final class Browser implements BrowserInterface
         private readonly string $browserId,
         private readonly string $defaultContextId,
         private readonly string $version,
-        private readonly ?PlaywrightConfig $config = null,
+        private readonly PlaywrightConfig $config,
     ) {
         $this->defaultContext = new BrowserContext($this->transport, $this->defaultContextId, $this->config);
         $this->contexts[] = $this->defaultContext;

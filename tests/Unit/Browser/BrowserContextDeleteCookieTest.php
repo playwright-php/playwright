@@ -17,6 +17,7 @@ namespace Playwright\Tests\Unit\Browser;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Playwright\Browser\BrowserContext;
+use Playwright\Configuration\PlaywrightConfig;
 use Playwright\Transport\TransportInterface;
 
 #[CoversClass(BrowserContext::class)]
@@ -71,7 +72,7 @@ final class BrowserContextDeleteCookieTest extends TestCase
             return [];
         });
 
-        $context = new BrowserContext($transport, 'ctx');
+        $context = new BrowserContext($transport, 'ctx', new PlaywrightConfig());
         $context->deleteCookie('foo');
 
         $this->assertTrue($calledAdd, 'context.addCookies should be called to expire matching cookies');

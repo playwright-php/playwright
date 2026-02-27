@@ -18,6 +18,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Playwright\API\APIRequestContextInterface;
 use Playwright\Browser\BrowserContextInterface;
+use Playwright\Configuration\PlaywrightConfig;
 use Playwright\Page\Page;
 use Playwright\Transport\TransportInterface;
 
@@ -34,7 +35,7 @@ final class PageRequestTest extends TestCase
             ->method('request')
             ->willReturn($api);
 
-        $page = new Page($transport, $context, 'page-1');
+        $page = new Page($transport, $context, 'page-1', new PlaywrightConfig());
 
         $first = $page->request();
         $second = $page->request();

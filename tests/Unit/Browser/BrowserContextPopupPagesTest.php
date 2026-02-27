@@ -17,6 +17,7 @@ namespace Playwright\Tests\Unit\Browser;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Playwright\Browser\BrowserContext;
+use Playwright\Configuration\PlaywrightConfig;
 use Playwright\Transport\TransportInterface;
 
 #[CoversClass(BrowserContext::class)]
@@ -25,7 +26,7 @@ final class BrowserContextPopupPagesTest extends TestCase
     public function testTracksPopupPagesViaEvents(): void
     {
         $transport = $this->createMock(TransportInterface::class);
-        $context = new BrowserContext($transport, 'ctx1');
+        $context = new BrowserContext($transport, 'ctx1', new PlaywrightConfig());
 
         $this->assertCount(0, $context->pages());
 

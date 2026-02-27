@@ -43,7 +43,7 @@ final class PagePdfTest extends TestCase
             }))
             ->willReturn([]);
 
-        $page = new Page($transport, $context, 'page-unit');
+        $page = new Page($transport, $context, 'page-unit', new PlaywrightConfig());
 
         $result = $page->pdf($expectedPath);
 
@@ -87,7 +87,7 @@ final class PagePdfTest extends TestCase
         $transport = $this->createMock(TransportInterface::class);
         $context = $this->createMock(BrowserContextInterface::class);
 
-        $page = new Page($transport, $context, 'page-unit');
+        $page = new Page($transport, $context, 'page-unit', new PlaywrightConfig());
 
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Do not provide a "path" option when requesting inline PDF content.');

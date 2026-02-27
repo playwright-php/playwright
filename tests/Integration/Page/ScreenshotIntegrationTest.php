@@ -49,7 +49,7 @@ class ScreenshotIntegrationTest extends TestCase
             headless: true
         );
 
-        $this->setUpPlaywright(null, $config);
+        $this->setUpPlaywright(customConfig: $config);
         $this->installRouteServer($this->page, [
             '/index.html' => <<<'HTML'
                 <!DOCTYPE html>

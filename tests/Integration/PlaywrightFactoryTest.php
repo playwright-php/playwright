@@ -50,7 +50,7 @@ class PlaywrightFactoryTest extends TestCase
     public function itCanCreateClientWithCustomLogger(): void
     {
         $logger = new NullLogger();
-        $client = PlaywrightFactory::create(null, $logger);
+        $client = PlaywrightFactory::create(logger: $logger);
 
         $this->assertInstanceOf(PlaywrightClient::class, $client);
     }

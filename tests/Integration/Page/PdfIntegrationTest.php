@@ -40,7 +40,7 @@ final class PdfIntegrationTest extends TestCase
             headless: true
         );
 
-        $this->setUpPlaywright(null, $config);
+        $this->setUpPlaywright(customConfig: $config);
         $this->installRouteServer($this->page, [
             '/invoice.html' => <<<'HTML'
                 <!DOCTYPE html>
