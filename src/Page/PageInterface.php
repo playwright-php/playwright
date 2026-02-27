@@ -135,7 +135,7 @@ interface PageInterface
     /**
      * @param array<string, mixed>|WaitForSelectorOptions $options
      */
-    public function waitForSelector(string $selector, array|WaitForSelectorOptions $options = []): ?LocatorInterface;
+    public function waitForSelector(string $selector, array|WaitForSelectorOptions $options = []): LocatorInterface;
 
     public function close(): void;
 
