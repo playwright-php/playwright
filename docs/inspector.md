@@ -8,7 +8,7 @@ Quick start:
 - Or via environment: `PWDEBUG=1 php your_script.php`
 
 Example:
-- `php docs/examples/example_inspector.php`
+- `php docs/examples/inspector_demo.php`
 
 Notes:
 - Inspector is controlled by the Node server; `PWDEBUG` is forwarded automatically.
