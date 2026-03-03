@@ -84,11 +84,9 @@ class PagePlaywrightApiTest extends TestCase
     {
         return [
             'with only text' => ['input' => ['text' => 'Text without a role'], 'assertions' => ['count' => 1, 'text' => 'Text without a role']],
-            // TODO: fix this test. The method of passing the name to Playwright is too strict by default
-            // 'is case-insensitive by default' => ['input' => ['text' => 'text without a role'], 'assertions' => ['count' => 1, 'text' => 'Text without a role']],
+            'is case-insensitive by default' => ['input' => ['text' => 'text without a role'], 'assertions' => ['count' => 1, 'text' => 'Text without a role']],
             'with exact true' => ['input' => ['text' => 'Text without a role', 'options' => ['exact' => true]], 'assertions' => ['count' => 1, 'text' => 'Text without a role']],
-            // TODO: fix this test. The method of passing the name to Playwright is too strict by default
-            // 'with exact false' => ['input' => ['text' => 'Text without', 'options' => ['exact' => false]], 'assertions' => ['count' => 1, 'text' => 'Text without a role']],
+            'with exact false' => ['input' => ['text' => 'Text without', 'options' => ['exact' => false]], 'assertions' => ['count' => 1, 'text' => 'Text without a role']],
         ];
     }
 
@@ -113,8 +111,10 @@ class PagePlaywrightApiTest extends TestCase
         return [
             'with only role' => ['input' => ['role' => 'img'], 'assertions' => ['count' => 1]],
             'with role and name' => ['input' => ['role' => 'button', 'options' => ['name' => 'Test Button']], 'assertions' => ['count' => 1]],
-            // TODO: fix this test. The method of passing the name to Playwright is too strict by default
-            // 'with name case-insensitive by default' => ['input' => ['role' => 'button', 'options' => ['name' => 'test button']], 'assertions' => ['count' => 1]],
+            'with name case-insensitive by default' => ['input' => ['role' => 'button', 'options' => ['name' => 'test button']], 'assertions' => ['count' => 1]],
+            'with name and exact true matching full name' => ['input' => ['role' => 'button', 'options' => ['name' => 'Test Button', 'exact' => true]], 'assertions' => ['count' => 1]],
+            'with name and exact true not matching partial name' => ['input' => ['role' => 'button', 'options' => ['name' => 'Test', 'exact' => true]], 'assertions' => ['count' => 0]],
+            'with name and exact true not matching wrong case' => ['input' => ['role' => 'button', 'options' => ['name' => 'test button', 'exact' => true]], 'assertions' => ['count' => 0]],
             'with level matching heading' => ['input' => ['role' => 'heading', 'options' => ['level' => 1]], 'assertions' => ['count' => 1]],
             'with level not matching any heading' => ['input' => ['role' => 'heading', 'options' => ['level' => 2]], 'assertions' => ['count' => 0]],
             'with checked true' => ['input' => ['role' => 'checkbox', 'options' => ['checked' => true]], 'assertions' => ['count' => 0]],
@@ -145,11 +145,9 @@ class PagePlaywrightApiTest extends TestCase
     {
         return [
             'with only placeholder' => ['input' => ['placeholder' => 'Username'], 'assertions' => ['count' => 1, 'placeholder' => 'Username']],
-            // TODO: fix this test. The method of passing the name to Playwright is too strict by default
-            // 'is case-insensitive by default' => ['input' => ['placeholder' => 'username'], 'assertions' => ['count' => 1, 'placeholder' => 'Username']],
+            'is case-insensitive by default' => ['input' => ['placeholder' => 'username'], 'assertions' => ['count' => 1, 'placeholder' => 'Username']],
             'with exact true' => ['input' => ['placeholder' => 'Username', 'options' => ['exact' => true]], 'assertions' => ['count' => 1, 'placeholder' => 'Username']],
-            // TODO: fix this test. The method of passing the name to Playwright is too strict by default
-            // 'with exact false' => ['input' => ['text' => 'usern', 'options' => ['exact' => false]], 'assertions' => ['count' => 1, 'placeholder' => 'Username']],
+            'with exact false' => ['input' => ['placeholder' => 'usern', 'options' => ['exact' => false]], 'assertions' => ['count' => 1, 'placeholder' => 'Username']],
         ];
     }
 
@@ -173,11 +171,9 @@ class PagePlaywrightApiTest extends TestCase
     {
         return [
             'with only title' => ['input' => ['title' => 'Span with title'], 'assertions' => ['count' => 1, 'text' => 'Titled span']],
-            // TODO: fix this test. The method of passing the name to Playwright is too strict by default
-            // 'is case-insensitive by default' => ['input' => ['title' => 'span with title'], 'assertions' => ['count' => 1, 'text' => 'Titled span']],
+            'is case-insensitive by default' => ['input' => ['title' => 'span with title'], 'assertions' => ['count' => 1, 'text' => 'Titled span']],
             'with exact true' => ['input' => ['title' => 'Span with title', 'options' => ['exact' => true]], 'assertions' => ['count' => 1, 'text' => 'Titled span']],
-            // TODO: fix this test. The method of passing the name to Playwright is too strict by default
-            // 'with exact false' => ['input' => ['title' => 'span with', 'options' => ['exact' => false]], 'assertions' => ['count' => 1, 'text' => 'Titled span']],
+            'with exact false' => ['input' => ['title' => 'span with', 'options' => ['exact' => false]], 'assertions' => ['count' => 1, 'text' => 'Titled span']],
         ];
     }
 
@@ -210,11 +206,9 @@ class PagePlaywrightApiTest extends TestCase
     {
         return [
             'with only alt text' => ['input' => ['altText' => 'Company Logo'], 'assertions' => ['count' => 1, 'altText' => 'Company Logo']],
-            // TODO: fix this test. The method of passing the name to Playwright is too strict by default
-            // 'is case-insensitive by default' => ['input' => ['altText' => 'company logo'], 'assertions' => ['count' => 1, 'altText' => 'Company Logo']],
+            'is case-insensitive by default' => ['input' => ['altText' => 'company logo'], 'assertions' => ['count' => 1, 'altText' => 'Company Logo']],
             'with exact true' => ['input' => ['altText' => 'Company Logo', 'options' => ['exact' => true]], 'assertions' => ['count' => 1, 'altText' => 'Company Logo']],
-            // TODO: fix this test. The method of passing the name to Playwright is too strict by default
-            // 'with exact false' => ['input' => ['altText' => 'Company', 'options' => ['exact' => false]], 'assertions' => ['count' => 1, 'altText' => 'Company Logo']],
+            'with exact false' => ['input' => ['altText' => 'Company', 'options' => ['exact' => false]], 'assertions' => ['count' => 1, 'altText' => 'Company Logo']],
         ];
     }
 

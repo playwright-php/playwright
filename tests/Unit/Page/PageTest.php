@@ -89,6 +89,86 @@ class PageTest extends TestCase
         $this->assertSame('Loading', $locator->getOptions()['hasNotText']);
     }
 
+    public function testGetByTextBuildsCaseInsensitiveSelector(): void
+    {
+        $locator = $this->page->getByText('Hello World');
+
+        $this->assertInstanceOf(Locator::class, $locator);
+        $this->assertSame('internal:text=/Hello World/i', $locator->getSelector());
+    }
+
+    public function testGetByTextBuildsExactSelector(): void
+    {
+        $locator = $this->page->getByText('Hello World', ['exact' => true]);
+
+        $this->assertInstanceOf(Locator::class, $locator);
+        $this->assertSame('internal:text="Hello World"', $locator->getSelector());
+    }
+
+    public function testGetByPlaceholderBuildsCaseInsensitiveSelector(): void
+    {
+        $locator = $this->page->getByPlaceholder('Username');
+
+        $this->assertInstanceOf(Locator::class, $locator);
+        $this->assertSame('internal:attr=[placeholder=/Username/i]', $locator->getSelector());
+    }
+
+    public function testGetByPlaceholderBuildsExactSelector(): void
+    {
+        $locator = $this->page->getByPlaceholder('Username', ['exact' => true]);
+
+        $this->assertInstanceOf(Locator::class, $locator);
+        $this->assertSame('internal:attr=[placeholder="Username"]', $locator->getSelector());
+    }
+
+    public function testGetByTitleBuildsCaseInsensitiveSelector(): void
+    {
+        $locator = $this->page->getByTitle('Page Title');
+
+        $this->assertInstanceOf(Locator::class, $locator);
+        $this->assertSame('internal:attr=[title=/Page Title/i]', $locator->getSelector());
+    }
+
+    public function testGetByTitleBuildsExactSelector(): void
+    {
+        $locator = $this->page->getByTitle('Page Title', ['exact' => true]);
+
+        $this->assertInstanceOf(Locator::class, $locator);
+        $this->assertSame('internal:attr=[title="Page Title"]', $locator->getSelector());
+    }
+
+    public function testGetByAltTextBuildsCaseInsensitiveSelector(): void
+    {
+        $locator = $this->page->getByAltText('Logo');
+
+        $this->assertInstanceOf(Locator::class, $locator);
+        $this->assertSame('internal:attr=[alt=/Logo/i]', $locator->getSelector());
+    }
+
+    public function testGetByAltTextBuildsExactSelector(): void
+    {
+        $locator = $this->page->getByAltText('Logo', ['exact' => true]);
+
+        $this->assertInstanceOf(Locator::class, $locator);
+        $this->assertSame('internal:attr=[alt="Logo"]', $locator->getSelector());
+    }
+
+    public function testGetByLabelBuildsCaseInsensitiveSelector(): void
+    {
+        $locator = $this->page->getByLabel('Password');
+
+        $this->assertInstanceOf(Locator::class, $locator);
+        $this->assertSame('internal:label=/Password/i', $locator->getSelector());
+    }
+
+    public function testGetByLabelBuildsExactSelector(): void
+    {
+        $locator = $this->page->getByLabel('Password', ['exact' => true]);
+
+        $this->assertInstanceOf(Locator::class, $locator);
+        $this->assertSame('internal:label="Password"', $locator->getSelector());
+    }
+
     public function testGotoSendsCommandAndReturnsResponse(): void
     {
         $url = 'https://example.com';

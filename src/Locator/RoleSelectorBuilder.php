@@ -43,13 +43,9 @@ final class RoleSelectorBuilder
         $normalizedRole = self::normalizeRole($role);
         $selector = 'internal:role='.$normalizedRole;
 
-        $nameFragment = self::buildNameAttribute($options);
+        $nameFragment = self::buildNameAttribute($options, !empty($options['exact']));
         if (null !== $nameFragment) {
             $selector .= $nameFragment;
-        }
-
-        if (!empty($options['exact'])) {
-            $selector .= '[exact]';
         }
 
         $selector .= self::buildBooleanAttribute('checked', $options['checked'] ?? null);
@@ -93,7 +89,7 @@ final class RoleSelectorBuilder
     /**
      * @param array<string, mixed> $options
      */
-    private static function buildNameAttribute(array $options): ?string
+    private static function buildNameAttribute(array $options, bool $exact = false): ?string
     {
         if (array_key_exists('nameRegex', $options)) {
             $regexFragment = self::formatRegexAttribute('name', $options['nameRegex']);
@@ -113,7 +109,7 @@ final class RoleSelectorBuilder
         }
 
         if ($nameOption instanceof \Stringable) {
-            return '[name="'.self::escapeAttributeValue((string) $nameOption).'"]';
+            $nameOption = (string) $nameOption;
         }
 
         if (is_string($nameOption)) {
@@ -122,7 +118,11 @@ final class RoleSelectorBuilder
                 return null;
             }
 
-            return '[name="'.self::escapeAttributeValue($nameOption).'"]';
+            if ($exact) {
+                return '[name="'.self::escapeAttributeValue($nameOption).'"]';
+            }
+
+            return '[name=/'.preg_quote($nameOption, '/').'/i]';
         }
 
         return null;

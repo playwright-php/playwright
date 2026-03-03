@@ -217,7 +217,11 @@ final class Page implements PageInterface, EventDispatcherInterface
      */
     public function getByAltText(string $text, array|LocatorOptions $options = []): LocatorInterface
     {
-        return $this->locator(\sprintf('[alt="%s"]', $text), $this->normalizeLocatorOptions($options));
+        $opts = $this->normalizeLocatorOptions($options);
+        $exact = self::extractExact($opts);
+        $selector = self::buildAttrSelector('alt', $text, $exact);
+
+        return $this->locator($selector, $opts);
     }
 
     /**
@@ -225,7 +229,11 @@ final class Page implements PageInterface, EventDispatcherInterface
      */
     public function getByLabel(string $text, array|LocatorOptions $options = []): LocatorInterface
     {
-        return $this->locator(\sprintf('label:text-is("%s") >> nth=0', $text), $this->normalizeLocatorOptions($options));
+        $opts = $this->normalizeLocatorOptions($options);
+        $exact = self::extractExact($opts);
+        $selector = self::buildLabelSelector($text, $exact);
+
+        return $this->locator($selector, $opts);
     }
 
     /**
@@ -233,7 +241,11 @@ final class Page implements PageInterface, EventDispatcherInterface
      */
     public function getByPlaceholder(string $text, array|LocatorOptions $options = []): LocatorInterface
     {
-        return $this->locator(\sprintf('[placeholder="%s"]', $text), $this->normalizeLocatorOptions($options));
+        $opts = $this->normalizeLocatorOptions($options);
+        $exact = self::extractExact($opts);
+        $selector = self::buildAttrSelector('placeholder', $text, $exact);
+
+        return $this->locator($selector, $opts);
     }
 
     /**
@@ -262,7 +274,11 @@ final class Page implements PageInterface, EventDispatcherInterface
      */
     public function getByText(string $text, array|LocatorOptions $options = []): LocatorInterface
     {
-        return $this->locator(\sprintf('text="%s"', $text), $this->normalizeLocatorOptions($options));
+        $opts = $this->normalizeLocatorOptions($options);
+        $exact = self::extractExact($opts);
+        $selector = self::buildTextSelector($text, $exact);
+
+        return $this->locator($selector, $opts);
     }
 
     /**
@@ -270,7 +286,11 @@ final class Page implements PageInterface, EventDispatcherInterface
      */
     public function getByTitle(string $text, array|LocatorOptions $options = []): LocatorInterface
     {
-        return $this->locator(\sprintf('[title="%s"]', $text), $this->normalizeLocatorOptions($options));
+        $opts = $this->normalizeLocatorOptions($options);
+        $exact = self::extractExact($opts);
+        $selector = self::buildAttrSelector('title', $text, $exact);
+
+        return $this->locator($selector, $opts);
     }
 
     /**
@@ -1076,6 +1096,44 @@ final class Page implements PageInterface, EventDispatcherInterface
         }
 
         return $expression;
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    private static function extractExact(array &$options): bool
+    {
+        $exact = (bool) ($options['exact'] ?? false);
+        unset($options['exact']);
+
+        return $exact;
+    }
+
+    private static function buildTextSelector(string $text, bool $exact): string
+    {
+        if ($exact) {
+            return \sprintf('internal:text="%s"', addcslashes($text, '\\"'));
+        }
+
+        return \sprintf('internal:text=/%s/i', preg_quote($text, '/'));
+    }
+
+    private static function buildAttrSelector(string $attr, string $text, bool $exact): string
+    {
+        if ($exact) {
+            return \sprintf('internal:attr=[%s="%s"]', $attr, addcslashes($text, '\\"'));
+        }
+
+        return \sprintf('internal:attr=[%s=/%s/i]', $attr, preg_quote($text, '/'));
+    }
+
+    private static function buildLabelSelector(string $text, bool $exact): string
+    {
+        if ($exact) {
+            return \sprintf('internal:label="%s"', addcslashes($text, '\\"'));
+        }
+
+        return \sprintf('internal:label=/%s/i', preg_quote($text, '/'));
     }
 
     private static function isFunctionLike(string $s): bool

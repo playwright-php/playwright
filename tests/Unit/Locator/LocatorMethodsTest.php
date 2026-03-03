@@ -436,7 +436,7 @@ final class LocatorMethodsTest extends TestCase
         ]);
 
         $this->assertSame(
-            'Locator(selector=".element >> internal:role=button[name="Submit"][checked][pressed="mixed"][selected=false][include-hidden][level=2]")',
+            'Locator(selector=".element >> internal:role=button[name=/Submit/i][checked][pressed="mixed"][selected=false][include-hidden][level=2]")',
             (string) $result
         );
     }
