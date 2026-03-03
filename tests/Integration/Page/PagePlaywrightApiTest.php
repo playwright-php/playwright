@@ -20,6 +20,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Playwright\Locator\LocatorInterface;
 use Playwright\Page\Page;
+use Playwright\Regex;
 use Playwright\Testing\PlaywrightTestCaseTrait;
 use Playwright\Tests\Support\RouteServerTestTrait;
 
@@ -87,6 +88,7 @@ class PagePlaywrightApiTest extends TestCase
             'is case-insensitive by default' => ['input' => ['text' => 'text without a role'], 'assertions' => ['count' => 1, 'text' => 'Text without a role']],
             'with exact true' => ['input' => ['text' => 'Text without a role', 'options' => ['exact' => true]], 'assertions' => ['count' => 1, 'text' => 'Text without a role']],
             'with exact false' => ['input' => ['text' => 'Text without', 'options' => ['exact' => false]], 'assertions' => ['count' => 1, 'text' => 'Text without a role']],
+            'with regex' => ['input' => ['text' => new Regex('/text without/i')], 'assertions' => ['count' => 1, 'text' => 'Text without a role']],
         ];
     }
 
@@ -124,6 +126,7 @@ class PagePlaywrightApiTest extends TestCase
             'with expanded true' => ['input' => ['role' => 'button', 'options' => ['expanded' => true]], 'assertions' => ['count' => 0]],
             'with pressed true' => ['input' => ['role' => 'button', 'options' => ['pressed' => true]], 'assertions' => ['count' => 0]],
             'with selected true' => ['input' => ['role' => 'option', 'options' => ['selected' => true]], 'assertions' => ['count' => 0]],
+            'with name as regex' => ['input' => ['role' => 'button', 'options' => ['name' => new Regex('/Test/')]], 'assertions' => ['count' => 1]],
         ];
     }
 
@@ -148,6 +151,7 @@ class PagePlaywrightApiTest extends TestCase
             'is case-insensitive by default' => ['input' => ['placeholder' => 'username'], 'assertions' => ['count' => 1, 'placeholder' => 'Username']],
             'with exact true' => ['input' => ['placeholder' => 'Username', 'options' => ['exact' => true]], 'assertions' => ['count' => 1, 'placeholder' => 'Username']],
             'with exact false' => ['input' => ['placeholder' => 'usern', 'options' => ['exact' => false]], 'assertions' => ['count' => 1, 'placeholder' => 'Username']],
+            'with regex' => ['input' => ['placeholder' => new Regex('/user/i')], 'assertions' => ['count' => 1, 'placeholder' => 'Username']],
         ];
     }
 
@@ -174,6 +178,7 @@ class PagePlaywrightApiTest extends TestCase
             'is case-insensitive by default' => ['input' => ['title' => 'span with title'], 'assertions' => ['count' => 1, 'text' => 'Titled span']],
             'with exact true' => ['input' => ['title' => 'Span with title', 'options' => ['exact' => true]], 'assertions' => ['count' => 1, 'text' => 'Titled span']],
             'with exact false' => ['input' => ['title' => 'span with', 'options' => ['exact' => false]], 'assertions' => ['count' => 1, 'text' => 'Titled span']],
+            'with regex' => ['input' => ['title' => new Regex('/span with/i')], 'assertions' => ['count' => 1, 'text' => 'Titled span']],
         ];
     }
 
@@ -209,6 +214,7 @@ class PagePlaywrightApiTest extends TestCase
             'is case-insensitive by default' => ['input' => ['altText' => 'company logo'], 'assertions' => ['count' => 1, 'altText' => 'Company Logo']],
             'with exact true' => ['input' => ['altText' => 'Company Logo', 'options' => ['exact' => true]], 'assertions' => ['count' => 1, 'altText' => 'Company Logo']],
             'with exact false' => ['input' => ['altText' => 'Company', 'options' => ['exact' => false]], 'assertions' => ['count' => 1, 'altText' => 'Company Logo']],
+            'with regex' => ['input' => ['altText' => new Regex('/company/i')], 'assertions' => ['count' => 1, 'altText' => 'Company Logo']],
         ];
     }
 

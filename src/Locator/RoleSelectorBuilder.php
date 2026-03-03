@@ -14,6 +14,8 @@ declare(strict_types=1);
 
 namespace Playwright\Locator;
 
+use Playwright\Regex;
+
 /**
  * Helper for generating Playwright role selectors with accessibility focused options.
  *
@@ -24,7 +26,6 @@ final class RoleSelectorBuilder
     /** @var array<int, string> */
     private const ROLE_SPECIFIC_KEYS = [
         'name',
-        'nameRegex',
         'exact',
         'checked',
         'disabled',
@@ -91,13 +92,6 @@ final class RoleSelectorBuilder
      */
     private static function buildNameAttribute(array $options, bool $exact = false): ?string
     {
-        if (array_key_exists('nameRegex', $options)) {
-            $regexFragment = self::formatRegexAttribute('name', $options['nameRegex']);
-            if (null !== $regexFragment) {
-                return $regexFragment;
-            }
-        }
-
         if (!array_key_exists('name', $options)) {
             return null;
         }
@@ -106,6 +100,10 @@ final class RoleSelectorBuilder
 
         if (is_array($nameOption) && array_key_exists('regex', $nameOption)) {
             return self::formatRegexAttribute('name', $nameOption);
+        }
+
+        if ($nameOption instanceof Regex) {
+            return self::formatRegexAttribute('name', $nameOption->pattern);
         }
 
         if ($nameOption instanceof \Stringable) {

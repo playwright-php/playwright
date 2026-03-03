@@ -40,6 +40,7 @@ use Playwright\Page\Options\WaitForPopupOptions;
 use Playwright\Page\Options\WaitForResponseOptions;
 use Playwright\Page\Options\WaitForSelectorOptions;
 use Playwright\Page\Options\WaitForUrlOptions;
+use Playwright\Regex;
 
 interface PageInterface
 {
@@ -51,17 +52,17 @@ interface PageInterface
     /**
      * @param array<string, mixed>|LocatorOptions $options
      */
-    public function getByAltText(string $text, array|LocatorOptions $options = []): LocatorInterface;
+    public function getByAltText(string|Regex $text, array|LocatorOptions $options = []): LocatorInterface;
 
     /**
      * @param array<string, mixed>|LocatorOptions $options
      */
-    public function getByLabel(string $text, array|LocatorOptions $options = []): LocatorInterface;
+    public function getByLabel(string|Regex $text, array|LocatorOptions $options = []): LocatorInterface;
 
     /**
      * @param array<string, mixed>|LocatorOptions $options
      */
-    public function getByPlaceholder(string $text, array|LocatorOptions $options = []): LocatorInterface;
+    public function getByPlaceholder(string|Regex $text, array|LocatorOptions $options = []): LocatorInterface;
 
     /**
      * @param array<string, mixed>|GetByRoleOptions $options
@@ -76,12 +77,12 @@ interface PageInterface
     /**
      * @param array<string, mixed>|LocatorOptions $options
      */
-    public function getByText(string $text, array|LocatorOptions $options = []): LocatorInterface;
+    public function getByText(string|Regex $text, array|LocatorOptions $options = []): LocatorInterface;
 
     /**
      * @param array<string, mixed>|LocatorOptions $options
      */
-    public function getByTitle(string $text, array|LocatorOptions $options = []): LocatorInterface;
+    public function getByTitle(string|Regex $text, array|LocatorOptions $options = []): LocatorInterface;
 
     /**
      * @param array<string, mixed>|GotoOptions $options

@@ -18,6 +18,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Playwright\Locator\RoleSelectorBuilder;
+use Playwright\Regex;
 
 #[CoversClass(RoleSelectorBuilder::class)]
 final class RoleSelectorBuilderTest extends TestCase
@@ -82,7 +83,7 @@ final class RoleSelectorBuilderTest extends TestCase
     public function itBuildsSelectorWithRegexName(): void
     {
         $selector = RoleSelectorBuilder::buildSelector('link', [
-            'nameRegex' => '/^Docs?/i',
+            'name' => new Regex('/^Docs?/i'),
         ]);
 
         $this->assertSame('internal:role=link[name=/^Docs?/i]', $selector);

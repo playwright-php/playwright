@@ -40,8 +40,8 @@ use Playwright\Input\MouseInterface;
 use Playwright\Locator\Locator;
 use Playwright\Locator\LocatorInterface;
 use Playwright\Locator\Options\GetByRoleOptions;
-use Playwright\Locator\RoleSelectorBuilder;
 use Playwright\Locator\Options\LocatorOptions;
+use Playwright\Locator\RoleSelectorBuilder;
 use Playwright\Network\Request;
 use Playwright\Network\Response;
 use Playwright\Network\ResponseInterface;
@@ -62,6 +62,7 @@ use Playwright\Page\Options\WaitForPopupOptions;
 use Playwright\Page\Options\WaitForResponseOptions;
 use Playwright\Page\Options\WaitForSelectorOptions;
 use Playwright\Page\Options\WaitForUrlOptions;
+use Playwright\Regex;
 use Playwright\Screenshot\ScreenshotHelper;
 use Playwright\Transport\TransportInterface;
 use Psr\Log\LoggerInterface;
@@ -215,7 +216,7 @@ final class Page implements PageInterface, EventDispatcherInterface
     /**
      * @param array<string, mixed>|LocatorOptions $options
      */
-    public function getByAltText(string $text, array|LocatorOptions $options = []): LocatorInterface
+    public function getByAltText(string|Regex $text, array|LocatorOptions $options = []): LocatorInterface
     {
         $opts = $this->normalizeLocatorOptions($options);
         $exact = self::extractExact($opts);
@@ -227,7 +228,7 @@ final class Page implements PageInterface, EventDispatcherInterface
     /**
      * @param array<string, mixed>|LocatorOptions $options
      */
-    public function getByLabel(string $text, array|LocatorOptions $options = []): LocatorInterface
+    public function getByLabel(string|Regex $text, array|LocatorOptions $options = []): LocatorInterface
     {
         $opts = $this->normalizeLocatorOptions($options);
         $exact = self::extractExact($opts);
@@ -239,7 +240,7 @@ final class Page implements PageInterface, EventDispatcherInterface
     /**
      * @param array<string, mixed>|LocatorOptions $options
      */
-    public function getByPlaceholder(string $text, array|LocatorOptions $options = []): LocatorInterface
+    public function getByPlaceholder(string|Regex $text, array|LocatorOptions $options = []): LocatorInterface
     {
         $opts = $this->normalizeLocatorOptions($options);
         $exact = self::extractExact($opts);
@@ -272,7 +273,7 @@ final class Page implements PageInterface, EventDispatcherInterface
     /**
      * @param array<string, mixed>|LocatorOptions $options
      */
-    public function getByText(string $text, array|LocatorOptions $options = []): LocatorInterface
+    public function getByText(string|Regex $text, array|LocatorOptions $options = []): LocatorInterface
     {
         $opts = $this->normalizeLocatorOptions($options);
         $exact = self::extractExact($opts);
@@ -284,7 +285,7 @@ final class Page implements PageInterface, EventDispatcherInterface
     /**
      * @param array<string, mixed>|LocatorOptions $options
      */
-    public function getByTitle(string $text, array|LocatorOptions $options = []): LocatorInterface
+    public function getByTitle(string|Regex $text, array|LocatorOptions $options = []): LocatorInterface
     {
         $opts = $this->normalizeLocatorOptions($options);
         $exact = self::extractExact($opts);
@@ -1109,8 +1110,12 @@ final class Page implements PageInterface, EventDispatcherInterface
         return $exact;
     }
 
-    private static function buildTextSelector(string $text, bool $exact): string
+    private static function buildTextSelector(string|Regex $text, bool $exact): string
     {
+        if ($text instanceof Regex) {
+            return \sprintf('internal:text=%s', $text->pattern);
+        }
+
         if ($exact) {
             return \sprintf('internal:text="%s"', addcslashes($text, '\\"'));
         }
@@ -1118,8 +1123,12 @@ final class Page implements PageInterface, EventDispatcherInterface
         return \sprintf('internal:text=/%s/i', preg_quote($text, '/'));
     }
 
-    private static function buildAttrSelector(string $attr, string $text, bool $exact): string
+    private static function buildAttrSelector(string $attr, string|Regex $text, bool $exact): string
     {
+        if ($text instanceof Regex) {
+            return \sprintf('internal:attr=[%s=%s]', $attr, $text->pattern);
+        }
+
         if ($exact) {
             return \sprintf('internal:attr=[%s="%s"]', $attr, addcslashes($text, '\\"'));
         }
@@ -1127,8 +1136,12 @@ final class Page implements PageInterface, EventDispatcherInterface
         return \sprintf('internal:attr=[%s=/%s/i]', $attr, preg_quote($text, '/'));
     }
 
-    private static function buildLabelSelector(string $text, bool $exact): string
+    private static function buildLabelSelector(string|Regex $text, bool $exact): string
     {
+        if ($text instanceof Regex) {
+            return \sprintf('internal:label=%s', $text->pattern);
+        }
+
         if ($exact) {
             return \sprintf('internal:label="%s"', addcslashes($text, '\\"'));
         }

@@ -18,6 +18,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Playwright\Locator\Options\GetByRoleOptions;
 use Playwright\Locator\Options\LocatorOptions;
+use Playwright\Regex;
 
 #[CoversClass(GetByRoleOptions::class)]
 final class GetByRoleOptionsTest extends TestCase
@@ -123,9 +124,24 @@ final class GetByRoleOptionsTest extends TestCase
         $this->assertSame($options, GetByRoleOptions::from($options));
     }
 
+    public function testFromArrayAcceptsRegexName(): void
+    {
+        $regex = new Regex('/Submit/i');
+        $options = GetByRoleOptions::from(['name' => $regex]);
+        $this->assertSame($regex, $options->name);
+        $this->assertSame($regex, $options->toArray()['name']);
+    }
+
+    public function testCanBeInstantiatedWithRegexName(): void
+    {
+        $regex = new Regex('/Submit/i');
+        $options = new GetByRoleOptions(name: $regex);
+        $this->assertSame($regex, $options->name);
+    }
+
     public function testFromArrayRejectsInvalidName(): void
     {
-        $this->expectExceptionMessage('getByRole option "name" must be stringable.');
+        $this->expectExceptionMessage('getByRole option "name" must be a string or Regex instance.');
         GetByRoleOptions::from(['name' => []]);
     }
 

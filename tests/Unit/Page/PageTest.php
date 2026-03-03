@@ -24,6 +24,7 @@ use Playwright\Locator\Options\GetByRoleOptions;
 use Playwright\Locator\Options\LocatorOptions;
 use Playwright\Page\Page;
 use Playwright\Page\PageEventHandlerInterface;
+use Playwright\Regex;
 use Playwright\Transport\TransportInterface;
 
 #[CoversClass(Page::class)]
@@ -167,6 +168,62 @@ class PageTest extends TestCase
 
         $this->assertInstanceOf(Locator::class, $locator);
         $this->assertSame('internal:label="Password"', $locator->getSelector());
+    }
+
+    public function testGetByTextWithRegex(): void
+    {
+        $locator = $this->page->getByText(new Regex('/hello/i'));
+
+        $this->assertInstanceOf(Locator::class, $locator);
+        $this->assertSame('internal:text=/hello/i', $locator->getSelector());
+    }
+
+    public function testGetByTextWithRegexIgnoresExact(): void
+    {
+        $locator = $this->page->getByText(new Regex('/hello/'), ['exact' => true]);
+
+        $this->assertInstanceOf(Locator::class, $locator);
+        $this->assertSame('internal:text=/hello/', $locator->getSelector());
+    }
+
+    public function testGetByPlaceholderWithRegex(): void
+    {
+        $locator = $this->page->getByPlaceholder(new Regex('/user/i'));
+
+        $this->assertInstanceOf(Locator::class, $locator);
+        $this->assertSame('internal:attr=[placeholder=/user/i]', $locator->getSelector());
+    }
+
+    public function testGetByTitleWithRegex(): void
+    {
+        $locator = $this->page->getByTitle(new Regex('/title/i'));
+
+        $this->assertInstanceOf(Locator::class, $locator);
+        $this->assertSame('internal:attr=[title=/title/i]', $locator->getSelector());
+    }
+
+    public function testGetByAltTextWithRegex(): void
+    {
+        $locator = $this->page->getByAltText(new Regex('/logo/i'));
+
+        $this->assertInstanceOf(Locator::class, $locator);
+        $this->assertSame('internal:attr=[alt=/logo/i]', $locator->getSelector());
+    }
+
+    public function testGetByLabelWithRegex(): void
+    {
+        $locator = $this->page->getByLabel(new Regex('/pass/i'));
+
+        $this->assertInstanceOf(Locator::class, $locator);
+        $this->assertSame('internal:label=/pass/i', $locator->getSelector());
+    }
+
+    public function testGetByRoleWithRegexName(): void
+    {
+        $locator = $this->page->getByRole('button', ['name' => new Regex('/Submit/i')]);
+
+        $this->assertInstanceOf(Locator::class, $locator);
+        $this->assertSame('internal:role=button[name=/Submit/i]', $locator->getSelector());
     }
 
     public function testGotoSendsCommandAndReturnsResponse(): void

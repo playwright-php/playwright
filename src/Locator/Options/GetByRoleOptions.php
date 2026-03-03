@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace Playwright\Locator\Options;
 
 use Playwright\Exception\RuntimeException;
+use Playwright\Regex;
 
 /**
  * @phpstan-type GetByRoleOptionsArray array{
@@ -23,7 +24,7 @@ use Playwright\Exception\RuntimeException;
  *     expanded?: bool,
  *     includeHidden?: bool,
  *     level?: int,
- *     name?: string,
+ *     name?: string|Regex,
  *     pressed?: bool,
  *     selected?: bool
  * }
@@ -39,7 +40,7 @@ final readonly class GetByRoleOptions
         public ?bool $expanded = null,
         public ?bool $includeHidden = null,
         public ?int $level = null,
-        public ?string $name = null,
+        public string|Regex|null $name = null,
         public bool|string|null $pressed = null,
         public ?bool $selected = null,
         public LocatorOptions $locatorOptions = new LocatorOptions(),
@@ -165,7 +166,7 @@ final readonly class GetByRoleOptions
     /**
      * @param array<string, mixed> $options
      */
-    private static function extractName(array $options): ?string
+    private static function extractName(array $options): string|Regex|null
     {
         if (!array_key_exists('name', $options)) {
             return null;
@@ -176,11 +177,15 @@ final readonly class GetByRoleOptions
             return null;
         }
 
+        if ($value instanceof Regex) {
+            return $value;
+        }
+
         if (is_scalar($value) || $value instanceof \Stringable) {
             return (string) $value;
         }
 
-        throw new RuntimeException('getByRole option "name" must be stringable.');
+        throw new RuntimeException('getByRole option "name" must be a string or Regex instance.');
     }
 
     /**

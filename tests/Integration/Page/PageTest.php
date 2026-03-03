@@ -17,7 +17,6 @@ namespace Playwright\Tests\Integration\Page;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use Playwright\Locator\LocatorInterface;
 use Playwright\Network\ResponseInterface;
 use Playwright\Page\Page;
 use Playwright\Testing\PlaywrightTestCaseTrait;
