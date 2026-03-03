@@ -165,4 +165,91 @@ class PageTest extends TestCase
 
         $this->assertStringContainsString('/page2.html', $this->page->url());
     }
+
+    #[Test]
+    public function itWaitsForFunction(): void
+    {
+        $this->page->setViewportSize(500, 500);
+
+        $this->page->waitForFunction(
+            'window.innerWidth < 600',
+            null,
+            ['timeout' => 100, 'polling' => 50]
+        );
+
+        $this->assertSame(['width' => 500, 'height' => 500], $this->page->viewportSize());
+    }
+
+    #[Test]
+    public function itWaitsForFunctionSetTimeout(): void
+    {
+        $this->page->setContent('<div id="status">loading</div>');
+        $this->page->evaluate('() => setTimeout(() => { document.getElementById("status").textContent = "ready"; }, 200)');
+
+        $this->page->waitForFunction(
+            'document.querySelector("#status").textContent === "ready"',
+            null,
+            ['timeout' => 300, 'polling' => 50]
+        );
+
+        $this->assertSame('ready', $this->page->evaluate('() => document.querySelector("#status").textContent'));
+    }
+
+    #[Test]
+    public function itWaitsForFunctionWithRafPolling(): void
+    {
+        $this->page->setContent('<div id="x">0</div><script>requestAnimationFrame(() => { document.getElementById("x").textContent = "1"; });</script>');
+
+        $this->page->waitForFunction(
+            '() => document.querySelector("#x") && document.querySelector("#x").textContent === "1"',
+            null,
+            ['timeout' => 500, 'polling' => 'raf']
+        );
+
+        $this->assertSame('1', $this->page->evaluate('() => document.querySelector("#x").textContent'));
+    }
+
+    #[Test]
+    public function itWaitsForFunctionWithArgument(): void
+    {
+        $this->page->setContent('<div id="status">loading</div>');
+        $this->page->evaluate('() => setTimeout(() => { document.getElementById("status").textContent = "ready"; }, 100)');
+
+        $this->page->waitForFunction(
+            'arg => {
+                const el = document.getElementById(arg.selector);
+                return !!el && el.textContent === arg.text;
+            }',
+            ['selector' => 'status', 'text' => 'ready'],
+            ['timeout' => 300, 'polling' => 50]
+        );
+
+        $this->assertSame('ready', $this->page->evaluate('() => document.querySelector("#status").textContent'));
+    }
+
+    #[Test]
+    public function itThrowsExceptionOnWaitForFunctionTimeout(): void
+    {
+        $this->expectException(\Playwright\Exception\TimeoutException::class);
+        $this->expectExceptionMessage('page.waitForFunction: Timeout 100ms exceeded.');
+
+        $this->page->waitForFunction(
+            '() => false',
+            null,
+            ['timeout' => 100]
+        );
+    }
+
+    #[Test]
+    public function itThrowsExceptionOnInvalidWaitForFunctionPolling(): void
+    {
+        $this->expectException(\Playwright\Exception\PlaywrightException::class);
+        $this->expectExceptionMessage('Unknown polling option: invalid');
+
+        $this->page->waitForFunction(
+            '() => true',
+            null,
+            ['polling' => 'invalid']
+        );
+    }
 }

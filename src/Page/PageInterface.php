@@ -35,6 +35,7 @@ use Playwright\Page\Options\SetContentOptions;
 use Playwright\Page\Options\SetInputFilesOptions;
 use Playwright\Page\Options\StyleTagOptions;
 use Playwright\Page\Options\TypeOptions;
+use Playwright\Page\Options\WaitForFunctionOptions;
 use Playwright\Page\Options\WaitForLoadStateOptions;
 use Playwright\Page\Options\WaitForPopupOptions;
 use Playwright\Page\Options\WaitForResponseOptions;
@@ -193,6 +194,11 @@ interface PageInterface
      * @param array<string, mixed>|WaitForLoadStateOptions $options
      */
     public function waitForLoadState(string $state = 'load', array|WaitForLoadStateOptions $options = []): self;
+
+    /**
+     * @param array<string, mixed>|WaitForFunctionOptions $options
+     */
+    public function waitForFunction(string $pageFunction, mixed $arg = null, array|WaitForFunctionOptions $options = []): self;
 
     /**
      * @param string|callable                        $url

@@ -12,7 +12,7 @@ class ContextHandler extends BaseHandler {
       setOffline: () => context.setOffline(!!command.offline),
       setGeolocation: () => context.setGeolocation(command.geolocation),
       addCookies: () => context.addCookies(command.cookies),
-      clearCookies: () => context.clearCookies(),
+      clearCookies: () => context.clearCookies(command.options || {}),
       grantPermissions: () => context.grantPermissions(command.permissions, command.origin ? { origin: command.origin } : undefined),
       clearPermissions: () => context.clearPermissions(),
       startTracing: () => context.tracing.start(command.options || {}),
@@ -222,6 +222,7 @@ class PageHandler extends BaseHandler {
       viewportSize: () => this.createValueResult(page.viewportSize()),
       waitForURL: () => page.waitForURL(command.url, command.options),
       waitForSelector: () => page.waitForSelector(command.selector, command.options),
+      waitForFunction: () => this.waitForFunction(page, command),
       screenshot: () => PromiseUtils.wrapBinary(page.screenshot(command.options)),
       pdf: () => PromiseUtils.wrapBinary(page.pdf(command.options || {})),
       evaluateHandle: () => this.evaluateHandle(page, command),
@@ -268,6 +269,22 @@ class PageHandler extends BaseHandler {
       return { result: value };
     } catch (error) {
       logger.error('PAGE EVALUATE ERROR', { message: error.message });
+      throw error;
+    }
+  }
+
+  async waitForFunction(page, command) {
+    try {
+      let func;
+      try {
+        func = eval(`(${command.pageFunction})`);
+      } catch (e) {
+        func = command.pageFunction;
+      }
+
+      await page.waitForFunction(func, command.arg, command.options);
+    } catch (error) {
+      logger.error('PAGE WAITFORFUNCTION ERROR', { message: error.message });
       throw error;
     }
   }
