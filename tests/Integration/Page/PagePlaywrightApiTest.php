@@ -136,13 +136,32 @@ class PagePlaywrightApiTest extends TestCase
         $this->assertSame($assertions['count'], $locator->count());
     }
 
-    #[Test]
-    public function itCanGetByPlaceholder(): void
+    /**
+     * @see Playwright API for getByPlaceholder: https://playwright.dev/docs/api/class-locator#locator-get-by-placeholder
+     *
+     * @return array<string, array{input: array{placeholder: string, options?: array<string, mixed>}, assertions: array{count:int, placeholder:string}}>
+     */
+    public static function getByPlaceholderDataProvider(): array
     {
-        $locator = $this->page->getByPlaceholder('Username');
+        return [
+            'with only placeholder' => ['input' => ['placeholder' => 'Username'], 'assertions' => ['count' => 1, 'placeholder' => 'Username']],
+            // TODO: fix this test. The method of passing the name to Playwright is too strict by default
+            // 'is case-insensitive by default' => ['input' => ['placeholder' => 'username'], 'assertions' => ['count' => 1, 'placeholder' => 'Username']],
+            'with exact true' => ['input' => ['placeholder' => 'Username', 'options' => ['exact' => true]], 'assertions' => ['count' => 1, 'placeholder' => 'Username']],
+            // TODO: fix this test. The method of passing the name to Playwright is too strict by default
+            // 'with exact false' => ['input' => ['text' => 'usern', 'options' => ['exact' => false]], 'assertions' => ['count' => 1, 'placeholder' => 'Username']],
+        ];
+    }
+
+    #[DataProvider('getByPlaceholderDataProvider')]
+    #[Test]
+    public function itCanGetByPlaceholder(mixed $input, mixed $assertions): void
+    {
+        $locator = $this->page->getByPlaceholder($input['placeholder'], $input['options'] ?? []);
         $this->assertInstanceOf(LocatorInterface::class, $locator);
         $placeholder = $locator->getAttribute('placeholder');
-        $this->assertSame('Username', $placeholder);
+        $this->assertSame($assertions['count'], $locator->count());
+        $this->assertSame($assertions['placeholder'], $placeholder);
     }
 
     #[Test]
