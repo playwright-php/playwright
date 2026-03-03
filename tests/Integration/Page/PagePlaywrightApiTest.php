@@ -164,13 +164,32 @@ class PagePlaywrightApiTest extends TestCase
         $this->assertSame($assertions['placeholder'], $placeholder);
     }
 
-    #[Test]
-    public function itCanGetByTitle(): void
+    /**
+     * @see Playwright API for getByTitle: https://playwright.dev/docs/api/class-locator#locator-get-by-title
+     *
+     * @return array<string, array{input: array{title: string, options?: array<string, mixed>}, assertions: array{count:int, text:string}}>
+     */
+    public static function getByTitleDataProvider(): array
     {
-        $locator = $this->page->getByTitle('Span with title');
+        return [
+            'with only title' => ['input' => ['title' => 'Span with title'], 'assertions' => ['count' => 1, 'text' => 'Titled span']],
+            // TODO: fix this test. The method of passing the name to Playwright is too strict by default
+            // 'is case-insensitive by default' => ['input' => ['title' => 'span with title'], 'assertions' => ['count' => 1, 'text' => 'Titled span']],
+            'with exact true' => ['input' => ['title' => 'Span with title', 'options' => ['exact' => true]], 'assertions' => ['count' => 1, 'text' => 'Titled span']],
+            // TODO: fix this test. The method of passing the name to Playwright is too strict by default
+            // 'with exact false' => ['input' => ['title' => 'span with', 'options' => ['exact' => false]], 'assertions' => ['count' => 1, 'text' => 'Titled span']],
+        ];
+    }
+
+    #[DataProvider('getByTitleDataProvider')]
+    #[Test]
+    public function itCanGetByTitle(mixed $input, mixed $assertions): void
+    {
+        $locator = $this->page->getByTitle($input['title'], $input['options'] ?? []);
         $this->assertInstanceOf(LocatorInterface::class, $locator);
         $text = $locator->textContent();
-        $this->assertSame('Titled span', $text);
+        $this->assertSame($assertions['count'], $locator->count());
+        $this->assertSame($assertions['text'], $text);
     }
 
     #[Test]
