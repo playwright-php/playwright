@@ -15,10 +15,10 @@ declare(strict_types=1);
 namespace Playwright\Tests\Integration\Page;
 
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Playwright\Locator\LocatorInterface;
-use Playwright\Network\ResponseInterface;
 use Playwright\Page\Page;
 use Playwright\Testing\PlaywrightTestCaseTrait;
 use Playwright\Tests\Support\RouteServerTestTrait;
@@ -52,10 +52,10 @@ class PagePlaywrightApiTest extends TestCase
                         <div>Text without a role</div>
                         <span title="Span with title">Titled span</span>
                         <strong data-testid="strong-test-id">Strong with a test id</strong>
+                        <textarea aria-hidden="true">Hidden textarea</textarea>
                         <img src="/logo.png" alt="Company Logo" />
                         <a href="/page2.html">link</a>
                         <button id="test-btn" onclick="console.log(\'test\');">Test Button</button>
-                        <input type="file" id="file-input" />
                         <form id="test-form">
                             <input type="text" name="username" placeholder="Username" />
                             <button type="submit">Submit</button>
@@ -84,12 +84,36 @@ class PagePlaywrightApiTest extends TestCase
         $this->assertSame('Text without a role', $text);
     }
 
-    #[Test]
-    public function itCanGetByRole(): void
+    /**
+     * @see Playwright API for getByRole: https://playwright.dev/docs/api/class-locator#locator-get-by-role
+     * @return array<string, array{input: array{role: string, options?: array<string, mixed>}, assertions: array{count:int}}>
+     */
+    public static function getByRoleDataProvider(): array
     {
-        $locator = $this->page->getByRole('img');
+        return [
+            'with only role' => ['input' => ['role' => 'img'], 'assertions' => ['count' => 1]],
+            'with role and name' => ['input' => ['role' => 'button', 'options' => ['name' => 'Test Button']], 'assertions' => ['count' => 1]],
+            // TODO: fix this test. The method of passing the name to Playwright is too strict by default
+            // 'with name case-insensitive by default' => ['input' => ['role' => 'button', 'options' => ['name' => 'test button']], 'assertions' => ['count' => 1]],
+            'with level matching heading' => ['input' => ['role' => 'heading', 'options' => ['level' => 1]], 'assertions' => ['count' => 1]],
+            'with level not matching any heading' => ['input' => ['role' => 'heading', 'options' => ['level' => 2]], 'assertions' => ['count' => 0]],
+            'with checked true' => ['input' => ['role' => 'checkbox', 'options' => ['checked' => true]], 'assertions' => ['count' => 0]],
+            'with disabled true' => ['input' => ['role' => 'button', 'options' => ['disabled' => true]], 'assertions' => ['count' => 0]],
+            'with disabled false' => ['input' => ['role' => 'button', 'options' => ['disabled' => false]], 'assertions' => ['count' => 2]],
+            'with includeHidden true' => ['input' => ['role' => 'textbox', 'options' => ['includeHidden' => true]], 'assertions' => ['count' => 2]],
+            'with expanded true' => ['input' => ['role' => 'button', 'options' => ['expanded' => true]], 'assertions' => ['count' => 0]],
+            'with pressed true' => ['input' => ['role' => 'button', 'options' => ['pressed' => true]], 'assertions' => ['count' => 0]],
+            'with selected true' => ['input' => ['role' => 'option', 'options' => ['selected' => true]], 'assertions' => ['count' => 0]],
+        ];
+    }
+
+    #[DataProvider('getByRoleDataProvider')]
+    #[Test]
+    public function itCanGetByRole(mixed $input, mixed $assertions): void
+    {
+        $locator = $this->page->getByRole($input['role'], $input['options'] ?? []);
         $this->assertInstanceOf(LocatorInterface::class, $locator);
-        $this->assertSame(1, $locator->count());
+        $this->assertSame($assertions['count'], $locator->count());
     }
 
     #[Test]

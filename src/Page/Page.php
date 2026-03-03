@@ -40,6 +40,7 @@ use Playwright\Input\MouseInterface;
 use Playwright\Locator\Locator;
 use Playwright\Locator\LocatorInterface;
 use Playwright\Locator\Options\GetByRoleOptions;
+use Playwright\Locator\RoleSelectorBuilder;
 use Playwright\Locator\Options\LocatorOptions;
 use Playwright\Network\Request;
 use Playwright\Network\Response;
@@ -240,7 +241,12 @@ final class Page implements PageInterface, EventDispatcherInterface
      */
     public function getByRole(string $role, array|GetByRoleOptions $options = []): LocatorInterface
     {
-        return $this->locator($role, $this->normalizeGetByRoleOptions($options));
+        $options = GetByRoleOptions::from($options);
+        $optionsArray = $options->toArray();
+        $selector = RoleSelectorBuilder::buildSelector($role, $optionsArray);
+        $locatorOptions = RoleSelectorBuilder::filterLocatorOptions($optionsArray);
+
+        return $this->locator($selector, $locatorOptions);
     }
 
     /**
@@ -587,16 +593,6 @@ final class Page implements PageInterface, EventDispatcherInterface
     private function normalizeLocatorOptions(array|LocatorOptions $options): array
     {
         return LocatorOptions::from($options)->toArray();
-    }
-
-    /**
-     * @param array<string, mixed>|GetByRoleOptions $options
-     *
-     * @return array<string, mixed>
-     */
-    private function normalizeGetByRoleOptions(array|GetByRoleOptions $options): array
-    {
-        return GetByRoleOptions::from($options)->toArray();
     }
 
     /**

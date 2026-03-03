@@ -85,10 +85,8 @@ class PageTest extends TestCase
         $locator = $this->page->getByRole('button', $options);
 
         $this->assertInstanceOf(Locator::class, $locator);
-        $result = $locator->getOptions();
-
-        $this->assertTrue($result['checked']);
-        $this->assertSame('Loading', $result['hasNotText']);
+        $this->assertSame('internal:role=button[checked]', $locator->getSelector());
+        $this->assertSame('Loading', $locator->getOptions()['hasNotText']);
     }
 
     public function testGotoSendsCommandAndReturnsResponse(): void
