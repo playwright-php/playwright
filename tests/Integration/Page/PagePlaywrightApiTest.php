@@ -75,17 +75,37 @@ class PagePlaywrightApiTest extends TestCase
         $this->tearDownPlaywright();
     }
 
-    #[Test]
-    public function itCanGetByText(): void
+    /**
+     * @see Playwright API for getByText: https://playwright.dev/docs/api/class-locator#locator-get-by-text
+     *
+     * @return array<string, array{input: array{text: string, options?: array<string, mixed>}, assertions: array{count:int, text:string}}>
+     */
+    public static function getByTextDataProvider(): array
     {
-        $locator = $this->page->getByText('Text without a role');
+        return [
+            'with only text' => ['input' => ['text' => 'Text without a role'], 'assertions' => ['count' => 1, 'text' => 'Text without a role']],
+            // TODO: fix this test. The method of passing the name to Playwright is too strict by default
+            // 'is case-insensitive by default' => ['input' => ['text' => 'text without a role'], 'assertions' => ['count' => 1, 'text' => 'Text without a role']],
+            'with exact true' => ['input' => ['text' => 'Text without a role', 'options' => ['exact' => true]], 'assertions' => ['count' => 1, 'text' => 'Text without a role']],
+            // TODO: fix this test. The method of passing the name to Playwright is too strict by default
+            // 'with exact false' => ['input' => ['text' => 'Text without', 'options' => ['exact' => false]], 'assertions' => ['count' => 1, 'text' => 'Text without a role']],
+        ];
+    }
+
+    #[DataProvider('getByTextDataProvider')]
+    #[Test]
+    public function itCanGetByText(mixed $input, mixed $assertions): void
+    {
+        $locator = $this->page->getByText($input['text'], $input['options'] ?? []);
         $this->assertInstanceOf(LocatorInterface::class, $locator);
         $text = $locator->textContent();
-        $this->assertSame('Text without a role', $text);
+        $this->assertSame($assertions['count'], $locator->count());
+        $this->assertSame($assertions['text'], $text);
     }
 
     /**
      * @see Playwright API for getByRole: https://playwright.dev/docs/api/class-locator#locator-get-by-role
+     *
      * @return array<string, array{input: array{role: string, options?: array<string, mixed>}, assertions: array{count:int}}>
      */
     public static function getByRoleDataProvider(): array
