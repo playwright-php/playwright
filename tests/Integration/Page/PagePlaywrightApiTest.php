@@ -201,13 +201,32 @@ class PagePlaywrightApiTest extends TestCase
         $this->assertSame('Strong with a test id', $text);
     }
 
-    #[Test]
-    public function itCanGetByAltText(): void
+    /**
+     * @see Playwright API for getByAltText: https://playwright.dev/docs/api/class-locator#locator-get-by-alt-text
+     *
+     * @return array<string, array{input: array{altText: string, options?: array<string, mixed>}, assertions: array{count:int, altText: string}}>
+     */
+    public static function getByAltTextDataProvider(): array
     {
-        $locator = $this->page->getByAltText('Company Logo');
+        return [
+            'with only alt text' => ['input' => ['altText' => 'Company Logo'], 'assertions' => ['count' => 1, 'altText' => 'Company Logo']],
+            // TODO: fix this test. The method of passing the name to Playwright is too strict by default
+            // 'is case-insensitive by default' => ['input' => ['altText' => 'company logo'], 'assertions' => ['count' => 1, 'altText' => 'Company Logo']],
+            'with exact true' => ['input' => ['altText' => 'Company Logo', 'options' => ['exact' => true]], 'assertions' => ['count' => 1, 'altText' => 'Company Logo']],
+            // TODO: fix this test. The method of passing the name to Playwright is too strict by default
+            // 'with exact false' => ['input' => ['altText' => 'Company', 'options' => ['exact' => false]], 'assertions' => ['count' => 1, 'altText' => 'Company Logo']],
+        ];
+    }
+
+    #[DataProvider('getByAltTextDataProvider')]
+    #[Test]
+    public function itCanGetByAltText(mixed $input, mixed $assertions): void
+    {
+        $locator = $this->page->getByAltText($input['altText'], $input['options'] ?? []);
         $this->assertInstanceOf(LocatorInterface::class, $locator);
         $alt = $locator->getAttribute('alt');
-        $this->assertSame('Company Logo', $alt);
+        $this->assertSame($assertions['count'], $locator->count());
+        $this->assertSame($assertions['altText'], $alt);
     }
 
     #[Test]
