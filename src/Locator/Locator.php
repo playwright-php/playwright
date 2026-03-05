@@ -657,6 +657,7 @@ final class Locator implements \Stringable, LocatorInterface
                     return;
                 }
             } catch (PlaywrightException $e) {
+                $this->logger->error($e->getMessage());
             }
 
             usleep(100000);
