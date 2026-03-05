@@ -33,6 +33,7 @@ use Playwright\Locator\Options\SetCheckedOptions;
 use Playwright\Locator\Options\TapOptions;
 use Playwright\Page\PageInterface;
 use Playwright\Transport\TransportInterface;
+use Psr\Log\LoggerInterface;
 
 #[CoversClass(Locator::class)]
 final class LocatorTest extends TestCase
@@ -808,6 +809,35 @@ final class LocatorTest extends TestCase
         $this->expectExceptionMessage('Element not visible (timeout: 1000ms)');
 
         $locator->waitForVisible(['timeout' => 1000]);
+    }
+
+    public function testWaitForConditionLogsAndRethrowsPlaywrightException(): void
+    {
+        $exception = new PlaywrightException('Transport failed');
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->willThrowException($exception);
+
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger
+            ->expects($this->once())
+            ->method('error')
+            ->with('Failed condition', $this->callback(static function (array $context) use ($exception): bool {
+                return '.element' === $context['selector']
+                    && is_callable($context['condition'])
+                    && 'Transport failed' === $context['error']
+                    && $exception === $context['exception'];
+            }));
+
+        $locator = new Locator($this->transport, 'page1', '.element', logger: $logger);
+
+        try {
+            $locator->waitForVisible();
+            $this->fail('Expected waitForVisible() to rethrow the Playwright exception.');
+        } catch (PlaywrightException $actual) {
+            $this->assertSame($exception, $actual);
+        }
     }
 
     public function testWaitForTextContains(): void

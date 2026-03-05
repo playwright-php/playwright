@@ -854,6 +854,13 @@ final class Locator implements \Stringable, LocatorInterface
                     return;
                 }
             } catch (PlaywrightException $e) {
+                $this->logger->error('Failed condition', [
+                    'selector' => (string) $this->selectorChain,
+                    'condition' => $condition,
+                    'error' => $e->getMessage(),
+                    'exception' => $e,
+                ]);
+                throw $e;
             }
 
             usleep(100000);
