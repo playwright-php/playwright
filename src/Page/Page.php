@@ -100,6 +100,8 @@ final class Page implements PageInterface, EventDispatcherInterface
 
     private PageEventHandlerInterface $eventHandler;
 
+    private LoggerInterface $logger;
+
     private ?APIRequestContextInterface $apiRequestContext = null;
 
     private bool $isClosed = false;
@@ -119,8 +121,10 @@ final class Page implements PageInterface, EventDispatcherInterface
         private readonly BrowserContextInterface $context,
         private readonly string $pageId,
         private readonly PlaywrightConfig $config,
-        private readonly LoggerInterface $logger = new NullLogger(),
+        ?LoggerInterface $logger = null,
     ) {
+        $this->logger = $logger ?? $config->logger ?? new NullLogger();
+
         $this->keyboard = new Keyboard($this->transport, $this->pageId);
         $this->mouse = new Mouse($this->transport, $this->pageId);
         $this->touchscreen = new Touchscreen($this->transport, $this->pageId);
@@ -258,7 +262,7 @@ final class Page implements PageInterface, EventDispatcherInterface
             $this->pageId,
             $selector,
             null,
-            null,
+            $this->logger,
             $this->normalizeLocatorOptions($options),
             $this,
         );
