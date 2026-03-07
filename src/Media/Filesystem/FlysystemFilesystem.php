@@ -15,8 +15,8 @@ declare(strict_types=1);
 namespace Playwright\Media\Filesystem;
 
 use League\Flysystem\Filesystem;
+use League\Flysystem\FilesystemAdapter;
 use League\Flysystem\FilesystemException;
-use League\Flysystem\Local\LocalFilesystemAdapter;
 use League\Flysystem\UnableToWriteFile;
 use Playwright\Exception\RuntimeException;
 
@@ -24,9 +24,9 @@ final readonly class FlysystemFilesystem implements FilesystemInterface
 {
     private Filesystem $filesystem;
 
-    public function __construct(string $directory)
+    public function __construct(FilesystemAdapter $adapter)
     {
-        $this->filesystem = new Filesystem(new LocalFilesystemAdapter($directory));
+        $this->filesystem = new Filesystem($adapter);
     }
 
     public function write(string $path, string $content): string
