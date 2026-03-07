@@ -31,6 +31,7 @@
     ],
     "require": {
         "php": "^8.2",
+        "league/flysystem": "^3.0",
         "psr/clock": "^1.0",
         "psr/log": "^3.0",
         "symfony/console": "^6.4 || ^7.3 || ^8.0",

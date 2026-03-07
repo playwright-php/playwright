@@ -41,7 +41,7 @@ use Playwright\Locator\LocatorInterface;
 use Playwright\Locator\Options\GetByRoleOptions;
 use Playwright\Locator\Options\LocatorOptions;
 use Playwright\Locator\RoleSelectorBuilder;
-use Playwright\Media\Filesystem\LocalFilesystemFilesystem;
+use Playwright\Media\Filesystem\LocalFilesystem;
 use Playwright\Media\Pdf\Pdf;
 use Playwright\Media\Screenshot\Screenshot;
 use Playwright\Media\Screenshot\ScreenshotHelper;
@@ -117,7 +117,7 @@ final class Page implements PageInterface, EventDispatcherInterface
             $this->transport->addEventDispatcher($this->pageId, $this);
         }
 
-        $filesystem = new LocalFilesystemFilesystem($this->config->getScreenshotDirectory());
+        $filesystem = new LocalFilesystem($this->config->getScreenshotDirectory());
 
         $this->screenshot = $screenshot ?: new Screenshot($this->transport, $filesystem, $this->logger);
         $this->pdf = $pdf ?: new Pdf($this->transport, $filesystem, $this->logger);

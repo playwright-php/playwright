@@ -16,7 +16,7 @@ namespace Playwright\Media\Filesystem;
 
 use Playwright\Exception\RuntimeException;
 
-final readonly class LocalFilesystemFilesystem implements FilesystemInterface
+final readonly class LocalFilesystem implements FilesystemInterface
 {
     public function __construct(private string $directory)
     {
