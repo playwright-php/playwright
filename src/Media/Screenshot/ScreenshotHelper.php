@@ -12,7 +12,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace Playwright\Screenshot;
+namespace Playwright\Media\Screenshot;
 
 use Playwright\Exception\RuntimeException;
 
@@ -39,8 +39,6 @@ final class ScreenshotHelper
         $safeExtension = ltrim($extension, '.');
 
         $filename = sprintf('%s_%s_%s.%s', $datetime, $milliseconds, $urlSlug, $safeExtension ?: 'png');
-
-        self::ensureDirectoryExists($directory);
 
         return $directory.DIRECTORY_SEPARATOR.$filename;
     }

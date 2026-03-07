@@ -293,25 +293,6 @@ class PageTest extends TestCase
         $this->page->type($selector, $text, $options);
     }
 
-    public function testScreenshotSendsCommandAndReturnsPath(): void
-    {
-        $path = 'screenshot.png';
-        $options = ['fullPage' => true];
-
-        $this->transport->expects($this->once())
-            ->method('send')
-            ->with([
-                'options' => ['fullPage' => true, 'path' => $path],
-                'action' => 'page.screenshot',
-                'pageId' => 'page-id',
-            ])
-            ->willReturn([]);
-
-        $result = $this->page->screenshot($path, $options);
-
-        $this->assertSame($path, $result);
-    }
-
     public function testTitleSendsCommandAndReturnsString(): void
     {
         $title = 'Page Title';

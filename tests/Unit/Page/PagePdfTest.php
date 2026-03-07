@@ -18,7 +18,6 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Playwright\Browser\BrowserContextInterface;
 use Playwright\Configuration\PlaywrightConfig;
-use Playwright\Exception\RuntimeException;
 use Playwright\Page\Page;
 use Playwright\Transport\TransportInterface;
 
@@ -32,22 +31,30 @@ final class PagePdfTest extends TestCase
 
         $expectedPath = sys_get_temp_dir().'/playwright-pdf-unit-test.pdf';
 
-        $transport->expects($this->once())
-            ->method('send')
-            ->with($this->callback(function (array $payload) use ($expectedPath) {
-                $this->assertSame('page.pdf', $payload['action']);
-                $this->assertSame('page-unit', $payload['pageId']);
-                $this->assertSame($expectedPath, $payload['options']['path'] ?? null);
+        $pdfBytes = base64_encode('%PDF-1.4 mock');
 
-                return true;
-            }))
-            ->willReturn([]);
+        $matcher = $this->exactly(2);
+
+        $transport->expects($matcher)
+            ->method('send')
+            ->willReturnCallback(function (...$parameters) use ($matcher) {
+                if (1 === $matcher->numberOfInvocations()) {
+                    self::assertEquals('page.url', $parameters[0]['action']);
+                }
+
+                if (2 === $matcher->numberOfInvocations()) {
+                    self::assertEquals('page.pdf', $parameters[0]['action']);
+                }
+            })
+            ->willReturnOnConsecutiveCalls(['value' => 'url'], ['binary' => $pdfBytes]);
 
         $page = new Page($transport, $context, 'page-unit', new PlaywrightConfig());
 
         $result = $page->pdf($expectedPath);
 
         $this->assertSame($expectedPath, $result);
+
+        unlink($expectedPath);
     }
 
     public function testPdfContentReturnsBinaryAndCleansUpTempFile(): void
@@ -61,16 +68,16 @@ final class PagePdfTest extends TestCase
         $config = new PlaywrightConfig(screenshotDir: $pdfDir);
         $pdfBytes = '%PDF-1.4 mock';
 
-        $transport->expects($this->once())
-            ->method('send')
-            ->willReturnCallback(function (array $payload) use ($pdfBytes): array {
-                $this->assertSame('page.pdf', $payload['action']);
-                $path = $payload['options']['path'] ?? null;
-                $this->assertIsString($path);
-                file_put_contents($path, $pdfBytes);
+        $matcher = $this->exactly(1);
 
-                return [];
-            });
+        $transport->expects($matcher)
+            ->method('send')
+            ->willReturnCallback(function (...$parameters) use ($matcher) {
+                if (1 === $matcher->numberOfInvocations()) {
+                    self::assertEquals('page.pdf', $parameters[0]['action']);
+                }
+            })
+            ->willReturn(['binary' => base64_encode($pdfBytes)]);
 
         $page = new Page($transport, $context, 'page-unit', $config);
 
@@ -80,19 +87,6 @@ final class PagePdfTest extends TestCase
         $this->assertDirectoryHasNoFiles($pdfDir);
 
         rmdir($pdfDir);
-    }
-
-    public function testPdfContentRejectsPathOption(): void
-    {
-        $transport = $this->createMock(TransportInterface::class);
-        $context = $this->createMock(BrowserContextInterface::class);
-
-        $page = new Page($transport, $context, 'page-unit', new PlaywrightConfig());
-
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('Do not provide a "path" option when requesting inline PDF content.');
-
-        $page->pdfContent(['path' => '/tmp/should-not-be-used.pdf']);
     }
 
     private function assertDirectoryHasNoFiles(string $directory): void

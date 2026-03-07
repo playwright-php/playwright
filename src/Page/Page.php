@@ -26,7 +26,6 @@ use Playwright\Event\EventDispatcherInterface;
 use Playwright\Exception\NetworkException;
 use Playwright\Exception\PlaywrightException;
 use Playwright\Exception\ProtocolErrorException;
-use Playwright\Exception\RuntimeException;
 use Playwright\Exception\TimeoutException;
 use Playwright\Frame\Frame;
 use Playwright\Frame\FrameInterface;
@@ -42,6 +41,10 @@ use Playwright\Locator\LocatorInterface;
 use Playwright\Locator\Options\GetByRoleOptions;
 use Playwright\Locator\Options\LocatorOptions;
 use Playwright\Locator\RoleSelectorBuilder;
+use Playwright\Media\Filesystem\LocalFilesystemFilesystem;
+use Playwright\Media\Pdf\Pdf;
+use Playwright\Media\Screenshot\Screenshot;
+use Playwright\Media\Screenshot\ScreenshotHelper;
 use Playwright\Network\Request;
 use Playwright\Network\Response;
 use Playwright\Network\ResponseInterface;
@@ -63,7 +66,6 @@ use Playwright\Page\Options\WaitForResponseOptions;
 use Playwright\Page\Options\WaitForSelectorOptions;
 use Playwright\Page\Options\WaitForUrlOptions;
 use Playwright\Regex;
-use Playwright\Screenshot\ScreenshotHelper;
 use Playwright\Transport\TransportInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -87,12 +89,17 @@ final class Page implements PageInterface, EventDispatcherInterface
      */
     private array $handledDialogs = [];
 
+    private Screenshot $screenshot;
+    private Pdf $pdf;
+
     public function __construct(
         private readonly TransportInterface $transport,
         private readonly BrowserContextInterface $context,
         private readonly string $pageId,
         private readonly PlaywrightConfig $config,
         private readonly LoggerInterface $logger = new NullLogger(),
+        ?Screenshot $screenshot = null,
+        ?Pdf $pdf = null,
     ) {
         $this->keyboard = new Keyboard($this->transport, $this->pageId);
         $this->mouse = new Mouse($this->transport, $this->pageId);
@@ -109,6 +116,11 @@ final class Page implements PageInterface, EventDispatcherInterface
         if (method_exists($this->transport, 'addEventDispatcher')) {
             $this->transport->addEventDispatcher($this->pageId, $this);
         }
+
+        $filesystem = new LocalFilesystemFilesystem($this->config->getScreenshotDirectory());
+
+        $this->screenshot = $screenshot ?: new Screenshot($this->transport, $filesystem, $this->logger);
+        $this->pdf = $pdf ?: new Pdf($this->transport, $filesystem, $this->logger);
     }
 
     /**
@@ -319,41 +331,14 @@ final class Page implements PageInterface, EventDispatcherInterface
     /**
      * Take a screenshot of the page.
      *
-     * @param string|null                            $path    Screenshot path. If null, auto-generates based on current URL and datetime
+     * @param string|null                            $path    Screenshot path. If null, auto-generates based on the current URL and datetime
      * @param array<string, mixed>|ScreenshotOptions $options Screenshot options (quality, fullPage, etc.)
      *
      * @return string Returns the screenshot file path
      */
     public function screenshot(?string $path = null, array|ScreenshotOptions $options = []): string
     {
-        $options = ScreenshotOptions::from($options)->toArray();
-
-        $finalPath = $path ?? $options['path'] ?? ScreenshotHelper::generateFilename(
-            $this->url(),
-            $this->getScreenshotDirectory()
-        );
-
-        if (!is_string($finalPath)) {
-            throw new RuntimeException('Invalid screenshot path generated');
-        }
-
-        $this->logger->debug('Taking screenshot', ['path' => $finalPath, 'options' => $options]);
-
-        $options['path'] = $finalPath;
-
-        try {
-            $this->sendCommand('screenshot', ['options' => $options]);
-            $this->logger->info('Screenshot saved successfully', ['path' => $finalPath]);
-        } catch (\Throwable $e) {
-            $this->logger->error('Failed to take screenshot', [
-                'path' => $finalPath,
-                'error' => $e->getMessage(),
-                'exception' => $e,
-            ]);
-            throw $e;
-        }
-
-        return $finalPath;
+        return $this->screenshot->take($this->pageId, $path, $this->url(), $options);
     }
 
     /**
@@ -379,12 +364,7 @@ final class Page implements PageInterface, EventDispatcherInterface
         $filename = sprintf('%s_%s_%s%s.png', $datetime, $milliseconds, $urlSlug, $suffixSlug);
         $path = $screenshotDir.DIRECTORY_SEPARATOR.$filename;
 
-        ScreenshotHelper::ensureDirectoryExists($screenshotDir);
-
-        $options['path'] = $path;
-        $this->sendCommand('screenshot', ['options' => $options]);
-
-        return $path;
+        return $this->screenshot->take($this->pageId, $path, $this->url(), $options);
     }
 
     /**
@@ -394,28 +374,7 @@ final class Page implements PageInterface, EventDispatcherInterface
      */
     public function pdf(?string $path = null, array|PdfOptions $options = []): string
     {
-        $options = PdfOptions::from($options);
-        $providedPath = $path ?? $options->path();
-        $finalPath = $this->resolvePdfPath(is_string($providedPath) ? $providedPath : null);
-
-        $options = $options->withPath($finalPath)->toArray();
-
-        $this->logger->debug('Generating PDF', ['path' => $finalPath, 'options' => $options]);
-
-        try {
-            $this->sendCommand('pdf', ['options' => $options]);
-            $this->logger->info('PDF saved successfully', ['path' => $finalPath]);
-        } catch (\Throwable $e) {
-            $this->logger->error('Failed to generate PDF', [
-                'path' => $finalPath,
-                'error' => $e->getMessage(),
-                'exception' => $e,
-            ]);
-
-            throw $e;
-        }
-
-        return $finalPath;
+        return $this->pdf->take($this->pageId, $path, $this->url(), $options);
     }
 
     /**
@@ -426,36 +385,11 @@ final class Page implements PageInterface, EventDispatcherInterface
     public function pdfContent(array|PdfOptions $options = []): string
     {
         $options = PdfOptions::from($options);
-
         if (null !== $options->path()) {
-            throw new RuntimeException('Do not provide a "path" option when requesting inline PDF content.');
+            $options = $options->withPath(null);
         }
 
-        $directory = $this->getPdfDirectory();
-        ScreenshotHelper::ensureDirectoryExists($directory);
-
-        $tempPath = tempnam($directory, 'pw_pdf_');
-        if (false === $tempPath) {
-            throw new RuntimeException('Failed to allocate a temporary PDF file.');
-        }
-
-        // Remove the placeholder so Playwright can create the file fresh.
-        @unlink($tempPath);
-
-        try {
-            $this->pdf($tempPath, $options);
-
-            $content = file_get_contents($tempPath);
-            if (false === $content) {
-                throw new RuntimeException('Unable to read generated PDF content.');
-            }
-
-            return $content;
-        } finally {
-            if (file_exists($tempPath)) {
-                @unlink($tempPath);
-            }
-        }
+        return $this->pdf->content($this->pageId, $options);
     }
 
     /**
@@ -464,32 +398,6 @@ final class Page implements PageInterface, EventDispatcherInterface
     private function getScreenshotDirectory(): string
     {
         return $this->config->getScreenshotDirectory();
-    }
-
-    private function getPdfDirectory(): string
-    {
-        return $this->getScreenshotDirectory();
-    }
-
-    private function resolvePdfPath(?string $path): string
-    {
-        $candidate = null;
-        if (is_string($path) && '' !== trim($path)) {
-            $candidate = $path;
-        }
-
-        if (null !== $candidate) {
-            $directory = dirname($candidate) ?: '.';
-            ScreenshotHelper::ensureDirectoryExists($directory);
-
-            return $candidate;
-        }
-
-        return ScreenshotHelper::generateFilename(
-            $this->url(),
-            $this->getPdfDirectory(),
-            'pdf'
-        );
     }
 
     public function content(): ?string

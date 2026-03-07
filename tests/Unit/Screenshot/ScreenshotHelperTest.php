@@ -17,7 +17,7 @@ namespace Playwright\Tests\Unit\Screenshot;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Playwright\Screenshot\ScreenshotHelper;
+use Playwright\Media\Screenshot\ScreenshotHelper;
 
 #[CoversClass(ScreenshotHelper::class)]
 class ScreenshotHelperTest extends TestCase
@@ -73,17 +73,6 @@ class ScreenshotHelperTest extends TestCase
 
         $this->assertDirectoryExists($this->testDir);
         $this->assertSame($this->testDir.'/'.$basename, $filename);
-    }
-
-    public function testGenerateFilenameCreatesDirectory(): void
-    {
-        $nonExistentDir = $this->testDir.'/nested/subdir';
-        $this->assertDirectoryDoesNotExist($nonExistentDir);
-
-        $filename = ScreenshotHelper::generateFilename('https://example.com', $nonExistentDir);
-
-        $this->assertDirectoryExists($nonExistentDir);
-        $this->assertStringStartsWith($nonExistentDir.'/', $filename);
     }
 
     public function testEnsureDirectoryExists(): void

@@ -18,8 +18,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Playwright\Configuration\PlaywrightConfig;
+use Playwright\Media\Screenshot\ScreenshotHelper;
 use Playwright\Page\Page;
-use Playwright\Screenshot\ScreenshotHelper;
 use Playwright\Testing\PlaywrightTestCaseTrait;
 use Playwright\Tests\Support\RouteServerTestTrait;
 

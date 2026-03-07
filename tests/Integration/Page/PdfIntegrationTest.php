@@ -36,8 +36,8 @@ final class PdfIntegrationTest extends TestCase
         mkdir($this->pdfDir, 0755, true);
 
         $config = new PlaywrightConfig(
-            screenshotDir: $this->pdfDir,
-            headless: true
+            headless: true,
+            screenshotDir: $this->pdfDir
         );
 
         $this->setUpPlaywright(customConfig: $config);

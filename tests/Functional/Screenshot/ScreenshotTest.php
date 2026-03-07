@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace Playwright\Tests\Functional\Screenshot;
 
 use PHPUnit\Framework\Attributes\CoversClass;
+use Playwright\Configuration\PlaywrightConfig;
 use Playwright\Locator\Locator;
 use Playwright\Page\Page;
 use Playwright\Tests\Functional\FunctionalTestCase;
@@ -27,12 +28,12 @@ final class ScreenshotTest extends FunctionalTestCase
 
     protected function setUp(): void
     {
-        parent::setUp();
-
-        $this->tempDir = \sys_get_temp_dir().'/_pw_test_screenshots_'.\uniqid();
+        $this->tempDir = \sys_get_temp_dir().'/_pw_test_screenshots_'.\uniqid('', true);
         if (!\is_dir($this->tempDir)) {
             \mkdir($this->tempDir, 0777, true);
         }
+
+        $this->setUpPlaywright(customConfig: new PlaywrightConfig(screenshotDir: $this->tempDir));
     }
 
     protected function tearDown(): void
@@ -106,7 +107,7 @@ final class ScreenshotTest extends FunctionalTestCase
         $path = $this->page->screenshot();
 
         self::assertIsString($path);
-        self::assertFileExists($path);
+        self::assertFileExists($path, $path);
 
         \unlink($path);
     }
