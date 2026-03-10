@@ -220,11 +220,15 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
         ]);
     }
 
-    public function clearCookies(): void
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function clearCookies(array $options = []): void
     {
         $this->transport->send([
             'action' => 'context.clearCookies',
             'contextId' => $this->contextId,
+            'options' => $options,
         ]);
     }
 
