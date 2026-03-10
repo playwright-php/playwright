@@ -4,7 +4,7 @@
     "description": "Playwright server for PHP",
     "main": "playwright-server.js",
     "dependencies": {
-        "playwright": "^1.40.0"
+        "playwright": "^1.58.2"
     },
     "scripts": {
         "install-browsers": "npx playwright install",
