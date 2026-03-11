@@ -123,7 +123,7 @@ jobs:
           fi
 
       - name: "Playwright: install browsers"
-        run: php bin/playwright-install --browsers
+        run: php bin/playwright-install --with-deps
 
       - name: "PHPUnit: all tests with coverage"
         run: vendor/bin/phpunit --coverage-clover=coverage.xml
