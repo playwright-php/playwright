@@ -650,6 +650,7 @@ final class Locator implements \Stringable, LocatorInterface
     {
         $start = microtime(true);
         $timeoutSeconds = $timeoutMs / 1000;
+        $lastExceptionMessage = '';
 
         while ((microtime(true) - $start) < $timeoutSeconds) {
             try {
@@ -657,12 +658,13 @@ final class Locator implements \Stringable, LocatorInterface
                     return;
                 }
             } catch (PlaywrightException $e) {
+                $lastExceptionMessage = $e->getMessage();
             }
 
             usleep(100000);
         }
 
-        throw new TimeoutException(sprintf('%s (timeout: %dms)', $message, $timeoutMs));
+        throw new TimeoutException(sprintf('%s (timeout: %dms): %s', $message, $timeoutMs, $lastExceptionMessage));
     }
 
     /**
