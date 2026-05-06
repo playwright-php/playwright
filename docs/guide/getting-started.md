@@ -21,7 +21,7 @@ Composer. Second, you run a command to download the necessary browser binaries.
 Navigate to your project's root directory and run the following Composer command:
 
 ```bash
-composer require playwright-php/playwright
+composer require --dev playwright-php/playwright
 ```
 
 ### Step 2: Install Browsers

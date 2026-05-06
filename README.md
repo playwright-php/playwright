@@ -31,7 +31,7 @@ Requirements:
 Add the library to your project:
 
 ```bash
-composer require playwright-php/playwright
+composer require --dev playwright-php/playwright
 ```
 
 Install the Playwright browsers (Chromium, Firefox, WebKit):
