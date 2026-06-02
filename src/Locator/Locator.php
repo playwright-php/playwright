@@ -96,10 +96,10 @@ final class Locator implements \Stringable, LocatorInterface
     /**
      * @param array<string, mixed>|ClickOptions $options
      */
-    public function click(array|ClickOptions $options = []): void
+    public function click(array|ClickOptions $options = [], int $waitForActionableTimeout = 30000): void
     {
         $options = ClickOptions::from($options);
-        $this->waitForActionable();
+        $this->waitForActionable(['timeout' => $waitForActionableTimeout]);
         $this->sendCommand('locator.click', ['options' => $options->toArray()]);
     }
 
@@ -412,10 +412,10 @@ final class Locator implements \Stringable, LocatorInterface
     /**
      * @param array<string, mixed>|FillOptions $options
      */
-    public function fill(string $value, array|FillOptions $options = []): void
+    public function fill(string $value, array|FillOptions $options = [], int $waitForActionableTimeout = 30000): void
     {
         $options = FillOptions::from($options);
-        $this->waitForActionable();
+        $this->waitForActionable(['timeout' => $waitForActionableTimeout]);
         $this->sendCommand('locator.fill', ['value' => $value, 'options' => $options->toArray()]);
     }
 
@@ -477,10 +477,10 @@ final class Locator implements \Stringable, LocatorInterface
      *
      * @param array<string, mixed>|DragToOptions $options
      */
-    public function dragTo(LocatorInterface $target, array|DragToOptions $options = []): void
+    public function dragTo(LocatorInterface $target, array|DragToOptions $options = [], int $waitForActionableTimeout = 30000): void
     {
         $options = DragToOptions::from($options);
-        $this->waitForActionable();
+        $this->waitForActionable(['timeout' => $waitForActionableTimeout]);
 
         $targetSelector = $target->getSelector();
 
