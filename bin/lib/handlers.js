@@ -12,7 +12,7 @@ class ContextHandler extends BaseHandler {
       setOffline: () => context.setOffline(!!command.offline),
       setGeolocation: () => context.setGeolocation(command.geolocation),
       addCookies: () => context.addCookies(command.cookies),
-      clearCookies: () => context.clearCookies(),
+      clearCookies: () => context.clearCookies(command.options || {}),
       grantPermissions: () => context.grantPermissions(command.permissions, command.origin ? { origin: command.origin } : undefined),
       clearPermissions: () => context.clearPermissions(),
       startTracing: () => context.tracing.start(command.options || {}),

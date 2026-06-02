@@ -27,7 +27,10 @@ interface BrowserContextInterface
 
     public function addInitScript(string $script): void;
 
-    public function clearCookies(): void;
+    /**
+     * @param array<array{domain: string, name: string, path: string}> $options
+     */
+    public function clearCookies(array $options = []): void;
 
     /**
      * Delete all cookies with the given name across domain and path variants.

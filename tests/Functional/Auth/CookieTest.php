@@ -99,26 +99,24 @@ final class CookieTest extends FunctionalTestCase
         self::assertSame('my_value', $myCookie['value']);
     }
 
-    public function testCanDeleteCookies(): void
+    public function testCanDeleteSingleCookie(): void
     {
         $this->goto('/cookies.html');
 
         $this->context->addCookies([
-            [
-                'name' => 'to_delete',
-                'value' => 'delete_me',
-                'url' => $this->getBaseUrl(),
-            ],
+            ['name' => 'to_delete', 'value' => 'delete_me', 'url' => $this->getBaseUrl()],
+            ['name' => 'to_keep', 'value' => 'keep_me', 'url' => $this->getBaseUrl()],
         ]);
 
         $cookies = $this->context->cookies();
         $cookieNames = \array_column($cookies, 'name');
         self::assertContains('to_delete', $cookieNames);
 
-        $this->context->clearCookies();
+        $this->context->clearCookies(['name' => 'to_delete']);
 
         $cookiesAfter = $this->context->cookies();
-        self::assertEmpty($cookiesAfter);
+        self::assertCount(1, $cookiesAfter);
+        self::assertSame('keep_me', $cookiesAfter[0]['value']);
     }
 
     public function testCanSetCookieWithExpiration(): void

@@ -147,9 +147,24 @@ final class BrowserContextTest extends TestCase
             ->with([
                 'action' => 'context.clearCookies',
                 'contextId' => 'context_1',
+                'options' => [],
             ]);
 
         $this->context->clearCookies();
+    }
+
+    public function testClearCookiesWithOptions(): void
+    {
+        $this->mockTransport
+            ->expects($this->once())
+            ->method('send')
+            ->with([
+                'action' => 'context.clearCookies',
+                'contextId' => 'context_1',
+                'options' => ['name' => 'name_1'],
+            ]);
+
+        $this->context->clearCookies(['name' => 'name_1']);
     }
 
     public function testClearPermissions(): void
