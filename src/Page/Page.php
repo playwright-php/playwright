@@ -57,6 +57,7 @@ use Playwright\Page\Options\SetContentOptions;
 use Playwright\Page\Options\SetInputFilesOptions;
 use Playwright\Page\Options\StyleTagOptions;
 use Playwright\Page\Options\TypeOptions;
+use Playwright\Page\Options\WaitForFunctionOptions;
 use Playwright\Page\Options\WaitForLoadStateOptions;
 use Playwright\Page\Options\WaitForPopupOptions;
 use Playwright\Page\Options\WaitForResponseOptions;
@@ -832,6 +833,19 @@ final class Page implements PageInterface, EventDispatcherInterface
     {
         $options = WaitForLoadStateOptions::from($options)->toArray();
         $this->sendCommand('waitForLoadState', ['state' => $state, 'options' => $options]);
+
+        return $this;
+    }
+
+    /**
+     * @param array<string, mixed>|WaitForFunctionOptions $options
+     */
+    public function waitForFunction(string $pageFunction, mixed $arg = null, array|WaitForFunctionOptions $options = []): self
+    {
+        $options = WaitForFunctionOptions::from($options)->toArray();
+
+        $normalized = self::normalizeForPage($pageFunction);
+        $this->sendCommand('waitForFunction', ['pageFunction' => $normalized, 'arg' => $arg, 'options' => $options]);
 
         return $this;
     }

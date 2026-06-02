@@ -406,7 +406,7 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
         $this->setStorageState($storageState);
     }
 
-    public function setGeolocation(?float $latitude, ?float $longitude, ?float $accuracy = null): void
+    public function setGeolocation(?float $latitude, ?float $longitude, ?float $accuracy = 0): void
     {
         $this->transport->send([
             'action' => 'context.setGeolocation',

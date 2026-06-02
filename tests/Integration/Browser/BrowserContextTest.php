@@ -170,23 +170,9 @@ class BrowserContextTest extends TestCase
 
         $page->click('button');
 
-        // Poll for either coordinates or error text since Page::waitForFunction is not available
-        $deadline = microtime(true) + 5.0; // 5 seconds
-        do {
-            $content = $page->content() ?? '';
-            $hasCoordinates = str_contains($content, '59.95,30.31667');
-            $hasError = str_contains($content, 'Error');
-            if ($hasCoordinates || $hasError) {
-                break;
-            }
-            usleep(100 * 1000); // 100ms
-        } while (microtime(true) < $deadline);
+        $page->waitForFunction("() => document.body.innerText.includes('59.95') || document.body.innerText.includes('Error: ')", options: ['timeout' => 200]);
 
-        $content = $page->content();
-        $hasCoordinates = str_contains($content, '59.95,30.31667');
-        $hasError = str_contains($content, 'Error:');
-
-        $this->assertTrue($hasCoordinates || $hasError, 'Geolocation API should respond with either coordinates or error message');
+        $this->assertStringContainsString('59.95,30.31667', $page->content(), 'Geolocation API should respond with either coordinates or error message');
 
         $page->close();
     }
