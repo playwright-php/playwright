@@ -235,7 +235,8 @@ class PageHandler extends BaseHandler {
       waitForLoadState: () => page.waitForLoadState(command.state || 'load', command.options),
       frames: () => this.getFrames(page),
       frame: () => this.getFrame(page, command),
-      waitForPopup: () => this.waitForPopup(page, command)
+      waitForPopup: () => this.waitForPopup(page, command),
+      bringToFront: () => page.bringToFront(),
     });
 
     return await ErrorHandler.safeExecute(() => this.executeWithRegistry(registry, method), { method, pageId: command.pageId });
