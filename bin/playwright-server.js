@@ -132,6 +132,24 @@ class PlaywrightServer extends BaseHandler {
     });
   }
 
+  // Pages opened by the browser itself (window.open(), target="_blank", ...) never go through
+  // createNewPage()/waitForEvent('page')/waitForPopup - subscribe passively so the PHP client
+  // learns about them without having to anticipate every popup-opening action in advance.
+  registerContextPopups(context, contextId) {
+    context.on('page', (newPage) => {
+      setImmediate(() => {
+        for (const existing of this.pages.values()) {
+          if (existing === newPage) return;
+        }
+        const pageId = this.generateId('page');
+        this.pages.set(pageId, newPage);
+        this.pageContexts.set(pageId, contextId);
+        this.setupPageEventListeners(newPage, pageId);
+        sendFramedResponse({ objectId: contextId, event: 'page', params: { pageId } });
+      });
+    });
+  }
+
   formatEventParams(eventName, eventData) {
     const formatters = {
       console: () => ({ type: eventData.type(), text: eventData.text(), args: [], location: eventData.location ? eventData.location() : {} }),
@@ -174,6 +192,7 @@ class PlaywrightServer extends BaseHandler {
       const context = await browser.newContext();
       const contextId = this.generateId('context');
       this.contexts.set(contextId, { context, browserId, id: contextId });
+      this.registerContextPopups(context, contextId);
       return { browserId, defaultContextId: contextId, version: browser.version() };
     } catch (error) {
       logger.error('launchBrowser error', { message: error.message });
@@ -204,6 +223,7 @@ class PlaywrightServer extends BaseHandler {
     const context = await browser.newContext(command.options || {});
     const contextId = this.generateId('context');
     this.contexts.set(contextId, { context, browserId: command.browserId, id: contextId });
+    this.registerContextPopups(context, contextId);
     return { contextId };
   }
 
@@ -301,6 +321,7 @@ class PlaywrightServer extends BaseHandler {
       const context = await attached.newContext();
       const contextId = this.generateId('context');
       this.contexts.set(contextId, { context, browserId, id: contextId });
+      this.registerContextPopups(context, contextId);
       return { browserId, defaultContextId: contextId, version: attached.version() };
     } catch (error) {
       logger.error('connect error', { message: error.message });
@@ -321,6 +342,7 @@ class PlaywrightServer extends BaseHandler {
       const context = await attached.newContext();
       const contextId = this.generateId('context');
       this.contexts.set(contextId, { context, browserId, id: contextId });
+      this.registerContextPopups(context, contextId);
       return { browserId, defaultContextId: contextId, version: attached.version() };
     } catch (error) {
       logger.error('connectOverCDP error', { message: error.message });
