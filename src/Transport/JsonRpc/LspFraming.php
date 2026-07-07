@@ -62,7 +62,13 @@ final class LspFraming
 
         $contentLength = self::parseContentLength($headers);
         if (null === $contentLength) {
-            throw new \InvalidArgumentException('Missing or invalid Content-Length header');
+            // resync: skip stray non-LSP output (e.g. browser crash spew) up to the next frame
+            $resyncPos = strpos($buffer, 'Content-Length:', 1);
+            if (false === $resyncPos) {
+                return null;
+            }
+
+            return self::extractOneMessage(substr($buffer, $resyncPos));
         }
 
         if (strlen($buffer) < $contentStart + $contentLength) {
