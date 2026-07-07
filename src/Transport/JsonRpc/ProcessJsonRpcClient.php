@@ -124,11 +124,13 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
     private function readProcessOutput(): void
     {
         $stdout = $this->process->getIncrementalOutput();
+        $this->process->clearOutput();
         if ('' !== $stdout) {
             $this->outputBuffer .= $stdout;
         }
 
         $stderr = $this->process->getIncrementalErrorOutput();
+        $this->process->clearErrorOutput();
         if ('' !== $stderr) {
             $this->logger->warning('Process stderr', ['stderr' => $stderr]);
         }
