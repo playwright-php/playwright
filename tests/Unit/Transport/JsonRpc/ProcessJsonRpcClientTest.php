@@ -144,4 +144,56 @@ final class ProcessJsonRpcClientTest extends TestCase
 
         $client->send('test.method');
     }
+
+    public function testReadProcessOutputClearsBothProcessBuffers(): void
+    {
+        $mockProcess = $this->createMock(Process::class);
+        $mockProcessLauncher = $this->createMock(ProcessLauncherInterface::class);
+
+        $mockProcess->method('isRunning')->willReturn(true);
+        $mockProcess->method('getPid')->willReturn(12345);
+        $mockProcess->method('getIncrementalOutput')->willReturn('');
+        $mockProcess->method('getIncrementalErrorOutput')->willReturn('');
+        $mockProcess->expects($this->once())->method('clearOutput');
+        $mockProcess->expects($this->once())->method('clearErrorOutput');
+        $mockProcessLauncher->method('getInputStream')->willReturn($this->mockInputStream);
+        $mockProcessLauncher->method('ensureRunning');
+
+        $client = new ProcessJsonRpcClient(
+            process: $mockProcess,
+            processLauncher: $mockProcessLauncher,
+            clock: $this->clock,
+            logger: $this->logger
+        );
+
+        $readProcessOutput = new \ReflectionMethod($client, 'readProcessOutput');
+        $readProcessOutput->invoke($client);
+    }
+
+    public function testReadProcessOutputClearsBuffersAcrossMultiplePolls(): void
+    {
+        $mockProcess = $this->createMock(Process::class);
+        $mockProcessLauncher = $this->createMock(ProcessLauncherInterface::class);
+
+        $mockProcess->method('isRunning')->willReturn(true);
+        $mockProcess->method('getPid')->willReturn(12345);
+        $mockProcess->method('getIncrementalOutput')->willReturn('');
+        $mockProcess->method('getIncrementalErrorOutput')->willReturn('');
+        $mockProcess->expects($this->exactly(3))->method('clearOutput');
+        $mockProcess->expects($this->exactly(3))->method('clearErrorOutput');
+        $mockProcessLauncher->method('getInputStream')->willReturn($this->mockInputStream);
+        $mockProcessLauncher->method('ensureRunning');
+
+        $client = new ProcessJsonRpcClient(
+            process: $mockProcess,
+            processLauncher: $mockProcessLauncher,
+            clock: $this->clock,
+            logger: $this->logger
+        );
+
+        $readProcessOutput = new \ReflectionMethod($client, 'readProcessOutput');
+        $readProcessOutput->invoke($client);
+        $readProcessOutput->invoke($client);
+        $readProcessOutput->invoke($client);
+    }
 }
