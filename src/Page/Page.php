@@ -951,7 +951,7 @@ final class Page implements PageInterface, EventDispatcherInterface
 
     public function unroute(string $url, ?callable $handler = null): void
     {
-        $this->context->unroute($url, $handler);
+        $this->sendCommand('unroute', ['url' => $url]);
     }
 
     public function handleDialog(string $dialogId, bool $accept, ?string $promptText = null): void
