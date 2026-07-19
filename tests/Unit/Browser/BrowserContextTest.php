@@ -21,6 +21,7 @@ use Playwright\Browser\StorageState;
 use Playwright\Configuration\PlaywrightConfig;
 use Playwright\Network\NetworkThrottling;
 use Playwright\Page\PageInterface;
+use Playwright\Tracing\TracingInterface;
 use Playwright\Transport\TransportInterface;
 
 #[CoversClass(BrowserContext::class)]
@@ -402,6 +403,14 @@ final class BrowserContextTest extends TestCase
             ]);
 
         $this->context->unroute('**/*.api');
+    }
+
+    public function testTracingReturnsTheSameInstance(): void
+    {
+        $tracing = $this->context->tracing();
+
+        $this->assertInstanceOf(TracingInterface::class, $tracing);
+        $this->assertSame($tracing, $this->context->tracing());
     }
 
     public function testGetEnv(): void

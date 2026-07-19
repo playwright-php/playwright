@@ -49,6 +49,22 @@ class ContextHandler extends BaseHandler {
     return this.wrapResult(result);
   }
 
+  async handleTracing(command, method) {
+    const context = this.validateResource(this.contexts, command.contextId, 'Context')?.context;
+
+    const registry = CommandRegistry.create({
+      start: () => context.tracing.start(command.options || {}),
+      startChunk: () => context.tracing.startChunk(command.options || {}),
+      stop: () => context.tracing.stop(command.options || {}),
+      stopChunk: () => context.tracing.stopChunk(command.options || {}),
+      group: () => context.tracing.group(command.name, command.location ? { location: { file: command.location } } : undefined),
+      groupEnd: () => context.tracing.groupEnd()
+    });
+
+    const result = await ErrorHandler.safeExecute(() => this.executeWithRegistry(registry, method), { method, contextId: command.contextId });
+    return this.wrapResult(result);
+  }
+
   async handleClock(command, method) {
     const context = this.validateResource(this.contexts, command.contextId, 'Context')?.context;
 
