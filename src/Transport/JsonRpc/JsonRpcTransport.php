@@ -29,6 +29,12 @@ use Symfony\Component\Process\Process;
  */
 final class JsonRpcTransport implements TransportInterface
 {
+    /**
+     * Grace added to an operation's own timeout so the server-side error
+     * (with its call log) reaches the client instead of an RPC abort.
+     */
+    private const OPERATION_TIMEOUT_GRACE_MS = 5000;
+
     private ?Process $process = null;
     private ?JsonRpcClient $client = null;
     private bool $connected = false;
@@ -93,7 +99,8 @@ final class JsonRpcTransport implements TransportInterface
             $this->client = new ProcessJsonRpcClient(
                 process: $this->process,
                 processLauncher: $this->processLauncher,
-                logger: $this->logger
+                logger: $this->logger,
+                defaultTimeoutMs: null !== $timeout ? (float) $timeout * 1000 : 30000.0,
             );
 
             $this->client->setEventHandler(function (array $event): void {
@@ -168,6 +175,11 @@ final class JsonRpcTransport implements TransportInterface
                 $timeoutMs = (int) ($timeout * 1000);
             }
 
+            $operationTimeoutMs = $this->extractOperationTimeoutMs($message);
+            if (null !== $operationTimeoutMs) {
+                $timeoutMs = max($timeoutMs ?? 30000, $operationTimeoutMs + self::OPERATION_TIMEOUT_GRACE_MS);
+            }
+
             if (null === $this->client) {
                 throw new NetworkException('JSON-RPC client not available');
             }
@@ -185,6 +197,17 @@ final class JsonRpcTransport implements TransportInterface
             ]);
             throw $e;
         }
+    }
+
+    /**
+     * @param array<string, mixed> $message
+     */
+    private function extractOperationTimeoutMs(array $message): ?int
+    {
+        $options = $message['options'] ?? null;
+        $timeout = \is_array($options) && isset($options['timeout']) ? $options['timeout'] : ($message['timeout'] ?? null);
+
+        return is_numeric($timeout) && $timeout > 0 ? (int) $timeout : null;
     }
 
     /**
