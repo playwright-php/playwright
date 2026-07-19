@@ -220,6 +220,8 @@ class PageHandler extends BaseHandler {
       title: () => PromiseUtils.wrapValue(page.title()),
       setViewportSize: () => page.setViewportSize(command.size),
       viewportSize: () => this.createValueResult(page.viewportSize()),
+      setDefaultTimeout: () => page.setDefaultTimeout(command.timeout),
+      setDefaultNavigationTimeout: () => page.setDefaultNavigationTimeout(command.timeout),
       waitForURL: () => page.waitForURL(command.url, command.options),
       waitForSelector: () => page.waitForSelector(command.selector, command.options),
       waitForFunction: () => this.waitForFunction(page, command),
