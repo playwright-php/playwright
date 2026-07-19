@@ -100,3 +100,7 @@ When a test fails, the library automatically provides tools to help you debug:
 `PW_TRACE` is the single switch for tracing. It is also read by `PlaywrightConfigBuilder::fromEnv()`: every browser
 context created from that configuration records a trace, saved to `PW_TRACE_DIR` (default: `traces/` in the working
 directory) when the context closes.
+
+When tracing is active, every `$this->expect(...)` assertion appears in the trace as a named group, such as
+`expect(#submit).toBeVisible`, with the polled calls nested inside it. Outside the trait, pass the tracing handle
+explicitly: `expect($locator, $context->tracing())`.

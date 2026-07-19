@@ -17,6 +17,7 @@ namespace Playwright\Testing;
 use Playwright\Assertions\Failure\AssertionException;
 use Playwright\Locator\LocatorInterface;
 use Playwright\Page\PageInterface;
+use Playwright\Tracing\TracingInterface;
 
 final class Expect implements ExpectInterface
 {
@@ -28,6 +29,7 @@ final class Expect implements ExpectInterface
 
     public function __construct(
         private readonly LocatorInterface|PageInterface $subject,
+        private readonly ?TracingInterface $tracing = null,
     ) {
     }
 
@@ -371,6 +373,38 @@ final class Expect implements ExpectInterface
      * Core retry assertion mechanism with configurable timeout and polling.
      */
     private function retryAssertion(callable $condition, bool $expectedResult, string $message, ?callable $failureMessageProvider = null): void
+    {
+        if (null === $this->tracing) {
+            $this->runAssertion($condition, $expectedResult, $message, $failureMessageProvider);
+
+            return;
+        }
+
+        $this->tracing->group($this->traceGroupName());
+
+        try {
+            $this->runAssertion($condition, $expectedResult, $message, $failureMessageProvider);
+        } finally {
+            $this->tracing->groupEnd();
+        }
+    }
+
+    private function traceGroupName(): string
+    {
+        $matcher = 'assertion';
+        foreach (\debug_backtrace(\DEBUG_BACKTRACE_IGNORE_ARGS, 4) as $frame) {
+            if (self::class === ($frame['class'] ?? null) && \str_starts_with($frame['function'], 'to')) {
+                $matcher = $frame['function'];
+                break;
+            }
+        }
+
+        $subject = $this->subject instanceof LocatorInterface ? $this->subject->getSelector() : 'page';
+
+        return \sprintf('expect(%s).%s%s', $subject, $this->negated ? 'not.' : '', $matcher);
+    }
+
+    private function runAssertion(callable $condition, bool $expectedResult, string $message, ?callable $failureMessageProvider = null): void
     {
         $startTime = \microtime(true);
         $endTime = $startTime + ($this->timeoutMs / 1000);
