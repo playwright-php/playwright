@@ -1,0 +1,9 @@
+blank_issues_enabled: false
+contact_links:
+    - name: Playwright PHP website
+      url: https://playwright-php.dev
+      about: Guides, examples, recipes and the full API reference
+    - name: Questions and help
+      url: https://github.com/playwright-php/playwright/discussions
+      about: Ask questions and discuss usage in GitHub Discussions
+
