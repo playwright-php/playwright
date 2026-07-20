@@ -172,7 +172,13 @@ class PlaywrightServer extends BaseHandler {
   extractRequestData(req) {
     let postData = null;
     try { postData = req.postData(); } catch {}
-    return { url: req.url(), method: req.method(), headers: req.headers(), postData: postData ?? null, resourceType: req.resourceType ? req.resourceType() : 'document' };
+    // postData() is lossy for non-UTF8 bodies; ship the raw bytes as base64
+    let postDataBuffer = null;
+    try {
+      const buffer = req.postDataBuffer ? req.postDataBuffer() : null;
+      if (buffer) postDataBuffer = buffer.toString('base64');
+    } catch {}
+    return { url: req.url(), method: req.method(), headers: req.headers(), postData: postData ?? null, postDataBuffer, resourceType: req.resourceType ? req.resourceType() : 'document' };
   }
 
   serializeResponse(response) {
