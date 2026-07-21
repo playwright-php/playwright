@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## [Unreleased]
+
+### Added
+- Interface annotations (`@method`, no BC impact) for methods already shipped by the
+  concrete classes: `BrowserContext::clock()`, `BrowserContext::setGeolocation()`,
+  `BrowserContext::setOffline()`, `Dialog::page()`, `Keyboard::insertText()`,
+  `Page::pause()`, `Response::headerValue()`. They will move to real interface
+  declarations in the next major.
+
 ## [1.1.0] - 2025-12-23
 
 ### Added

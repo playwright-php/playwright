@@ -14,8 +14,12 @@ declare(strict_types=1);
 
 namespace Playwright\Dialog;
 
+use Playwright\Page\PageInterface;
+
 /**
  * @author Simon André <smn.andre@gmail.com>
+ *
+ * @method PageInterface page() The page that opened the dialog
  */
 interface DialogInterface
 {

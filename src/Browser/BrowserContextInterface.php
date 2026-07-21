@@ -15,9 +15,15 @@ declare(strict_types=1);
 namespace Playwright\Browser;
 
 use Playwright\API\APIRequestContextInterface;
+use Playwright\Clock\ClockInterface;
 use Playwright\Network\NetworkThrottling;
 use Playwright\Page\PageInterface;
 
+/**
+ * @method ClockInterface clock()                                                                   The context's clock, to fake and advance time
+ * @method void           setGeolocation(?float $latitude, ?float $longitude, ?float $accuracy = 0) Sets the context's geolocation; null coordinates clear it
+ * @method void           setOffline(bool $offline)                                                 Toggles the context's network offline or back online
+ */
 interface BrowserContextInterface
 {
     /**
