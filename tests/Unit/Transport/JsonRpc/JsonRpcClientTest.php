@@ -118,7 +118,6 @@ final class JsonRpcClientTest extends TestCase
         $client = new InspectingJsonRpcClient($this->clock, $this->logger);
 
         $reflection = new \ReflectionProperty(JsonRpcClient::class, 'pendingRequests');
-        $reflection->setAccessible(true);
         $reflection->setValue($client, [
             123 => ['method' => 'Browser.getVersion', 'timestamp' => 1.0],
         ]);
@@ -206,7 +205,6 @@ final class JsonRpcClientTest extends TestCase
         $client = new JsonRpcClient($psrClock);
 
         $reflection = new \ReflectionProperty(JsonRpcClient::class, 'clock');
-        $reflection->setAccessible(true);
 
         $adaptedClock = $reflection->getValue($client);
 
