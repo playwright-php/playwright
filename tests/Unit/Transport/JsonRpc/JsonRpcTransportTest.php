@@ -18,6 +18,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Playwright\Exception\NetworkException;
 use Playwright\Tests\Mocks\TestLogger;
+use Playwright\Transport\JsonRpc\JsonRpcClient;
 use Playwright\Transport\JsonRpc\JsonRpcTransport;
 use Playwright\Transport\JsonRpc\ProcessLauncherInterface;
 use Symfony\Component\Process\InputStream;
@@ -219,5 +220,83 @@ final class JsonRpcTransportTest extends TestCase
         $transport->__destruct();
 
         $this->assertFalse($transport->isConnected());
+    }
+
+    /**
+     * @param array<string, mixed> $config
+     */
+    private function createConnectedTransport(array $config): JsonRpcTransport
+    {
+        $mockProcess = $this->createMock(Process::class);
+        $mockProcess->method('isRunning')->willReturn(true);
+
+        $this->processLauncher->method('start')->willReturn($mockProcess);
+        $this->processLauncher->method('getInputStream')->willReturn($this->createMock(InputStream::class));
+
+        $transport = new JsonRpcTransport(
+            processLauncher: $this->processLauncher,
+            config: $config,
+            logger: $this->logger
+        );
+        $transport->connect();
+
+        return $transport;
+    }
+
+    private function injectClient(JsonRpcTransport $transport, JsonRpcClient $client): void
+    {
+        (new \ReflectionProperty($transport, 'client'))->setValue($transport, $client);
+    }
+
+    public function testSendPassesTheConfiguredTimeoutPerRequest(): void
+    {
+        $transport = $this->createConnectedTransport(['command' => ['node', 'server.js'], 'timeout' => 45]);
+
+        $client = $this->createMock(JsonRpcClient::class);
+        $client->expects($this->once())
+            ->method('sendRaw')
+            ->with($this->anything(), 45000.0)
+            ->willReturn([]);
+        $this->injectClient($transport, $client);
+
+        $transport->send(['action' => 'launch']);
+    }
+
+    public function testSendExtendsTheDeadlineForAnOperationTimeout(): void
+    {
+        $transport = $this->createConnectedTransport(['command' => ['node', 'server.js'], 'timeout' => 30]);
+
+        $client = $this->createMock(JsonRpcClient::class);
+        $client->expects($this->once())
+            ->method('sendRaw')
+            ->with($this->anything(), 40000.0)
+            ->willReturn([]);
+        $this->injectClient($transport, $client);
+
+        $transport->send([
+            'action' => 'page.waitForSelector',
+            'pageId' => 'page_1',
+            'selector' => '#x',
+            'options' => ['timeout' => 35000],
+        ]);
+    }
+
+    public function testSendKeepsTheConfiguredTimeoutWhenLarger(): void
+    {
+        $transport = $this->createConnectedTransport(['command' => ['node', 'server.js'], 'timeout' => 90]);
+
+        $client = $this->createMock(JsonRpcClient::class);
+        $client->expects($this->once())
+            ->method('sendRaw')
+            ->with($this->anything(), 90000.0)
+            ->willReturn([]);
+        $this->injectClient($transport, $client);
+
+        $transport->send([
+            'action' => 'page.waitForSelector',
+            'pageId' => 'page_1',
+            'selector' => '#x',
+            'options' => ['timeout' => 5000],
+        ]);
     }
 }
