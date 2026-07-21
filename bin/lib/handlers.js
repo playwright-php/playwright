@@ -39,6 +39,7 @@ class ContextHandler extends BaseHandler {
       unroute: () => context.unroute(command.url),
       cookies: async () => ({ cookies: await context.cookies(command.urls) }),
       storageState: async () => ({ storageState: await context.storageState(command.options) }),
+      setStorageState: () => context.setStorageState(command.storageState),
       clipboardText: () => this.getClipboardText(context),
       close: () => this.closeContext(context, command.contextId),
       newPage: () => this.createNewPage(context, command)

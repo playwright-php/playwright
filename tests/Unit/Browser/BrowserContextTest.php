@@ -17,6 +17,7 @@ namespace Playwright\Tests\Unit\Browser;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Playwright\Browser\BrowserContext;
+use Playwright\Browser\StorageState;
 use Playwright\Configuration\PlaywrightConfig;
 use Playwright\Network\NetworkThrottling;
 use Playwright\Page\PageInterface;
@@ -309,6 +310,34 @@ final class BrowserContextTest extends TestCase
 
         $result = $this->context->storageState();
         $this->assertEquals([], $result);
+    }
+
+    public function testSetStorageState(): void
+    {
+        $state = StorageState::fromArray([
+            'cookies' => [[
+                'name' => 'session',
+                'value' => 'abc',
+                'domain' => 'example.com',
+                'path' => '/',
+                'expires' => -1,
+                'httpOnly' => false,
+                'secure' => false,
+                'sameSite' => 'Lax',
+            ]],
+            'origins' => [],
+        ]);
+
+        $this->mockTransport
+            ->expects($this->once())
+            ->method('send')
+            ->with([
+                'action' => 'context.setStorageState',
+                'contextId' => 'context_1',
+                'storageState' => $state->toArray(),
+            ]);
+
+        $this->context->setStorageState($state);
     }
 
     public function testSetGeolocation(): void
