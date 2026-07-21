@@ -498,4 +498,34 @@ class PageTest extends TestCase
         $result = $this->page->reload();
         $this->assertSame($this->page, $result);
     }
+
+    public function testSetDefaultTimeoutSendsCommandAndReturnsSelf(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'timeout' => 500,
+                'action' => 'page.setDefaultTimeout',
+                'pageId' => 'page-id',
+            ])
+            ->willReturn([]);
+
+        $result = $this->page->setDefaultTimeout(500);
+        $this->assertSame($this->page, $result);
+    }
+
+    public function testSetDefaultNavigationTimeoutSendsCommandAndReturnsSelf(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'timeout' => 10000,
+                'action' => 'page.setDefaultNavigationTimeout',
+                'pageId' => 'page-id',
+            ])
+            ->willReturn([]);
+
+        $result = $this->page->setDefaultNavigationTimeout(10000);
+        $this->assertSame($this->page, $result);
+    }
 }
