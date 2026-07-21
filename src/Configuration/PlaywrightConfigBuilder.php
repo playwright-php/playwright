@@ -115,7 +115,7 @@ final class PlaywrightConfigBuilder
             $b->withSlowMoMs((int) $slow);
         }
 
-        if (($trace = $get('PW_TRACING')) !== null) {
+        if (($trace = $get('PW_TRACE')) !== null) {
             $b->withTracing(self::strToBool($trace), $get('PW_TRACE_DIR') ?: null);
         }
 

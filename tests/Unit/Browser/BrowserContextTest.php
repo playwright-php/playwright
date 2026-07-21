@@ -429,4 +429,122 @@ final class BrowserContextTest extends TestCase
 
         $this->context->disableNetworkThrottling();
     }
+
+    /**
+     * @param list<array<string, mixed>> $sent
+     */
+    private function createRecordingTransport(array &$sent): TransportInterface
+    {
+        $transport = $this->createMock(TransportInterface::class);
+        $transport->method('send')->willReturnCallback(static function (array $payload) use (&$sent): array {
+            $sent[] = $payload;
+
+            return [];
+        });
+
+        return $transport;
+    }
+
+    public function testAutoTracingStartsWhenConfigEnablesTracing(): void
+    {
+        $sent = [];
+        $transport = $this->createRecordingTransport($sent);
+
+        new BrowserContext($transport, 'ctx_trace', new PlaywrightConfig(
+            tracingEnabled: true,
+            traceScreenshots: true,
+            traceSnapshots: true,
+        ));
+
+        $this->assertSame([[
+            'action' => 'context.startTracing',
+            'contextId' => 'ctx_trace',
+            'options' => ['screenshots' => true, 'snapshots' => true],
+        ]], $sent);
+    }
+
+    public function testCloseSavesTheAutoTrace(): void
+    {
+        $traceDir = sys_get_temp_dir().'/pw-php-auto-trace-'.uniqid();
+        $sent = [];
+        $transport = $this->createRecordingTransport($sent);
+
+        $context = new BrowserContext($transport, 'ctx_trace', new PlaywrightConfig(
+            tracingEnabled: true,
+            traceDir: $traceDir,
+        ));
+
+        try {
+            $context->close();
+
+            $actions = array_column($sent, 'action');
+            $this->assertSame(['context.startTracing', 'context.stopTracing', 'context.close'], $actions);
+            $this->assertSame($traceDir.'/trace-ctx_trace.zip', $sent[1]['path']);
+        } finally {
+            if (is_dir($traceDir)) {
+                rmdir($traceDir);
+            }
+        }
+    }
+
+    public function testCloseThrowsWhenTheTraceDirectoryCannotBeCreated(): void
+    {
+        // A regular file as the parent makes the recursive mkdir fail whatever the permissions are.
+        $blocker = (string) tempnam(sys_get_temp_dir(), 'pw-php-auto-trace-blocker');
+        $traceDir = $blocker.'/traces';
+
+        $sent = [];
+        $transport = $this->createRecordingTransport($sent);
+
+        $context = new BrowserContext($transport, 'ctx_trace', new PlaywrightConfig(
+            tracingEnabled: true,
+            traceDir: $traceDir,
+        ));
+
+        $thrown = null;
+
+        try {
+            $context->close();
+        } catch (\RuntimeException $e) {
+            $thrown = $e;
+        } finally {
+            unlink($blocker);
+        }
+
+        $this->assertInstanceOf(\RuntimeException::class, $thrown);
+        $this->assertSame(sprintf('Trace directory "%s" was not created', $traceDir), $thrown->getMessage());
+        $this->assertSame(['context.startTracing'], array_column($sent, 'action'));
+    }
+
+    public function testStartTracingIsNoOpWhenAutoTracingIsActive(): void
+    {
+        $sent = [];
+        $transport = $this->createRecordingTransport($sent);
+
+        $context = new BrowserContext($transport, 'ctx_trace', new PlaywrightConfig(tracingEnabled: true));
+
+        $page = $this->createMock(PageInterface::class);
+        $context->startTracing($page, ['screenshots' => true, 'snapshots' => true]);
+
+        $this->assertCount(1, $sent);
+        $this->assertSame('context.startTracing', $sent[0]['action']);
+    }
+
+    public function testManualStopTracingConsumesTheAutoTrace(): void
+    {
+        $sent = [];
+        $transport = $this->createRecordingTransport($sent);
+
+        $context = new BrowserContext($transport, 'ctx_trace', new PlaywrightConfig(tracingEnabled: true));
+
+        $page = $this->createMock(PageInterface::class);
+        $page->method('getPageIdForTransport')->willReturn('page_1');
+
+        $context->stopTracing($page, '/tmp/manual-trace.zip');
+        $context->close();
+
+        $actions = array_column($sent, 'action');
+        $this->assertSame(['context.startTracing', 'context.stopTracing', 'context.close'], $actions);
+        $this->assertSame('/tmp/manual-trace.zip', $sent[1]['path']);
+    }
 }

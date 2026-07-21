@@ -35,6 +35,7 @@ class PlaywrightConfigBuilderTest extends TestCase
             'PW_HEADLESS',
             'PW_TIMEOUT_MS',
             'PW_SLOWMO_MS',
+            'PW_TRACE',
             'PW_TRACING',
             'PW_TRACE_DIR',
             'PW_DOWNLOADS_DIR',
@@ -241,7 +242,7 @@ class PlaywrightConfigBuilderTest extends TestCase
         putenv('PW_HEADLESS=false');
         putenv('PW_TIMEOUT_MS=60000');
         putenv('PW_SLOWMO_MS=500');
-        putenv('PW_TRACING=true');
+        putenv('PW_TRACE=true');
         putenv('PW_TRACE_DIR=/env/traces');
         putenv('PW_DOWNLOADS_DIR=/env/downloads');
         putenv('PW_VIDEOS_DIR=/env/videos');
@@ -353,5 +354,27 @@ class PlaywrightConfigBuilderTest extends TestCase
         $this->assertEquals(BrowserType::WEBKIT, $config->browser);
         $this->assertTrue($config->headless);
         $this->assertEquals(45000, $config->timeoutMs);
+    }
+
+    #[Test]
+    public function itReadsTracingFromPwTraceEnv(): void
+    {
+        putenv('PW_TRACE=true');
+        putenv('PW_TRACE_DIR=/env/traces');
+
+        $config = PlaywrightConfigBuilder::fromEnv()->build();
+
+        $this->assertTrue($config->tracingEnabled);
+        $this->assertEquals('/env/traces', $config->traceDir);
+    }
+
+    #[Test]
+    public function itIgnoresTheRemovedPwTracingVariable(): void
+    {
+        putenv('PW_TRACING=true');
+
+        $config = PlaywrightConfigBuilder::fromEnv()->build();
+
+        $this->assertFalse($config->tracingEnabled);
     }
 }

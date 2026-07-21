@@ -53,6 +53,8 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
 
     private ClockInterface $clock;
 
+    private bool $autoTracing = false;
+
     public function __construct(
         private readonly TransportInterface $transport,
         private readonly string $contextId,
@@ -63,6 +65,18 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
         }
 
         $this->clock = new Clock($this->transport, $this->contextId);
+
+        if ($this->config->tracingEnabled) {
+            $this->transport->send([
+                'action' => 'context.startTracing',
+                'contextId' => $this->contextId,
+                'options' => [
+                    'screenshots' => $this->config->traceScreenshots,
+                    'snapshots' => $this->config->traceSnapshots,
+                ],
+            ]);
+            $this->autoTracing = true;
+        }
     }
 
     public function clock(): ClockInterface
@@ -193,10 +207,29 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
 
     public function close(): void
     {
+        if ($this->autoTracing) {
+            $this->saveAutoTrace();
+        }
+
         $this->transport->send([
             'action' => 'context.close',
             'contextId' => $this->contextId,
         ]);
+    }
+
+    private function saveAutoTrace(): void
+    {
+        $dir = $this->config->traceDir ?? getcwd().'/traces';
+        if (!is_dir($dir) && !@mkdir($dir, 0777, true) && !is_dir($dir)) {
+            throw new \RuntimeException(sprintf('Trace directory "%s" was not created', $dir));
+        }
+
+        $this->transport->send([
+            'action' => 'context.stopTracing',
+            'contextId' => $this->contextId,
+            'path' => $dir.'/trace-'.$this->contextId.'.zip',
+        ]);
+        $this->autoTracing = false;
     }
 
     /**
@@ -465,6 +498,11 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
      */
     public function startTracing(PageInterface $page, array $options = []): void
     {
+        if ($this->autoTracing) {
+            // Tracing already runs for the whole context (config-enabled)
+            return;
+        }
+
         $this->transport->send([
             'action' => 'context.startTracing',
             'contextId' => $this->contextId,
@@ -494,6 +532,7 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
             'pageId' => $page->getPageIdForTransport(),
             'path' => $path,
         ]);
+        $this->autoTracing = false;
     }
 
     public function setNetworkThrottling(NetworkThrottling $throttling): void

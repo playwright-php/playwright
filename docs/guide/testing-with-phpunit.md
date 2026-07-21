@@ -92,7 +92,11 @@ When a test fails, the library automatically provides tools to help you debug:
 
 * **Screenshots:** A screenshot of the page at the moment of failure is automatically saved to a `test-failures`
   directory in your project root.
-* **Tracing:** You can enable tracing by setting the `PW_TRACE` environment variable. When a test fails with tracing
-  enabled, a `trace.zip` file is generated. You can drag and drop this file into
-  the [Playwright Trace Viewer](https://playwright.dev/docs/trace-viewer) to see a complete, time-traveling recording of
-  your test's execution.
+* **Tracing:** You can enable tracing by setting the `PW_TRACE` environment variable (`PW_TRACE=1`). When a test fails
+  with tracing enabled, a trace archive named after the test is saved next to the screenshot in `test-failures/`. You
+  can drag and drop this file into the [Playwright Trace Viewer](https://playwright.dev/docs/trace-viewer) to see a
+  complete, time-traveling recording of your test's execution.
+
+`PW_TRACE` is the single switch for tracing. It is also read by `PlaywrightConfigBuilder::fromEnv()`: every browser
+context created from that configuration records a trace, saved to `PW_TRACE_DIR` (default: `traces/` in the working
+directory) when the context closes.
