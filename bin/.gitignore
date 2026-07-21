@@ -2,3 +2,4 @@ debug-dispatch.log
 playwright-server.log
 screenshot_*
 pnpm-lock.yaml
+package-lock.json

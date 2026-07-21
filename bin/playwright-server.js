@@ -389,3 +389,30 @@ process.stdin.on('data', ErrorHandler.wrapHandler(async (chunk) => {
     sendFramedResponse({ error: 'LSP framing error: ' + error.message });
   }
 }));
+
+// The PHP process owns this server. Once it is gone, nothing will ever arrive on
+// stdin again and every browser we hold becomes an orphan reparented to init.
+// stdin closing covers the cases no PHP-side shutdown hook can reach: SIGKILL,
+// a fatal error, or SIGTERM, none of which run register_shutdown_function.
+let shuttingDown = false;
+
+async function shutdown(reason) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+
+  // A browser that refuses to close must not wedge the process: exiting without
+  // cleanup still lets Chromium notice the broken pipe, hanging here does not.
+  const watchdog = setTimeout(() => process.exit(1), 5000);
+  watchdog.unref();
+
+  try {
+    logger.info('Parent gone, shutting down', { reason });
+  } catch {}
+
+  await server.exit();
+}
+
+process.stdin.on('end', () => shutdown('stdin end'));
+process.stdin.on('close', () => shutdown('stdin close'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGHUP', () => shutdown('SIGHUP'));
