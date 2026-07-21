@@ -199,12 +199,19 @@ final class RequestTest extends TestCase
         $this->assertFalse($request->isNavigationRequest());
     }
 
-    public function testPostDataBuffer(): void
+    public function testPostDataBufferDecodesTheBase64Transport(): void
     {
-        $request = $this->createRequest(['postDataBuffer' => 'binary-data']);
-        $this->assertSame('binary-data', $request->postDataBuffer());
+        $binary = "\xff\xfe\x00\x41\x80";
+        $request = $this->createRequest(['postDataBuffer' => base64_encode($binary)]);
+        $this->assertSame($binary, $request->postDataBuffer());
 
         $request = $this->createRequest();
+        $this->assertNull($request->postDataBuffer());
+    }
+
+    public function testPostDataBufferReturnsNullOnInvalidBase64(): void
+    {
+        $request = $this->createRequest(['postDataBuffer' => 'not base64!']);
         $this->assertNull($request->postDataBuffer());
     }
 

@@ -201,8 +201,14 @@ final class Request implements RequestInterface
     public function postDataBuffer(): ?string
     {
         $buffer = $this->data['postDataBuffer'] ?? null;
+        if (!is_string($buffer)) {
+            return null;
+        }
 
-        return is_string($buffer) ? $buffer : null;
+        // The transport carries the raw bytes as base64
+        $decoded = base64_decode($buffer, true);
+
+        return false === $decoded ? null : $decoded;
     }
 
     /**
