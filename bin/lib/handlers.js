@@ -232,6 +232,7 @@ class PageHandler extends BaseHandler {
       addStyleTag: () => page.addStyleTag(command.options).then(() => ({ success: true })),
       handleDialog: () => this.handleDialog(command),
       route: () => RouteUtils.setupRoute(page, command.pageId, command.url, this.generateId, this.routes, this.extractRequestData, this.sendFramedResponse, () => `route_${++this.routeCounter.value}`),
+      unroute: () => page.unroute(command.url),
       goBack: () => page.goBack(command.options),
       goForward: () => page.goForward(command.options),
       reload: () => page.reload(command.options),

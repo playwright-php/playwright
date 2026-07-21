@@ -528,4 +528,24 @@ class PageTest extends TestCase
         $result = $this->page->setDefaultNavigationTimeout(10000);
         $this->assertSame($this->page, $result);
     }
+
+    public function testUnrouteSendsPageCommand(): void
+    {
+        $transport = $this->createMock(TransportInterface::class);
+        $context = $this->createMock(BrowserContextInterface::class);
+        $page = new Page($transport, $context, 'page-id', new PlaywrightConfig());
+
+        $context->expects($this->never())
+            ->method('unroute');
+        $transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'url' => '**/api/**',
+                'action' => 'page.unroute',
+                'pageId' => 'page-id',
+            ])
+            ->willReturn([]);
+
+        $page->unroute('**/api/**');
+    }
 }

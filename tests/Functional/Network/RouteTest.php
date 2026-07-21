@@ -107,14 +107,23 @@ final class RouteTest extends FunctionalTestCase
         $handler = function ($route) {
             $route->fulfill([
                 'status' => 200,
-                'contentType' => 'text/plain',
-                'body' => 'Intercepted',
+                'contentType' => 'application/json',
+                'body' => \json_encode(['message' => 'Intercepted']),
             ]);
         };
 
-        $this->page->route('**/api/text', $handler);
-        $this->page->unroute('**/api/text', $handler);
+        $this->page->route('**/api/data.json', $handler);
 
-        self::assertTrue(true);
+        $this->page->click('#fetch-json');
+        $this->page->waitForSelector('#fetch-result:has-text("Intercepted")', ['timeout' => 5000]);
+
+        $this->page->unroute('**/api/data.json', $handler);
+
+        // Without the route, /api/data.json 404s and the page reports an error
+        $this->page->click('#fetch-json');
+        $this->page->waitForSelector('#fetch-result:has-text("Error")', ['timeout' => 5000]);
+
+        $result = $this->page->locator('#fetch-result')->textContent();
+        self::assertStringContainsString('Error', $result);
     }
 }
