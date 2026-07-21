@@ -18,6 +18,7 @@ use Playwright\API\APIRequestContextInterface;
 use Playwright\Clock\ClockInterface;
 use Playwright\Network\NetworkThrottling;
 use Playwright\Page\PageInterface;
+use Playwright\Tracing\TracingInterface;
 
 /**
  * @method ClockInterface clock()                                                                   The context's clock, to fake and advance time
@@ -105,6 +106,11 @@ interface BrowserContextInterface
     public function unroute(string $url, ?callable $handler = null): void;
 
     public function getEnv(string $name): ?string;
+
+    /**
+     * Tracing helper associated with this context.
+     */
+    public function tracing(): TracingInterface;
 
     /**
      * @param array<string, mixed> $options

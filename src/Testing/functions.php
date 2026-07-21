@@ -16,8 +16,9 @@ namespace Playwright\Testing;
 
 use Playwright\Locator\LocatorInterface;
 use Playwright\Page\PageInterface;
+use Playwright\Tracing\TracingInterface;
 
-function expect(LocatorInterface|PageInterface $subject): ExpectInterface
+function expect(LocatorInterface|PageInterface $subject, ?TracingInterface $tracing = null): ExpectInterface
 {
-    return new Expect($subject);
+    return new Expect($subject, $tracing);
 }

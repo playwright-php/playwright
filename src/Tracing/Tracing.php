@@ -68,22 +68,20 @@ final class Tracing implements TracingInterface
         ]);
     }
 
-    /**
-     * @deprecated Use test.step() instead
-     */
-    public function group(string $name, string $location): void
+    public function group(string $name, ?string $location = null): void
     {
-        $this->transport->send([
+        $payload = [
             'action' => 'tracingGroup',
             'contextId' => $this->contextId,
             'name' => $name,
-            'location' => $location,
-        ]);
+        ];
+        if (null !== $location) {
+            $payload['location'] = $location;
+        }
+
+        $this->transport->send($payload);
     }
 
-    /**
-     * @deprecated Use test.step() instead
-     */
     public function groupEnd(): void
     {
         $this->transport->send([

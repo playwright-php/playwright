@@ -15,8 +15,8 @@ class ContextHandler extends BaseHandler {
       clearCookies: () => context.clearCookies(command.options || {}),
       grantPermissions: () => context.grantPermissions(command.permissions, command.origin ? { origin: command.origin } : undefined),
       clearPermissions: () => context.clearPermissions(),
-      startTracing: () => context.tracing.start(command.options || {}),
-      stopTracing: () => context.tracing.stop({ path: command.path }),
+      startTracing: async () => { await context.tracing.start(command.options || {}); context.__phpTracingActive = true; },
+      stopTracing: async () => { context.__phpTracingActive = false; await context.tracing.stop({ path: command.path }); },
       waitForEvent: async () => {
         // Special-case 'page' event to return a serializable payload
         if (command.event === 'page') {
@@ -43,6 +43,26 @@ class ContextHandler extends BaseHandler {
       clipboardText: () => this.getClipboardText(context),
       close: () => this.closeContext(context, command.contextId),
       newPage: () => this.createNewPage(context, command)
+    });
+
+    const result = await ErrorHandler.safeExecute(() => this.executeWithRegistry(registry, method), { method, contextId: command.contextId });
+    return this.wrapResult(result);
+  }
+
+  async handleTracing(command, method) {
+    const context = this.validateResource(this.contexts, command.contextId, 'Context')?.context;
+
+    const registry = CommandRegistry.create({
+      start: async () => { await context.tracing.start(command.options || {}); context.__phpTracingActive = true; },
+      startChunk: () => context.tracing.startChunk(command.options || {}),
+      stop: async () => { context.__phpTracingActive = false; await context.tracing.stop(command.options || {}); },
+      stopChunk: () => context.tracing.stopChunk(command.options || {}),
+      // Groups are silently skipped when tracing is off so callers (e.g. expect
+      // assertions) can emit them unconditionally
+      group: () => context.__phpTracingActive
+        ? context.tracing.group(command.name, command.location ? { location: { file: command.location } } : undefined)
+        : { skipped: true },
+      groupEnd: () => context.__phpTracingActive ? context.tracing.groupEnd() : { skipped: true }
     });
 
     const result = await ErrorHandler.safeExecute(() => this.executeWithRegistry(registry, method), { method, contextId: command.contextId });

@@ -49,13 +49,7 @@ interface TracingInterface
      */
     public function stopChunk(array|StopChunkOptions $options = []): void;
 
-    /**
-     * @deprecated Use test.step() instead
-     */
-    public function group(string $name, string $location): void;
+    public function group(string $name, ?string $location = null): void;
 
-    /**
-     * @deprecated Use test.step() instead
-     */
     public function groupEnd(): void;
 }

@@ -27,6 +27,8 @@ use Playwright\Network\NetworkThrottling;
 use Playwright\Network\Route;
 use Playwright\Page\Page;
 use Playwright\Page\PageInterface;
+use Playwright\Tracing\Tracing;
+use Playwright\Tracing\TracingInterface;
 use Playwright\Transport\TransportInterface;
 
 final class BrowserContext implements BrowserContextInterface, EventDispatcherInterface
@@ -55,6 +57,8 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
 
     private bool $autoTracing = false;
 
+    private ?TracingInterface $tracing = null;
+
     public function __construct(
         private readonly TransportInterface $transport,
         private readonly string $contextId,
@@ -82,6 +86,11 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
     public function clock(): ClockInterface
     {
         return $this->clock;
+    }
+
+    public function tracing(): TracingInterface
+    {
+        return $this->tracing ??= new Tracing($this->transport, $this->contextId);
     }
 
     /**
