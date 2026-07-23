@@ -21,14 +21,18 @@ use Playwright\PlaywrightClient;
 use Playwright\PlaywrightFactory;
 use Psr\Log\LoggerInterface;
 
+/**
+ * Every test here must pass an explicit nodePath.
+ *
+ * TransportFactory only calls NodeBinaryResolver when the config leaves nodePath
+ * null, and resolving spawns "node --version" against the real machine. A unit
+ * test doing that depends on the environment and fails whenever the binary is
+ * slow to answer. The environment-dependent cases live in
+ * tests/Integration/PlaywrightFactoryTest.php, where CI installs Node.
+ */
 #[CoversClass(PlaywrightFactory::class)]
 final class PlaywrightFactoryTest extends TestCase
 {
-    public function testCreateWithDefaultConfig(): void
-    {
-        $this->assertInstanceOf(PlaywrightClient::class, PlaywrightFactory::create());
-    }
-
     public function testCreateWithCustomConfig(): void
     {
         $config = new PlaywrightConfig(
@@ -39,15 +43,6 @@ final class PlaywrightFactoryTest extends TestCase
         );
 
         $client = PlaywrightFactory::create($config);
-
-        $this->assertInstanceOf(PlaywrightClient::class, $client);
-    }
-
-    public function testCreateWithLogger(): void
-    {
-        $logger = $this->createMock(LoggerInterface::class);
-
-        $client = PlaywrightFactory::create(logger: $logger);
 
         $this->assertInstanceOf(PlaywrightClient::class, $client);
     }
