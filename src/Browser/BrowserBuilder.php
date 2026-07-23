@@ -48,6 +48,13 @@ final class BrowserBuilder
         return $this;
     }
 
+    public function withExecutablePath(string $executablePath): self
+    {
+        $this->launchOptions['executablePath'] = $executablePath;
+
+        return $this;
+    }
+
     /**
      * @param array<string> $args
      */
