@@ -16,6 +16,7 @@ namespace Playwright\Browser;
 
 use Playwright\Configuration\PlaywrightConfig;
 use Playwright\Exception\PlaywrightException;
+use Playwright\Transport\Sanitizer;
 use Playwright\Transport\TransportInterface;
 use Psr\Log\LoggerInterface;
 
@@ -48,6 +49,30 @@ final class BrowserBuilder
         return $this;
     }
 
+    public function withChannel(string $channel): self
+    {
+        $this->launchOptions['channel'] = $channel;
+
+        return $this;
+    }
+
+    /**
+     * @param array{server: string, username?: string, password?: string, bypass?: string} $proxy
+     */
+    public function withProxy(array $proxy): self
+    {
+        $this->launchOptions['proxy'] = $proxy;
+
+        return $this;
+    }
+
+    public function withDownloadsPath(string $path): self
+    {
+        $this->launchOptions['downloadsPath'] = $path;
+
+        return $this;
+    }
+
     /**
      * @param array<string> $args
      */
@@ -73,15 +98,19 @@ final class BrowserBuilder
 
     public function launch(): BrowserInterface
     {
+        // Launch options can carry proxy credentials, so never log them raw.
         $this->logger->info('Launching browser', [
             'browser' => $this->browserType,
-            'options' => $this->launchOptions,
+            'options' => Sanitizer::sanitizeParams($this->launchOptions),
         ]);
 
         $response = $this->transport->send([
             'action' => 'launch',
             'browser' => $this->browserType,
             'options' => $this->launchOptions,
+            // The server creates the default context during launch, so its
+            // options have to travel with the launch command.
+            'contextOptions' => $this->config->toContextOptions(),
         ]);
 
         if (isset($response['error'])) {

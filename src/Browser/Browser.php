@@ -54,7 +54,7 @@ final class Browser implements BrowserInterface
         $response = $this->transport->send([
             'action' => 'newContext',
             'browserId' => $this->browserId,
-            'options' => $options,
+            'options' => array_merge($this->config->toContextOptions(), $options),
         ]);
 
         if (!is_string($response['contextId'])) {

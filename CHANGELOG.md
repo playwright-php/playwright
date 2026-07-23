@@ -8,6 +8,17 @@
   `BrowserContext::setOffline()`, `Dialog::page()`, `Keyboard::insertText()`,
   `Page::pause()`, `Response::headerValue()`. They will move to real interface
   declarations in the next major.
+- `BrowserBuilder::withChannel()`, `withProxy()` and `withDownloadsPath()`
+
+### Fixed
+- `PlaywrightConfig` now applies `channel`, `proxy`, `downloadsDir`,
+  `videosDir` and `minNodeVersion`. They were declared but never read, so
+  setting them had no effect. Anyone who worked around the `proxy` gap by
+  passing `--proxy-server` in `args` will now get both.
+- `videosDir` applies to the default context as well, not only to contexts
+  created through `Browser::newContext()`. The server builds the default
+  context during launch, so its options now travel with the launch command.
+- Proxy credentials no longer appear in the "Launching browser" log entry
 
 ## [1.2.0] - 2026-02-25
 

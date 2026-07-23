@@ -202,7 +202,7 @@ class PlaywrightServer extends BaseHandler {
       const browser = await browserType.launch(launchOptions);
       const browserId = this.generateId('browser');
       this.browsers.set(browserId, browser);
-      const context = await browser.newContext();
+      const context = await browser.newContext(command.contextOptions || {});
       const contextId = this.generateId('context');
       this.contexts.set(contextId, { context, browserId, id: contextId });
       this.registerContextPopups(context, contextId);

@@ -21,6 +21,7 @@ use Playwright\Browser\Browser;
 use Playwright\Browser\BrowserBuilder;
 use Playwright\Configuration\PlaywrightConfig;
 use Playwright\Transport\TransportInterface;
+use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
 #[CoversClass(BrowserBuilder::class)]
@@ -173,5 +174,99 @@ class BrowserBuilderTest extends TestCase
         $browser = $this->builder->connectOverCDP('http://localhost:9222');
 
         $this->assertInstanceOf(Browser::class, $browser);
+    }
+
+    #[Test]
+    public function itSendsTheChannelInTheLaunchPayload(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static function (array $message): bool {
+                return 'launch' === $message['action']
+                    && 'msedge' === $message['options']['channel'];
+            }))
+            ->willReturn(['browserId' => 'b', 'defaultContextId' => 'c', 'version' => '1.0']);
+
+        $this->builder->withChannel('msedge')->launch();
+    }
+
+    #[Test]
+    public function itSendsTheFullProxyArrayInTheLaunchPayload(): void
+    {
+        $proxy = [
+            'server' => 'http://proxy.local:8080',
+            'username' => 'user',
+            'password' => 'secret',
+            'bypass' => 'localhost',
+        ];
+
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static function (array $message) use ($proxy): bool {
+                return 'launch' === $message['action']
+                    && $proxy === $message['options']['proxy'];
+            }))
+            ->willReturn(['browserId' => 'b', 'defaultContextId' => 'c', 'version' => '1.0']);
+
+        $this->builder->withProxy($proxy)->launch();
+    }
+
+    #[Test]
+    public function itSendsTheDownloadsPathInTheLaunchPayload(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static function (array $message): bool {
+                return 'launch' === $message['action']
+                    && '/tmp/downloads' === $message['options']['downloadsPath'];
+            }))
+            ->willReturn(['browserId' => 'b', 'defaultContextId' => 'c', 'version' => '1.0']);
+
+        $this->builder->withDownloadsPath('/tmp/downloads')->launch();
+    }
+
+    #[Test]
+    public function itDoesNotLogTheProxyPassword(): void
+    {
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())
+            ->method('info')
+            ->with('Launching browser', $this->callback(static function (array $context): bool {
+                return '[REDACTED]' === $context['options']['proxy']['password'];
+            }));
+
+        $transport = $this->createMock(TransportInterface::class);
+        $transport->method('send')
+            ->willReturn(['browserId' => 'b', 'defaultContextId' => 'c', 'version' => '1.0']);
+
+        $builder = new BrowserBuilder('chromium', $transport, $logger, new PlaywrightConfig());
+
+        $builder->withProxy([
+            'server' => 'http://proxy.local:8080',
+            'username' => 'user',
+            'password' => 'secret',
+        ])->launch();
+    }
+
+    #[Test]
+    public function itSendsContextOptionsSoTheDefaultContextRecordsVideo(): void
+    {
+        $transport = $this->createMock(TransportInterface::class);
+        $transport->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static function (array $message): bool {
+                return 'launch' === $message['action']
+                    && ['dir' => '/tmp/videos'] === $message['contextOptions']['recordVideo'];
+            }))
+            ->willReturn(['browserId' => 'b', 'defaultContextId' => 'c', 'version' => '1.0']);
+
+        $builder = new BrowserBuilder(
+            'chromium',
+            $transport,
+            new NullLogger(),
+            new PlaywrightConfig(videosDir: '/tmp/videos'),
+        );
+
+        $builder->launch();
     }
 }

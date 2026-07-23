@@ -60,7 +60,7 @@ final class PlaywrightConfigBuilder
 
     private bool $traceSnapshots = true;
 
-    /** @var array{server?: string, username?: string, password?: string, bypass?: string}|null */
+    /** @var array{server: string, username?: string, password?: string, bypass?: string}|null */
     private ?array $proxy = null;
 
     private ?LoggerInterface $logger = null;

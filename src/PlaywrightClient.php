@@ -172,6 +172,18 @@ class PlaywrightClient
             $builder->withArgs($this->config->args);
         }
 
+        if (null !== $this->config->channel) {
+            $builder->withChannel($this->config->channel);
+        }
+
+        if (null !== $this->config->proxy) {
+            $builder->withProxy($this->config->proxy);
+        }
+
+        if (null !== $this->config->downloadsDir) {
+            $builder->withDownloadsPath($this->config->downloadsDir);
+        }
+
         return $builder;
     }
 

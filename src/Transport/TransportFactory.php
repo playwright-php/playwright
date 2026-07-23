@@ -32,7 +32,7 @@ final class TransportFactory
             throw new RuntimeException('playwright-server.js not found.');
         }
 
-        $nodePath = $config->nodePath ?? (new NodeBinaryResolver())->resolve();
+        $nodePath = $config->nodePath ?? (new NodeBinaryResolver(minVersion: $config->minNodeVersion))->resolve();
         $command = [$nodePath, $serverScriptPath];
 
         $processLauncher = new ProcessLauncher($logger);
