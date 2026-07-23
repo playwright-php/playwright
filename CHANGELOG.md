@@ -1,24 +1,35 @@
 # CHANGELOG
 
-## [Unreleased]
+## [1.3.0] - 2026-07-23
 
 ### Added
-- Interface annotations (`@method`, no BC impact) for methods already shipped by the
-  concrete classes: `BrowserContext::clock()`, `BrowserContext::setGeolocation()`,
-  `BrowserContext::setOffline()`, `Dialog::page()`, `Keyboard::insertText()`,
-  `Page::pause()`, `Response::headerValue()`. They will move to real interface
-  declarations in the next major.
-- `BrowserBuilder::withChannel()`, `withProxy()` and `withDownloadsPath()`
+- `Page::waitForFunction()` (#87)
+- Clear cookies by name (#85)
+- `BrowserContextInterface::tracing()` exposing the Tracing API; `expect()` assertions are recorded as named trace groups (#114)
+- `BrowserBuilder::withChannel()`, `withProxy()` and `withDownloadsPath()` (#121)
+- PSR Log 2.0 support, alongside 3.0 (#93)
+- Interface `@method` annotations for methods already shipped by the concrete classes: `BrowserContext::clock()`, `BrowserContext::setGeolocation()`, `BrowserContext::setOffline()`, `Dialog::page()`, `Keyboard::insertText()`, `Page::pause()`, `Response::headerValue()`. They move to real interface declarations in the next major (#108)
+
+### Changed
+- `PlaywrightConfig` is now mandatory on the `Browser`, `BrowserContext`, `Page` and `BrowserBuilder` constructors (#72)
+- `Page::getBy*()` locators accept `string|Regex`, matching the Playwright JS API (#76)
+- `PW_TRACE` is the single tracing switch; contexts created from `PlaywrightConfigBuilder::fromEnv()` record a trace saved on close (#111)
+- `PlaywrightConfig` applies `channel`, `proxy`, `downloadsDir`, `videosDir` and `minNodeVersion`; `videosDir` also applies to the default context (#121)
 
 ### Fixed
-- `PlaywrightConfig` now applies `channel`, `proxy`, `downloadsDir`,
-  `videosDir` and `minNodeVersion`. They were declared but never read, so
-  setting them had no effect. Anyone who worked around the `proxy` gap by
-  passing `--proxy-server` in `args` will now get both.
-- `videosDir` applies to the default context as well, not only to contexts
-  created through `Browser::newContext()`. The server builds the default
-  context during launch, so its options now travel with the launch command.
-- Proxy credentials no longer appear in the "Launching browser" log entry
+- `PageInterface::waitForSelector()` returns `LocatorInterface` instead of `?LocatorInterface`, matching the implementation (#74)
+- `Page::bringToFront()` is implemented (#89)
+- `Page::unroute()` reaches the page instead of the context (#110)
+- `Page::setDefaultTimeout()` and `setDefaultNavigationTimeout()` are registered server-side (#109)
+- `BrowserContext::setStorageState()` is registered server-side (#112)
+- Operation timeouts extend the RPC deadline (#113)
+- Request bodies survive non-UTF8 content, carried as base64 `postDataBuffer` (#116)
+- The Node bridge and its browser shut down when the PHP process dies (#118)
+- `LspFraming` recovers from stray non-LSP output on the stream (#106)
+- `ProcessJsonRpcClient` clears the Process output buffers (#103)
+- Passive popup and tab registration in the Node bridge (#104)
+- `waitForActionable` honours the options passed to override the timeout (#82)
+- Proxy credentials are redacted from the "Launching browser" log (#121)
 
 ## [1.2.0] - 2026-02-25
 
