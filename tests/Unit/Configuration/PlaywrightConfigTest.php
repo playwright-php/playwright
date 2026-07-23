@@ -238,4 +238,18 @@ class PlaywrightConfigTest extends TestCase
         $this->assertEquals('/original/node', $config->nodePath);
         $this->assertEquals('/new/node', $newConfig->nodePath);
     }
+
+    #[Test]
+    public function toContextOptionsMapsVideosDirToRecordVideo(): void
+    {
+        $config = new PlaywrightConfig(videosDir: '/tmp/videos');
+
+        $this->assertSame(['recordVideo' => ['dir' => '/tmp/videos']], $config->toContextOptions());
+    }
+
+    #[Test]
+    public function toContextOptionsIsEmptyWhenNoContextOptionIsSet(): void
+    {
+        $this->assertSame([], (new PlaywrightConfig())->toContextOptions());
+    }
 }

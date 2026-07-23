@@ -26,11 +26,11 @@ final class PlaywrightConfig
      * @param array<int, string>    $args
      * @param array<string, string> $env
      * @param array{
-     *   server?: string,
+     *   server: string,
      *   username?: string,
      *   password?: string,
      *   bypass?: string
-     * }|null $proxy
+     * }|null $proxy Playwright requires "server"; the other keys are optional
      */
     public function __construct(
         public readonly ?string $nodePath = null,
@@ -73,6 +73,28 @@ final class PlaywrightConfig
         }
 
         return rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.'playwright';
+    }
+
+    /**
+     * Browser context options derived from this configuration.
+     *
+     * Only options the configuration actually sets are returned, so an unset
+     * one never reaches Playwright and its own default applies.
+     *
+     * @internal the shape of this bridge is not part of the public API and may
+     *           change when context options gain a dedicated type
+     *
+     * @return array<string, mixed>
+     */
+    public function toContextOptions(): array
+    {
+        $options = [];
+
+        if (null !== $this->videosDir) {
+            $options['recordVideo'] = ['dir' => $this->videosDir];
+        }
+
+        return $options;
     }
 
     /**

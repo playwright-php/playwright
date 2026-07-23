@@ -18,6 +18,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Playwright\Configuration\PlaywrightConfig;
+use Playwright\Node\Exception\NodeVersionTooLowException;
 use Playwright\Transport\JsonRpc\JsonRpcTransport;
 use Playwright\Transport\TransportFactory;
 use Psr\Log\NullLogger;
@@ -87,5 +88,16 @@ class TransportFactoryTest extends TestCase
         $transport = $this->factory->create($config, $this->logger);
 
         $this->assertInstanceOf(JsonRpcTransport::class, $transport);
+    }
+
+    #[Test]
+    public function itEnforcesTheConfiguredMinimumNodeVersion(): void
+    {
+        $config = new PlaywrightConfig(minNodeVersion: '999.0.0');
+
+        $this->expectException(NodeVersionTooLowException::class);
+        $this->expectExceptionMessageMatches('/need >= 999\.0\.0/');
+
+        $this->factory->create($config, $this->logger);
     }
 }

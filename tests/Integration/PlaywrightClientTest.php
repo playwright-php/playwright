@@ -18,6 +18,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Playwright\Browser\BrowserBuilder;
+use Playwright\Configuration\PlaywrightConfig;
 use Playwright\Configuration\PlaywrightConfigBuilder;
 use Playwright\PlaywrightClient;
 use Playwright\Transport\TransportInterface;
@@ -119,5 +120,72 @@ class PlaywrightClientTest extends TestCase
 
         $this->client->chromium();
         unset($this->client);
+    }
+
+    #[Test]
+    public function itAppliesChannelProxyAndDownloadsDirFromTheConfig(): void
+    {
+        $proxy = ['server' => 'http://proxy.local:8080'];
+
+        $transport = $this->createMock(TransportInterface::class);
+        $transport->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static function (array $message) use ($proxy): bool {
+                return 'launch' === $message['action']
+                    && 'chrome-beta' === $message['options']['channel']
+                    && $proxy === $message['options']['proxy']
+                    && '/var/downloads' === $message['options']['downloadsPath'];
+            }))
+            ->willReturn(['browserId' => 'b', 'defaultContextId' => 'c', 'version' => '1.0']);
+
+        $config = new PlaywrightConfig(
+            nodePath: '/usr/bin/node',
+            channel: 'chrome-beta',
+            downloadsDir: '/var/downloads',
+            proxy: $proxy,
+        );
+
+        (new PlaywrightClient($transport, new NullLogger(), $config))->chromium()->launch();
+    }
+
+    #[Test]
+    public function itLeavesUnsetConfigOptionsOutOfTheLaunchPayload(): void
+    {
+        $transport = $this->createMock(TransportInterface::class);
+        $transport->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static function (array $message): bool {
+                return 'launch' === $message['action']
+                    && !array_key_exists('channel', $message['options'])
+                    && !array_key_exists('proxy', $message['options'])
+                    && !array_key_exists('downloadsPath', $message['options']);
+            }))
+            ->willReturn(['browserId' => 'b', 'defaultContextId' => 'c', 'version' => '1.0']);
+
+        $config = new PlaywrightConfig(nodePath: '/usr/bin/node');
+
+        (new PlaywrightClient($transport, new NullLogger(), $config))->chromium()->launch();
+    }
+
+    #[Test]
+    public function itLetsAnExplicitSetterOverrideTheConfig(): void
+    {
+        $transport = $this->createMock(TransportInterface::class);
+        $transport->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static function (array $message): bool {
+                return 'msedge' === $message['options']['channel'];
+            }))
+            ->willReturn(['browserId' => 'b', 'defaultContextId' => 'c', 'version' => '1.0']);
+
+        $config = new PlaywrightConfig(
+            nodePath: '/usr/bin/node',
+            channel: 'chrome-beta',
+        );
+
+        (new PlaywrightClient($transport, new NullLogger(), $config))
+            ->chromium()
+            ->withChannel('msedge')
+            ->launch();
     }
 }
