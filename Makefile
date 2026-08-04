@@ -1,6 +1,6 @@
 # Makefile
 
-.PHONY: about help show-help warning qa sa cs csfix cslint test phpunit phpstan phpcsfixer
+.PHONY: about help show-help warning qa ci sa cs csfix cslint test phpunit phpstan phpcsfixer
 
 .DEFAULT_GOAL := help
 
@@ -21,7 +21,8 @@ if [ $$exit_code -eq 0 ]; then \
   printf "\n[\033[32m✓\033[0m] \033[2m%s\033[0m\033[116G\033[2m[\033[0m\033[32m%s\033[0m \033[2mseconds\033[0m\033[2m]\033[0m\n" "$$command" "$$elapsed_time"; \
 else \
   printf "\n[\033[31m✗\033[0m] \033[2m%s\033[0m\033[116G\033[2m[\033[0m\033[31m%s\033[0m \033[2mseconds\033[0m\033[2m]\033[0m\n" "$$command" "$$elapsed_time"; \
-fi
+fi; \
+exit $$exit_code
 endef
 
 define php_cmd
@@ -68,13 +69,17 @@ phpunit:
 cs:
 	@$(MAKE) phpcsfixer ARGS="--diff"
 
+## Check code style without fixing (<code>vendor/bin/php-cs-fixer</code>)
+cslint:
+	@$(MAKE) phpcsfixer ARGS="--diff --dry-run"
+
 ## Static analysis (<code>vendor/bin/phpstan</code>)
 sa:
 	@$(MAKE) phpstan ARGS="--memory-limit=-1"
 
 ## Run all CI checks (CS + SA + tests)
 ci:
-	@$(MAKE) cs
+	@$(MAKE) cslint
 	@$(MAKE) sa
 	@$(MAKE) test
 
