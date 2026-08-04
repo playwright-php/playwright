@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## [1.3.1] - 2026-08-04
+
+### Fixed
+- `Locator::setInputFiles()` and `Page::setInputFiles()` resolve relative paths before sending them to the Node bridge (#127)
+- Endpoint credentials are redacted from the `connect()` and `connectOverCDP()` logs (#128)
+
 ## [1.3.0] - 2026-07-23
 
 ### Added
