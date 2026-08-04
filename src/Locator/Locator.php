@@ -385,15 +385,18 @@ final class Locator implements \Stringable, LocatorInterface
             'files' => $fileArray,
         ]);
 
+        $resolved = [];
         foreach ($fileArray as $file) {
-            if (!\file_exists($file)) {
+            $absolute = \realpath($file);
+            if (false === $absolute) {
                 $this->logger->error('File not found for input upload', ['file' => $file]);
                 throw new PlaywrightException(\sprintf('File not found: %s', $file));
             }
+            $resolved[] = $absolute;
         }
 
         try {
-            $this->sendCommand('locator.setInputFiles', ['files' => $fileArray, 'options' => $options->toArray()]);
+            $this->sendCommand('locator.setInputFiles', ['files' => $resolved, 'options' => $options->toArray()]);
             $this->logger->info('Successfully set input files on locator', [
                 'selector' => (string) $this->selectorChain,
                 'fileCount' => \count($fileArray),

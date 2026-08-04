@@ -84,6 +84,24 @@ final class FileUploadIntegrationTest extends TestCase
     }
 
     #[Test]
+    public function itUploadsAFileGivenByARelativePath(): void
+    {
+        $cwd = (string) getcwd();
+        chdir(\dirname($this->tempFile));
+
+        try {
+            $this->page->locator('#file')->setInputFiles([basename($this->tempFile)]);
+            usleep(100000);
+
+            $name = $this->page->evaluate('() => document.body.dataset.filename');
+        } finally {
+            chdir($cwd);
+        }
+
+        $this->assertSame(basename($this->tempFile), $name);
+    }
+
+    #[Test]
     public function itUploadsAFileWithLocatorAndOptionsObject(): void
     {
         $this->page->locator('#file')->setInputFiles(
