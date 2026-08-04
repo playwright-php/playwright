@@ -122,8 +122,23 @@ jobs:
             composer install --prefer-dist --no-interaction --no-progress
           fi
 
+      - name: "Playwright: cache browsers"
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ms-playwright-${{ runner.os }}-${{ hashFiles('bin/package.json') }}
+          restore-keys: ms-playwright-${{ runner.os }}-
+
       - name: "Playwright: install browsers"
-        run: php bin/playwright-install --with-deps
+        timeout-minutes: 15
+        run: |
+          for attempt in 1 2 3; do
+            if timeout 300 php bin/playwright-install --with-deps; then
+              exit 0
+            fi
+            echo "Attempt $attempt failed or timed out after 5 minutes, retrying."
+          done
+          exit 1
 
       - name: "PHPUnit: all tests with coverage"
         run: vendor/bin/phpunit --coverage-clover=coverage.xml
