@@ -148,8 +148,8 @@ final class BrowserBuilder
     {
         $this->logger->info('Connecting to browser server', [
             'browser' => $this->browserType,
-            'wsEndpoint' => $wsEndpoint,
-            'options' => $options,
+            'wsEndpoint' => Sanitizer::sanitizeUrl($wsEndpoint),
+            'options' => Sanitizer::sanitizeParams($options),
         ]);
 
         $response = $this->transport->send([
@@ -194,8 +194,8 @@ final class BrowserBuilder
     {
         $this->logger->info('Connecting over CDP', [
             'browser' => $this->browserType,
-            'endpointURL' => $endpointURL,
-            'options' => $options,
+            'endpointURL' => Sanitizer::sanitizeUrl($endpointURL),
+            'options' => Sanitizer::sanitizeParams($options),
         ]);
 
         $response = $this->transport->send([
