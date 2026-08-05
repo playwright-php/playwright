@@ -16,6 +16,7 @@ namespace Playwright\Tests\Unit\Transport;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Playwright\Exception\MissingDependencyException;
 use Playwright\Node\NodeBinaryResolverInterface;
 use Playwright\Transport\ServerFinder;
 
@@ -29,6 +30,36 @@ final class ServerFinderTest extends TestCase
         $result = $finder->findPlaywright();
 
         $this->assertTrue(is_string($result) || null === $result);
+    }
+
+    public function testFindServerNamesTheInstallCommandWhenPlaywrightIsMissing(): void
+    {
+        $tmpCwd = sys_get_temp_dir().'/pwphp_missing_'.bin2hex(random_bytes(4));
+        $originalPath = getenv('PLAYWRIGHT_PATH');
+        $originalCwd = getcwd();
+
+        try {
+            mkdir($tmpCwd.'/a/b', 0777, true);
+            chdir($tmpCwd.'/a/b');
+            putenv('PLAYWRIGHT_PATH');
+
+            $this->expectException(MissingDependencyException::class);
+            $this->expectExceptionMessageMatches('/vendor\/bin\/playwright-install/');
+
+            (new ServerFinder())->findServer();
+        } finally {
+            if (is_string($originalCwd)) {
+                chdir($originalCwd);
+            }
+
+            if (false !== $originalPath) {
+                putenv('PLAYWRIGHT_PATH='.$originalPath);
+            }
+
+            @rmdir($tmpCwd.'/a/b');
+            @rmdir($tmpCwd.'/a');
+            @rmdir($tmpCwd);
+        }
     }
 
     public function testFindServerWorksWhenPlaywrightFound(): void

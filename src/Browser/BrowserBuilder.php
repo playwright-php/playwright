@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace Playwright\Browser;
 
 use Playwright\Configuration\PlaywrightConfig;
+use Playwright\Exception\MissingDependencyException;
 use Playwright\Exception\PlaywrightException;
 use Playwright\Transport\Sanitizer;
 use Playwright\Transport\TransportInterface;
@@ -117,6 +118,17 @@ final class BrowserBuilder
             if (!is_string($response['error'])) {
                 throw new PlaywrightException('Browser launch failed with unknown error');
             }
+
+            // Playwright makes both checks itself, but points at "npx playwright install" and
+            // "npx playwright install-deps", which is not how this package installs them.
+            if (str_contains($response['error'], "Executable doesn't exist")) {
+                throw MissingDependencyException::browsers($response['error']);
+            }
+
+            if (str_contains($response['error'], 'Host system is missing dependencies')) {
+                throw MissingDependencyException::hostLibraries($response['error']);
+            }
+
             throw new PlaywrightException($response['error']);
         }
 
