@@ -15,9 +15,14 @@ declare(strict_types=1);
 namespace Playwright\Tests\Unit\Page;
 
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Playwright\API\APIRequestContextInterface;
 use Playwright\Browser\BrowserContextInterface;
 use Playwright\Configuration\PlaywrightConfig;
+use Playwright\Exception\RuntimeException;
+use Playwright\Exception\TimeoutException;
 use Playwright\Input\KeyboardInterface;
 use Playwright\Input\MouseInterface;
 use Playwright\Locator\Locator;
@@ -32,15 +37,15 @@ use Playwright\Transport\TransportInterface;
 class PageTest extends TestCase
 {
     protected Page $page;
-    protected \PHPUnit\Framework\MockObject\MockObject $transport;
+    protected MockObject&TransportInterface $transport;
+    protected MockObject&BrowserContextInterface $context;
 
     protected function setUp(): void
     {
         $this->transport = $this->createMock(TransportInterface::class);
-        $context = $this->createMock(BrowserContextInterface::class);
-        $pageId = 'page-id';
+        $this->context = $this->createMock(BrowserContextInterface::class);
 
-        $this->page = new Page($this->transport, $context, $pageId, new PlaywrightConfig());
+        $this->page = new Page($this->transport, $this->context, 'page-id', new PlaywrightConfig());
     }
 
     public function testGetKeyboard(): void
@@ -547,5 +552,289 @@ class PageTest extends TestCase
             ->willReturn([]);
 
         $page->unroute('**/api/**');
+    }
+
+    public function testMainFrame(): void
+    {
+        $page = $this->createPage();
+        $frame = $page->mainFrame();
+        $this->assertSame('Frame(selector=":root")', (string) $frame);
+    }
+
+    public function testFrames(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with($this->callback(fn (array $payload) => 'page.frames' === $payload['action'] && 'page-1' === $payload['pageId']))
+            ->willReturn(['frames' => [
+                ['selector' => 'iframe#one'],
+                ['selector' => 'iframe[name="two"]'],
+            ]]);
+
+        $page = $this->createPage();
+        $frames = $page->frames();
+        $this->assertCount(2, $frames);
+        $this->assertSame('Frame(selector="iframe#one")', (string) $frames[0]);
+    }
+
+    public function testFrameFind(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with($this->callback(function (array $payload) {
+                return 'page.frame' === $payload['action']
+                    && 'page-1' === $payload['pageId']
+                    && isset($payload['options']['name'])
+                    && 'foo' === $payload['options']['name'];
+            }))
+            ->willReturn(['selector' => 'iframe#foo']);
+
+        $page = $this->createPage();
+        $frame = $page->frame(['name' => 'foo']);
+        $this->assertNotNull($frame);
+        $this->assertSame('Frame(selector="iframe#foo")', (string) $frame);
+    }
+
+    public function testNormalizesReturnBodyToFunction(): void
+    {
+        $transport = $this->createMock(TransportInterface::class);
+        $context = $this->createMock(BrowserContextInterface::class);
+
+        $transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(function ($payload) {
+                return 'page.evaluate' === $payload['action']
+                    && '(arg) => { return 42; }' === $payload['expression'];
+            }))
+            ->willReturn(['result' => 42]);
+
+        $page = new Page($transport, $context, 'p1', new PlaywrightConfig());
+        $result = $page->evaluate('return 42;');
+        $this->assertSame(42, $result);
+    }
+
+    public function testLeavesPlainExpressionUntouched(): void
+    {
+        $transport = $this->createMock(TransportInterface::class);
+        $context = $this->createMock(BrowserContextInterface::class);
+
+        $transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(function ($payload) {
+                return 'page.evaluate' === $payload['action']
+                    && 'document.title' === $payload['expression'];
+            }))
+            ->willReturn(['result' => 'Hello']);
+
+        $page = new Page($transport, $context, 'p1', new PlaywrightConfig());
+        $result = $page->evaluate('document.title');
+        $this->assertSame('Hello', $result);
+    }
+
+    #[Test]
+    public function itSendsPauseCommand(): void
+    {
+        $transport = $this->createMock(TransportInterface::class);
+        $context = $this->createMock(BrowserContextInterface::class);
+
+        $transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(function (array $payload) {
+                return ($payload['action'] ?? null) === 'page.pause'
+                    && ($payload['pageId'] ?? null) === 'page_1';
+            }))
+            ->willReturn(['success' => true]);
+
+        $page = new Page($transport, $context, 'page_1', new PlaywrightConfig());
+        $page->pause();
+        $this->assertTrue(true, 'pause() should dispatch page.pause');
+    }
+
+    public function testPdfUsesProvidedPath(): void
+    {
+        $transport = $this->createMock(TransportInterface::class);
+        $context = $this->createMock(BrowserContextInterface::class);
+
+        $expectedPath = sys_get_temp_dir().'/playwright-pdf-unit-test.pdf';
+
+        $transport->expects($this->once())
+            ->method('send')
+            ->with($this->callback(function (array $payload) use ($expectedPath) {
+                $this->assertSame('page.pdf', $payload['action']);
+                $this->assertSame('page-unit', $payload['pageId']);
+                $this->assertSame($expectedPath, $payload['options']['path'] ?? null);
+
+                return true;
+            }))
+            ->willReturn([]);
+
+        $page = new Page($transport, $context, 'page-unit', new PlaywrightConfig());
+
+        $result = $page->pdf($expectedPath);
+
+        $this->assertSame($expectedPath, $result);
+    }
+
+    public function testPdfContentReturnsBinaryAndCleansUpTempFile(): void
+    {
+        $transport = $this->createMock(TransportInterface::class);
+        $context = $this->createMock(BrowserContextInterface::class);
+
+        $pdfDir = sys_get_temp_dir().'/playwright-pdf-content-'.uniqid('', true);
+        mkdir($pdfDir, 0755, true);
+
+        $config = new PlaywrightConfig(screenshotDir: $pdfDir);
+        $pdfBytes = '%PDF-1.4 mock';
+
+        $transport->expects($this->once())
+            ->method('send')
+            ->willReturnCallback(function (array $payload) use ($pdfBytes): array {
+                $this->assertSame('page.pdf', $payload['action']);
+                $path = $payload['options']['path'] ?? null;
+                $this->assertIsString($path);
+                file_put_contents($path, $pdfBytes);
+
+                return [];
+            });
+
+        $page = new Page($transport, $context, 'page-unit', $config);
+
+        $content = $page->pdfContent();
+
+        $this->assertSame($pdfBytes, $content);
+        $this->assertDirectoryHasNoFiles($pdfDir);
+
+        rmdir($pdfDir);
+    }
+
+    public function testPdfContentRejectsPathOption(): void
+    {
+        $transport = $this->createMock(TransportInterface::class);
+        $context = $this->createMock(BrowserContextInterface::class);
+
+        $page = new Page($transport, $context, 'page-unit', new PlaywrightConfig());
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Do not provide a "path" option when requesting inline PDF content.');
+
+        $page->pdfContent(['path' => '/tmp/should-not-be-used.pdf']);
+    }
+
+    public function testWaitForPopupSuccess(): void
+    {
+        $page = $this->createPage('page1');
+
+        $actionExecuted = false;
+        $action = function () use (&$actionExecuted) {
+            $actionExecuted = true;
+        };
+
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(function ($payload) use (&$actionExecuted) {
+                // Action should be executed before transport call
+                $this->assertTrue($actionExecuted);
+
+                return 'page.waitForPopup' === $payload['action']
+                    && 'page1' === $payload['pageId']
+                    && 30000 === $payload['timeout'];
+            }))
+            ->willReturn(['popupPageId' => 'popup123']);
+
+        $popup = $page->waitForPopup($action);
+
+        $this->assertInstanceOf(Page::class, $popup);
+        $this->assertTrue($actionExecuted);
+    }
+
+    public function testWaitForPopupWithCustomTimeout(): void
+    {
+        $page = $this->createPage('page1');
+
+        $actionExecuted = false;
+        $action = function () use (&$actionExecuted) {
+            $actionExecuted = true;
+        };
+
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(function ($payload) use (&$actionExecuted) {
+                $this->assertTrue($actionExecuted);
+
+                return 'page.waitForPopup' === $payload['action']
+                    && 5000.0 === (float) $payload['timeout'];
+            }))
+            ->willReturn(['popupPageId' => 'popup456']);
+
+        $popup = $page->waitForPopup($action, ['timeout' => 5000]);
+
+        $this->assertInstanceOf(Page::class, $popup);
+    }
+
+    public function testWaitForPopupTimeout(): void
+    {
+        $page = $this->createPage('page1');
+
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->willReturn([]);
+
+        $this->expectException(TimeoutException::class);
+        $this->expectExceptionMessage('No popup was created within the timeout period');
+
+        $action = function () {};
+        $page->waitForPopup($action);
+    }
+
+    public function testWaitForPopupInvalidResponse(): void
+    {
+        $page = $this->createPage('page1');
+
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->willReturn(['popupPageId' => null]);
+
+        $this->expectException(TimeoutException::class);
+        $this->expectExceptionMessage('No popup was created within the timeout period');
+
+        $action = function () {};
+        $page->waitForPopup($action);
+    }
+
+    public function testRequestIsCached(): void
+    {
+        $transport = $this->createMock(TransportInterface::class);
+        $context = $this->createMock(BrowserContextInterface::class);
+        $api = $this->createMock(APIRequestContextInterface::class);
+
+        $context->expects($this->once())
+            ->method('request')
+            ->willReturn($api);
+
+        $page = new Page($transport, $context, 'page-1', new PlaywrightConfig());
+
+        $first = $page->request();
+        $second = $page->request();
+
+        $this->assertSame($api, $first);
+        $this->assertSame($first, $second, 'Page::request should return cached instance');
+    }
+
+    private function createPage(string $pageId = 'page-1'): Page
+    {
+        return new Page($this->transport, $this->context, $pageId, new PlaywrightConfig());
+    }
+
+    private function assertDirectoryHasNoFiles(string $directory): void
+    {
+        $files = array_diff(scandir($directory) ?: [], ['.', '..']);
+        $this->assertEmpty($files, sprintf('Directory %s should be empty', $directory));
     }
 }
