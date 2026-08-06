@@ -33,6 +33,26 @@ final class LocatorAssertions implements LocatorAssertionsInterface
         return $this;
     }
 
+    public function toBeAttached(?AssertionOptions $options = null): self
+    {
+        return $this->assertState(
+            fn (): bool => $this->locator->isAttached(),
+            $options,
+            'Expected locator to be attached.',
+            'Expected locator to be detached.',
+        );
+    }
+
+    public function toBeEditable(?AssertionOptions $options = null): self
+    {
+        return $this->assertState(
+            fn (): bool => $this->locator->isEditable(),
+            $options,
+            'Expected locator to be editable.',
+            'Expected locator not to be editable.',
+        );
+    }
+
     public function toBeVisible(?AssertionOptions $options = null): self
     {
         $timeout = $options?->timeoutMs;
@@ -157,6 +177,40 @@ final class LocatorAssertions implements LocatorAssertionsInterface
         }
         if (!$ok) {
             throw new AssertionException('Expected locator count to match.', actual: $this->locator->count(), expected: $expected);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @param callable(): bool $predicate
+     */
+    private function assertState(callable $predicate, ?AssertionOptions $options, string $expectedMessage, string $negatedMessage): self
+    {
+        $timeout = $options?->timeoutMs;
+        if (!is_int($timeout)) {
+            $timeout = Waiter::DEFAULT_TIMEOUT_MS;
+        }
+        $interval = $options?->intervalMs;
+        if (!is_int($interval)) {
+            $interval = 50;
+        }
+
+        $ok = true;
+        try {
+            Waiter::eventually($predicate, $timeout, $interval);
+        } catch (\Throwable) {
+            $ok = false;
+        }
+
+        $wasNegated = $this->negated;
+        if ($wasNegated) {
+            $ok = !$ok;
+            $this->negated = false;
+        }
+        if (!$ok) {
+            $message = $options instanceof AssertionOptions ? $options->message : null;
+            throw new AssertionException($message ?? ($wasNegated ? $negatedMessage : $expectedMessage));
         }
 
         return $this;

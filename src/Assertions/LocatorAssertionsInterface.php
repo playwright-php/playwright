@@ -16,6 +16,10 @@ namespace Playwright\Assertions;
 
 interface LocatorAssertionsInterface
 {
+    public function toBeAttached(?AssertionOptions $options = null): self;
+
+    public function toBeEditable(?AssertionOptions $options = null): self;
+
     public function toBeVisible(?AssertionOptions $options = null): self;
 
     public function toBeHidden(?AssertionOptions $options = null): self;
