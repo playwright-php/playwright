@@ -47,6 +47,7 @@ use Playwright\Network\Response;
 use Playwright\Network\ResponseInterface;
 use Playwright\Network\Route;
 use Playwright\Page\Options\ClickOptions;
+use Playwright\Page\Options\DragAndDropOptions;
 use Playwright\Page\Options\FrameQueryOptions;
 use Playwright\Page\Options\GotoOptions;
 use Playwright\Page\Options\NavigationHistoryOptions;
@@ -548,6 +549,20 @@ final class Page implements PageInterface, EventDispatcherInterface
         $this->locator($selector)->click($options);
 
         $this->transport->processEvents();
+
+        return $this;
+    }
+
+    /**
+     * @param array<string, mixed>|DragAndDropOptions $options
+     */
+    public function dragAndDrop(string $source, string $target, array|DragAndDropOptions $options = []): self
+    {
+        $this->sendCommand('dragAndDrop', [
+            'source' => $source,
+            'target' => $target,
+            'options' => DragAndDropOptions::from($options)->toArray(),
+        ]);
 
         return $this;
     }

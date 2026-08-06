@@ -23,6 +23,7 @@ use Playwright\Input\MouseInterface;
 use Playwright\Locator\Locator;
 use Playwright\Locator\Options\GetByRoleOptions;
 use Playwright\Locator\Options\LocatorOptions;
+use Playwright\Page\Options\DragAndDropOptions;
 use Playwright\Page\Page;
 use Playwright\Page\PageEventHandlerInterface;
 use Playwright\Regex;
@@ -542,6 +543,27 @@ class PageTest extends TestCase
             ->willReturn([]);
 
         $result = $this->page->setDefaultNavigationTimeout(10000);
+        $this->assertSame($this->page, $result);
+    }
+
+    public function testDragAndDropSendsCommandAndReturnsSelf(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'source' => '#source',
+                'target' => '#target',
+                'options' => [
+                    'force' => true,
+                    'strict' => true,
+                ],
+                'action' => 'page.dragAndDrop',
+                'pageId' => 'page-id',
+            ])
+            ->willReturn([]);
+
+        $result = $this->page->dragAndDrop('#source', '#target', new DragAndDropOptions(force: true, strict: true));
+
         $this->assertSame($this->page, $result);
     }
 

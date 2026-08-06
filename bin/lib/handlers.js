@@ -244,6 +244,7 @@ class PageHandler extends BaseHandler {
       viewportSize: () => this.createValueResult(page.viewportSize()),
       setDefaultTimeout: () => page.setDefaultTimeout(command.timeout),
       setDefaultNavigationTimeout: () => page.setDefaultNavigationTimeout(command.timeout),
+      dragAndDrop: () => page.dragAndDrop(command.source, command.target, command.options),
       waitForURL: () => page.waitForURL(command.url, command.options),
       waitForSelector: () => page.waitForSelector(command.selector, command.options),
       waitForFunction: () => this.waitForFunction(page, command),

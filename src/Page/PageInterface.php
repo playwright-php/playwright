@@ -25,6 +25,7 @@ use Playwright\Locator\Options\GetByRoleOptions;
 use Playwright\Locator\Options\LocatorOptions;
 use Playwright\Network\ResponseInterface;
 use Playwright\Page\Options\ClickOptions;
+use Playwright\Page\Options\DragAndDropOptions;
 use Playwright\Page\Options\FrameQueryOptions;
 use Playwright\Page\Options\GotoOptions;
 use Playwright\Page\Options\NavigationHistoryOptions;
@@ -97,6 +98,11 @@ interface PageInterface
      * @param array<string, mixed>|ClickOptions $options
      */
     public function click(string $selector, array|ClickOptions $options = []): self;
+
+    /**
+     * @param array<string, mixed>|DragAndDropOptions $options
+     */
+    public function dragAndDrop(string $source, string $target, array|DragAndDropOptions $options = []): self;
 
     /**
      * @param array<string, mixed>|ClickOptions $options
