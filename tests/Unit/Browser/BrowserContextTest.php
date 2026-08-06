@@ -22,6 +22,8 @@ use Playwright\Configuration\PlaywrightConfig;
 use Playwright\Network\NetworkThrottling;
 use Playwright\Page\PageInterface;
 use Playwright\Tracing\TracingInterface;
+use Playwright\Transport\MockTransport;
+use Playwright\Transport\TraceableTransport;
 use Playwright\Transport\TransportInterface;
 
 #[CoversClass(BrowserContext::class)]
@@ -584,5 +586,154 @@ final class BrowserContextTest extends TestCase
         $actions = array_column($sent, 'action');
         $this->assertSame(['context.startTracing', 'context.stopTracing', 'context.close'], $actions);
         $this->assertSame('/tmp/manual-trace.zip', $sent[1]['path']);
+    }
+
+    public function testDeleteCookieSendsAddCookiesWithExpiry(): void
+    {
+        $transport = $this->createMock(TransportInterface::class);
+
+        $calledAdd = false;
+        $that = $this;
+        $transport->method('send')->willReturnCallback(function (array $payload) use (&$calledAdd, $that) {
+            if (($payload['action'] ?? null) === 'context.cookies') {
+                return [
+                    'cookies' => [
+                        [
+                            'name' => 'foo',
+                            'value' => '123',
+                            'domain' => 'example.com',
+                            'path' => '/',
+                            'expires' => time() + 3600,
+                            'httpOnly' => false,
+                            'secure' => false,
+                            'sameSite' => 'Lax',
+                        ],
+                        [
+                            'name' => 'bar',
+                            'value' => 'x',
+                            'domain' => 'example.com',
+                            'path' => '/',
+                            'expires' => time() + 3600,
+                            'httpOnly' => false,
+                            'secure' => false,
+                            'sameSite' => 'Lax',
+                        ],
+                    ],
+                ];
+            }
+
+            if (($payload['action'] ?? null) === 'context.addCookies') {
+                $that->assertArrayHasKey('cookies', $payload);
+                $that->assertIsArray($payload['cookies']);
+                $that->assertSame('foo', $payload['cookies'][0]['name']);
+                $that->assertSame('example.com', $payload['cookies'][0]['domain']);
+                $that->assertSame('/', $payload['cookies'][0]['path']);
+                $that->assertSame(0, $payload['cookies'][0]['expires']);
+                $calledAdd = true;
+
+                return [];
+            }
+
+            return [];
+        });
+
+        $context = new BrowserContext($transport, 'ctx', new PlaywrightConfig());
+        $context->deleteCookie('foo');
+
+        $this->assertTrue($calledAdd, 'context.addCookies should be called to expire matching cookies');
+    }
+
+    public function testTracksPopupPagesViaEvents(): void
+    {
+        $transport = $this->createMock(TransportInterface::class);
+        $context = new BrowserContext($transport, 'ctx1', new PlaywrightConfig());
+
+        $this->assertCount(0, $context->pages());
+
+        // Simulate server emitting a popup event with a pageId
+        $context->dispatchEvent('popup', ['pageId' => 'p-123']);
+        $this->assertCount(1, $context->pages());
+
+        // Simulate server notifying page close
+        $context->dispatchEvent('pageClosed', ['pageId' => 'p-123']);
+        $this->assertCount(0, $context->pages());
+    }
+
+    public function testWaitForPopupWithCallbackCoordinatedTransport(): void
+    {
+        $transport = new MockTransport();
+        $transport->connect();
+
+        $lastMessage = null;
+        $transport->queueResponse(function (array $message) use (&$lastMessage): array {
+            $lastMessage = $message;
+
+            return ['popupPageId' => 'popup_ctx_123'];
+        });
+
+        $context = new BrowserContext($transport, 'ctx_1', new PlaywrightConfig());
+
+        $actionExecuted = false;
+        $popup = $context->waitForPopup(function () use (&$actionExecuted): void {
+            $actionExecuted = true; // should not run immediately in coordinated path
+        });
+
+        $stored = $transport->getStoredPendingCallbacks();
+        $this->assertCount(1, $stored);
+
+        $this->assertSame('context.waitForPopup', $lastMessage['action'] ?? null);
+        $this->assertSame('ctx_1', $lastMessage['contextId'] ?? null);
+        $this->assertArrayHasKey($lastMessage['requestId'] ?? '', $stored);
+
+        // The action should not have executed immediately here (it would be executed by transport when server requests it)
+        $this->assertFalse($actionExecuted, 'Callback should be deferred in coordinated path');
+
+        $this->assertInstanceOf(PageInterface::class, $popup);
+    }
+
+    public function testWaitForPopupFallbackWithoutCallbackSupport(): void
+    {
+        $inner = new MockTransport();
+        $inner->connect();
+        $lastMessage = null;
+        $inner->queueResponse(function (array $message) use (&$lastMessage): array {
+            $lastMessage = $message;
+
+            return ['popupPageId' => 'popup_ctx_456'];
+        });
+
+        $transport = new TraceableTransport($inner);
+        $transport->connect();
+
+        $context = new BrowserContext($transport, 'ctx_2', new PlaywrightConfig());
+
+        $actionExecuted = false;
+        $popup = $context->waitForPopup(function () use (&$actionExecuted): void {
+            $actionExecuted = true; // should execute immediately in fallback path
+        });
+
+        // Fallback should have executed the action synchronously
+        $this->assertTrue($actionExecuted, 'Callback should execute immediately in fallback path');
+
+        $sendCalls = $transport->getSendCalls();
+        $this->assertSame('context.waitForPopup', $sendCalls[0]['message']['action'] ?? null);
+        $this->assertSame('ctx_2', $sendCalls[0]['message']['contextId'] ?? null);
+        $this->assertSame($lastMessage, $sendCalls[0]['message']);
+
+        $this->assertInstanceOf(PageInterface::class, $popup);
+    }
+
+    public function testWaitForPopupThrowsOnInvalidResponse(): void
+    {
+        $transport = new MockTransport();
+        $transport->connect();
+        $transport->queueResponse(static fn (): array => ['popupPageId' => null]);
+
+        $context = new BrowserContext($transport, 'ctx_3', new PlaywrightConfig());
+
+        $this->expectException(\Playwright\Exception\TimeoutException::class);
+        $this->expectExceptionMessage('No popup was created within the timeout period');
+
+        $context->waitForPopup(static function (): void {});
     }
 }
