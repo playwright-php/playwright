@@ -53,6 +53,7 @@ class FrameIntegrationTest extends TestCase
                 <span data-testid="frame-span">Test</span>
                 <p>Frame Text</p>
             HTML,
+            '/replacement.html' => '<title>Replacement frame</title><h1 id="replacement">Replacement frame</h1>',
         ]);
         $this->page->goto($this->routeUrl('/index.html'));
     }
@@ -118,6 +119,101 @@ class FrameIntegrationTest extends TestCase
     }
 
     #[Test]
+    public function itGetsAndSetsNativeFrameContent(): void
+    {
+        $frame = $this->innerFrame();
+
+        $this->assertStringContainsString('<h4>Inner</h4>', $frame->content());
+        $this->assertSame($frame, $frame->setContent('<title>Updated frame</title><h1 id="updated">Updated</h1>', ['waitUntil' => 'load']));
+        $this->assertSame('Updated frame', $frame->title());
+        $this->assertSame('Updated', $frame->locator('#updated')->textContent());
+    }
+
+    #[Test]
+    public function itNavigatesANativeFrameAndReturnsItsResponse(): void
+    {
+        $frame = $this->innerFrame();
+
+        $response = $frame->goto($this->routeUrl('/replacement.html'), ['waitUntil' => 'commit']);
+
+        $this->assertNotNull($response);
+        $this->assertSame(200, $response->status());
+        $this->assertSame('Replacement frame', $frame->title());
+    }
+
+    #[Test]
+    public function itWaitsForANativeFrameFunction(): void
+    {
+        $frame = $this->innerFrame();
+        $frame->setContent('<div id="status">loading</div><script>setTimeout(() => document.querySelector("#status").textContent = "ready", 50)</script>');
+
+        $this->assertSame($frame, $frame->waitForFunction(
+            '() => document.querySelector("#status").textContent === "ready"',
+            null,
+            ['timeout' => 1000, 'polling' => 20],
+        ));
+    }
+
+    #[Test]
+    public function itWaitsForANativeFrameUrl(): void
+    {
+        $frame = $this->innerFrame();
+        $target = $this->routeUrl('/replacement.html');
+        $frame->evaluate('(target) => setTimeout(() => window.location.href = target, 50)', $target);
+
+        $this->assertSame($frame, $frame->waitForURL($target, ['timeout' => 1000, 'waitUntil' => 'commit']));
+        $this->assertSame('Replacement frame', $frame->title());
+    }
+
+    #[Test]
+    public function itWaitsForANativeFrameNavigation(): void
+    {
+        $frame = $this->innerFrame();
+        $target = $this->routeUrl('/replacement.html');
+        $frame->evaluate('(target) => setTimeout(() => window.location.href = target, 50)', $target);
+
+        $response = $frame->waitForNavigation([
+            'url' => $target,
+            'timeout' => 1000,
+            'waitUntil' => 'commit',
+        ]);
+
+        $this->assertNotNull($response);
+        $this->assertSame(200, $response->status());
+    }
+
+    #[Test]
+    public function itDragsAndDropsInsideANativeFrame(): void
+    {
+        $frame = $this->innerFrame();
+        $frame->setContent(<<<'HTML'
+            <div id="source" draggable="true">Source</div>
+            <div id="target">Target</div>
+            <script>
+                const target = document.querySelector('#target');
+                target.addEventListener('dragover', event => event.preventDefault());
+                target.addEventListener('drop', () => target.dataset.dropped = 'true');
+            </script>
+            HTML);
+
+        $this->assertSame($frame, $frame->dragAndDrop('#source', '#target'));
+        $this->assertSame('true', $frame->locator('#target')->getAttribute('data-dropped'));
+    }
+
+    #[Test]
+    public function itAddsNativeFrameScriptAndStyleTags(): void
+    {
+        $frame = $this->innerFrame();
+        $frame->setContent('<p id="styled">Styled</p>');
+
+        $this->assertSame($frame, $frame->addScriptTag(['content' => 'window.frameScriptReady = true;']));
+        $this->assertSame($frame, $frame->addStyleTag(['content' => '#styled { color: rgb(1, 2, 3); }']));
+
+        $this->assertTrue($frame->evaluate('window.frameScriptReady'));
+        $this->assertSame('rgb(1, 2, 3)', $frame->evaluate('getComputedStyle(document.querySelector("#styled")).color'));
+    }
+
+    #[Test]
     public function itUsesGetByPlaceholderInFrame(): void
     {
         $frame = $this->page->frame(['urlRegex' => '/inner\.html$/']);
@@ -166,6 +262,14 @@ class FrameIntegrationTest extends TestCase
         $frameLocator = $this->page->frameLocator('iframe#outer >> iframe#middle >> iframe#inner');
         $locator = $frameLocator->getByText('Frame Text');
         $this->assertSame('Frame Text', $locator->textContent());
+    }
+
+    private function innerFrame(): Frame
+    {
+        $frame = $this->page->frame(['urlRegex' => '/inner\\.html$/']);
+        $this->assertInstanceOf(Frame::class, $frame);
+
+        return $frame;
     }
 
     #[Test]

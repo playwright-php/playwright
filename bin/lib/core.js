@@ -240,6 +240,46 @@ class FrameUtils {
     }, { expression, arg });
   }
 
+  static async resolveNativeFrame(page, chain) {
+    const mainFrame = page.mainFrame();
+    if (!chain || chain === ':root') return mainFrame;
+
+    for (const frame of page.frames()) {
+      if (frame === mainFrame) continue;
+      try {
+        if (await this.selectorForNativeFrame(frame, mainFrame) === chain) return frame;
+      } catch {
+        // A detached frame cannot be addressed by the PHP selector anymore.
+      }
+    }
+
+    throw new Error(`Frame not found for selector: ${chain}`);
+  }
+
+  static async selectorForNativeFrame(frame, mainFrame) {
+    const chain = [];
+    let current = frame;
+    while (current && current !== mainFrame) {
+      const element = await current.frameElement();
+      const selector = await element.evaluate((node) => {
+        const escape = (value) => (typeof CSS !== 'undefined' && CSS.escape)
+          ? CSS.escape(value)
+          : String(value).replace(/[^a-zA-Z0-9_-]/g, (match) => `\\${match}`);
+        if (node.id) return `iframe#${escape(node.id)}`;
+        const name = node.getAttribute('name');
+        if (name) return `iframe[name="${name}"]`;
+        const src = node.getAttribute('src');
+        if (src) return `iframe[src="${src}"]`;
+        const iframes = Array.from(node.ownerDocument.querySelectorAll('iframe'));
+        return `iframe >> nth=${iframes.indexOf(node)}`;
+      });
+      chain.unshift(selector);
+      current = current.parentFrame();
+    }
+
+    return chain.join(' >> ');
+  }
+
   static async waitForReadyState(evalInFrame, state, timeoutMs) {
     const deadline = Date.now() + timeoutMs;
     const target = state || 'load';
