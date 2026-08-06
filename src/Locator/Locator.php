@@ -432,6 +432,15 @@ final class Locator implements \Stringable, LocatorInterface
     }
 
     /**
+     * @param array<string, mixed>|TypeOptions $options
+     */
+    public function pressSequentially(string $text, array|TypeOptions $options = []): void
+    {
+        $options = TypeOptions::from($options);
+        $this->sendCommand('locator.pressSequentially', ['text' => $text, 'options' => $options->toArray()]);
+    }
+
+    /**
      * @param array<string, mixed>|PressOptions $options
      */
     public function press(string $key, array|PressOptions $options = []): void

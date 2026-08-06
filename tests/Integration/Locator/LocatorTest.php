@@ -376,6 +376,17 @@ class LocatorTest extends TestCase
     }
 
     #[Test]
+    public function testPressSequentiallyWithOptionsObject(): void
+    {
+        $this->page->setContent('<input id="input" type="text" />');
+        $locator = $this->page->locator('#input');
+
+        $locator->pressSequentially('hello', new \Playwright\Locator\Options\TypeOptions(delay: 10.0));
+
+        $this->assertSame('hello', $locator->inputValue());
+    }
+
+    #[Test]
     public function testUncheckWithOptionsObject(): void
     {
         $this->page->setContent('<input id="checkbox" type="checkbox" checked />');

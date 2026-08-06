@@ -53,6 +53,13 @@ interface LocatorInterface
     public function type(string $value, array|TypeOptions $options = []): void;
 
     /**
+     * Press keys sequentially to type the provided text.
+     *
+     * @param array<string, mixed>|TypeOptions $options
+     */
+    public function pressSequentially(string $text, array|TypeOptions $options = []): void;
+
+    /**
      * @param array<string, mixed>|PressOptions $options
      */
     public function press(string $key, array|PressOptions $options = []): void;

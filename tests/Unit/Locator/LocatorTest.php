@@ -60,6 +60,36 @@ final class LocatorTest extends TestCase
         $this->assertEquals('Locator(selector=".element")', $result);
     }
 
+    public function testPressSequentiallySendsTextAndOptions(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static function (array $payload): bool {
+                return 'locator.pressSequentially' === $payload['action']
+                    && 'hello' === $payload['text']
+                    && ['delay' => 10.0] === $payload['options'];
+            }))
+            ->willReturn([]);
+
+        $this->locator->pressSequentially('hello', ['delay' => 10.0]);
+    }
+
+    public function testPressSendsKeyAndOptions(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static function (array $payload): bool {
+                return 'locator.press' === $payload['action']
+                    && 'Enter' === $payload['key']
+                    && ['delay' => 10.0] === $payload['options'];
+            }))
+            ->willReturn([]);
+
+        $this->locator->press('Enter', ['delay' => 10.0]);
+    }
+
     public function testDblclick(): void
     {
         $this->transport

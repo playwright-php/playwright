@@ -520,6 +520,8 @@ class LocatorHandler extends BaseHandler {
       focus: () => locator.focus(command.options),
       fill: () => locator.fill(command.value, command.options),
       type: () => locator.type(command.text, command.options),
+      press: () => locator.press(command.key, command.options),
+      pressSequentially: () => locator.pressSequentially(command.text, command.options),
       waitFor: () => locator.waitFor(command.options),
       setInputFiles: () => locator.setInputFiles(command.files, command.options),
       isHidden: () => PromiseUtils.wrapValue(locator.isHidden()),
