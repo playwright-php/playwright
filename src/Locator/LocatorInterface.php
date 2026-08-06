@@ -15,10 +15,13 @@ declare(strict_types=1);
 namespace Playwright\Locator;
 
 use Playwright\Frame\FrameLocatorInterface;
+use Playwright\Locator\Options\AriaSnapshotOptions;
+use Playwright\Locator\Options\BoundingBoxOptions;
 use Playwright\Locator\Options\CheckOptions;
 use Playwright\Locator\Options\ClearOptions;
 use Playwright\Locator\Options\ClickOptions;
 use Playwright\Locator\Options\DblClickOptions;
+use Playwright\Locator\Options\DispatchEventOptions;
 use Playwright\Locator\Options\DragToOptions;
 use Playwright\Locator\Options\FillOptions;
 use Playwright\Locator\Options\FilterOptions;
@@ -30,7 +33,10 @@ use Playwright\Locator\Options\LocatorScreenshotOptions;
 use Playwright\Locator\Options\PressOptions;
 use Playwright\Locator\Options\ScrollIntoViewIfNeededOptions;
 use Playwright\Locator\Options\SelectOptionOptions;
+use Playwright\Locator\Options\SelectTextOptions;
+use Playwright\Locator\Options\SetCheckedOptions;
 use Playwright\Locator\Options\SetInputFilesOptions;
+use Playwright\Locator\Options\TapOptions;
 use Playwright\Locator\Options\TextContentOptions;
 use Playwright\Locator\Options\TypeOptions;
 use Playwright\Locator\Options\UncheckOptions;
@@ -100,6 +106,23 @@ interface LocatorInterface
     public function focus(): void;
 
     public function blur(): void;
+
+    /**
+     * @param array<string, mixed>|AriaSnapshotOptions $options
+     */
+    public function ariaSnapshot(array|AriaSnapshotOptions $options = []): string;
+
+    /**
+     * @param array<string, mixed>|BoundingBoxOptions $options
+     *
+     * @return array{x: float|int, y: float|int, width: float|int, height: float|int}|null
+     */
+    public function boundingBox(array|BoundingBoxOptions $options = []): ?array;
+
+    /**
+     * @param array<string, mixed>|DispatchEventOptions $options
+     */
+    public function dispatchEvent(string $type, mixed $eventInit = [], array|DispatchEventOptions $options = []): void;
 
     /**
      * @param array<string, mixed>|ScrollIntoViewIfNeededOptions $options
@@ -220,6 +243,36 @@ interface LocatorInterface
     public function nth(int $index): self;
 
     public function evaluate(string $expression, mixed $arg = null): mixed;
+
+    /**
+     * Runs the expression once over every matching element, passing them as an array.
+     *
+     * Unlike evaluate(), which targets the first match, and it does not wait for
+     * elements to appear: an empty match evaluates against an empty array.
+     */
+    public function evaluateAll(string $expression, mixed $arg = null): mixed;
+
+    /**
+     * Paints a highlight over the matching elements until the next action.
+     *
+     * A debugging aid, visible in headed mode only; it changes nothing in the page.
+     */
+    public function highlight(): void;
+
+    /**
+     * @param array<string, mixed>|SelectTextOptions $options
+     */
+    public function selectText(array|SelectTextOptions $options = []): void;
+
+    /**
+     * @param array<string, mixed>|SetCheckedOptions $options
+     */
+    public function setChecked(bool $checked, array|SetCheckedOptions $options = []): void;
+
+    /**
+     * @param array<string, mixed>|TapOptions $options
+     */
+    public function tap(array|TapOptions $options = []): void;
 
     public function frameLocator(string $selector): FrameLocatorInterface;
 

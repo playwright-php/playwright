@@ -398,6 +398,73 @@ class LocatorTest extends TestCase
     }
 
     #[Test]
+    public function testAriaSnapshotAndBoundingBox(): void
+    {
+        $this->page->setContent('<button id="save" style="width: 100px; height: 40px">Save</button>');
+
+        $snapshot = $this->page->locator('#save')->ariaSnapshot();
+        $box = $this->page->locator('#save')->boundingBox();
+
+        $this->assertStringContainsString('button', $snapshot);
+        $this->assertStringContainsString('Save', $snapshot);
+        $this->assertNotNull($box);
+        $this->assertGreaterThan(0, $box['width']);
+        $this->assertGreaterThan(0, $box['height']);
+    }
+
+    #[Test]
+    public function testDispatchEventAndEvaluateAll(): void
+    {
+        $this->page->setContent(<<<'HTML'
+            <button class="action">One</button>
+            <button class="action">Two</button>
+            <output id="result"></output>
+            <script>
+                document.querySelector('.action').addEventListener('click', event => {
+                    document.querySelector('#result').textContent = String(event.detail);
+                });
+            </script>
+        HTML);
+
+        $actions = $this->page->locator('.action');
+        $actions->first()->dispatchEvent('click', ['detail' => 42]);
+
+        $this->assertSame('42', $this->page->locator('#result')->textContent());
+        $this->assertSame(['One', 'Two'], $actions->evaluateAll('elements => elements.map(element => element.textContent)'));
+    }
+
+    #[Test]
+    public function testHighlightSelectTextAndSetChecked(): void
+    {
+        $this->page->setContent('<input id="field" value="content"><input id="toggle" type="checkbox">');
+
+        $field = $this->page->locator('#field');
+        $field->highlight();
+        $field->selectText();
+
+        $this->assertSame([0, 7], $this->page->evaluate('() => { const field = document.querySelector("#field"); return [field.selectionStart, field.selectionEnd]; }'));
+
+        $toggle = $this->page->locator('#toggle');
+        $toggle->setChecked(true);
+        $this->assertTrue($toggle->isChecked());
+        $toggle->setChecked(false);
+        $this->assertFalse($toggle->isChecked());
+    }
+
+    #[Test]
+    public function testTap(): void
+    {
+        $this->context->close();
+        $this->context = $this->browser->newContext(['hasTouch' => true]);
+        $this->page = $this->context->newPage();
+        $this->page->setContent('<button id="tap" onclick="document.body.dataset.tapped = \'yes\'">Tap</button>');
+
+        $this->page->locator('#tap')->tap();
+
+        $this->assertSame('yes', $this->page->evaluate('() => document.body.dataset.tapped'));
+    }
+
+    #[Test]
     public function testUncheckWithOptionsObject(): void
     {
         $this->page->setContent('<input id="checkbox" type="checkbox" checked />');

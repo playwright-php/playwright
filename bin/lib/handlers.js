@@ -525,6 +525,15 @@ class LocatorHandler extends BaseHandler {
       pressSequentially: () => locator.pressSequentially(command.text, command.options),
       waitFor: () => locator.waitFor(command.options),
       setInputFiles: () => locator.setInputFiles(command.files, command.options),
+      ariaSnapshot: () => PromiseUtils.wrapValue(locator.ariaSnapshot(command.options)),
+      boundingBox: () => PromiseUtils.wrapValue(locator.boundingBox(command.options)),
+      dispatchEvent: () => locator.dispatchEvent(command.type, command.eventInit, command.options),
+      evaluateAll: () => this.evaluateAll(locator, command),
+      highlight: () => locator.highlight(),
+      selectText: () => locator.selectText(command.options),
+      setChecked: () => locator.setChecked(command.checked, command.options),
+      tap: () => locator.tap(command.options),
+      isAttached: async () => this.createValueResult((await locator.count()) > 0),
       isHidden: () => PromiseUtils.wrapValue(locator.isHidden()),
       isDisabled: () => PromiseUtils.wrapValue(locator.isDisabled()),
       isVisible: () => PromiseUtils.wrapValue(locator.isVisible()),
@@ -580,6 +589,23 @@ class LocatorHandler extends BaseHandler {
       return this.createValueResult(result === undefined ? null : result);
     } catch (error) {
       logger.error('Locator evaluate failed', { selector: command.selector, error: error.message });
+      throw error;
+    }
+  }
+
+  async evaluateAll(locator, command) {
+    try {
+      const result = await locator.evaluateAll(async (elements, payload) => {
+        const expression = payload.expression;
+        const value = eval(`(${expression})`);
+        return typeof value === 'function'
+          ? await value(elements, payload.arg)
+          : await eval(expression);
+      }, { expression: command.expression, arg: command.arg });
+
+      return this.createValueResult(result);
+    } catch (error) {
+      logger.error('Locator evaluateAll failed', { selector: command.selector, error: error.message });
       throw error;
     }
   }
