@@ -37,6 +37,11 @@ interface BrowserInterface
      */
     public function contexts(): array;
 
+    /**
+     * The browser engine this instance was launched with.
+     */
+    public function browserType(): BrowserType;
+
     public function isConnected(): bool;
 
     public function version(): string;

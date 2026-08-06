@@ -16,6 +16,7 @@ namespace Playwright\Tests\Unit\Browser;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Playwright\Browser\Browser;
 use Playwright\Browser\BrowserContext;
 use Playwright\Browser\StorageState;
 use Playwright\Configuration\PlaywrightConfig;
@@ -466,6 +467,40 @@ final class BrowserContextTest extends TestCase
             ]);
 
         $this->context->disableNetworkThrottling();
+    }
+
+    public function testAContextBuiltWithoutABrowserHasNone(): void
+    {
+        $this->assertNull($this->context->browser());
+    }
+
+    public function testTheDefaultContextPointsBackToItsBrowser(): void
+    {
+        $browser = $this->browser();
+
+        $this->assertSame($browser, $browser->context()->browser());
+    }
+
+    public function testAContextCreatedLaterPointsBackToItsBrowser(): void
+    {
+        $browser = $this->browser();
+
+        $this->assertSame($browser, $browser->newContext()->browser());
+    }
+
+    public function testEveryContextOfABrowserSharesTheSameBackReference(): void
+    {
+        $browser = $this->browser();
+
+        $this->assertSame($browser->newContext()->browser(), $browser->newContext()->browser());
+    }
+
+    private function browser(): Browser
+    {
+        $transport = $this->createMock(TransportInterface::class);
+        $transport->method('send')->willReturn(['contextId' => 'ctx_new']);
+
+        return new Browser($transport, 'b', 'ctx_default', '1.0', new PlaywrightConfig());
     }
 
     /**
