@@ -20,6 +20,7 @@ class PlaywrightServer extends BaseHandler {
     this.dialogs = new Map();
     this.elementHandles = new Map();
     this.contextThrottling = new Map();
+    this.navigationRedirects = new Map();
     this.servers = new Map();
     this.counters = { browser: 0, context: 0, page: 0, response: 0, route: 0, element: 0, server: 0 };
   }
@@ -29,6 +30,7 @@ class PlaywrightServer extends BaseHandler {
       contexts: this.contexts, contextThrottling: this.contextThrottling, pages: this.pages,
       pageContexts: this.pageContexts, dialogs: this.dialogs, elementHandles: this.elementHandles,
       responses: this.responses, routes: this.routes, generateId: this.generateId.bind(this),
+      navigationRedirects: this.navigationRedirects,
       extractRequestData: this.extractRequestData.bind(this), serializeResponse: this.serializeResponse.bind(this),
       sendFramedResponse,
       routeCounter: { value: this.counters.route },
@@ -108,11 +110,18 @@ class PlaywrightServer extends BaseHandler {
     const registry = CommandRegistry.create({
       fulfill: () => route.fulfill(command.options),
       abort: () => route.abort(command.errorCode),
+      redirectNavigationRequest: () => this.redirectNavigationRequest(route, info, command),
       continue: () => this.continueRoute(route, info, command)
     });
     logger.info(`ROUTE ${method.toUpperCase()}`, { routeId: command.routeId });
     await ErrorHandler.safeExecute(() => this.executeWithRegistry(registry, method), { method, routeId: command.routeId });
     this.routes.delete(command.routeId);
+  }
+
+  async redirectNavigationRequest(route, info, command) {
+    if (!this.pages.has(info.contextId)) throw new Error('Navigation redirects require a page route');
+    this.navigationRedirects.set(info.contextId, command.url);
+    await route.fulfill({ status: 204, headers: command.options?.headers });
   }
 
   async continueRoute(route, info, command) {

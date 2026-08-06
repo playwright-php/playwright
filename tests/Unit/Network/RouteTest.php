@@ -95,6 +95,39 @@ final class RouteTest extends TestCase
         $route->continue($options);
     }
 
+    public function testRedirectNavigationRequest(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('sendAsync')
+            ->with([
+                'action' => 'route.redirectNavigationRequest',
+                'routeId' => 'route456',
+                'url' => 'https://example.com/new',
+                'options' => [],
+            ]);
+
+        $route = $this->createRoute();
+        $route->redirectNavigationRequest('https://example.com/new');
+    }
+
+    public function testRedirectNavigationRequestWithOptions(): void
+    {
+        $options = ['headers' => ['set-cookie' => 'redirected=yes; Path=/']];
+        $this->transport
+            ->expects($this->once())
+            ->method('sendAsync')
+            ->with([
+                'action' => 'route.redirectNavigationRequest',
+                'routeId' => 'route456',
+                'url' => 'https://example.com/new',
+                'options' => $options,
+            ]);
+
+        $route = $this->createRoute();
+        $route->redirectNavigationRequest('https://example.com/new', $options);
+    }
+
     public function testFulfill(): void
     {
         $options = ['status' => 200, 'body' => 'foobar'];

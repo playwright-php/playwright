@@ -54,6 +54,21 @@ final class Route implements RouteInterface
         ]);
     }
 
+    /**
+     * @param array<string, mixed> $options
+     *
+     * @internal
+     */
+    public function redirectNavigationRequest(string $url, array $options = []): void
+    {
+        $this->transport->sendAsync([
+            'action' => 'route.redirectNavigationRequest',
+            'routeId' => $this->routeId,
+            'url' => $url,
+            'options' => $options,
+        ]);
+    }
+
     public function fulfill(array $options): void
     {
         $this->transport->sendAsync([

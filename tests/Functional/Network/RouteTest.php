@@ -126,4 +126,149 @@ final class RouteTest extends FunctionalTestCase
         $result = $this->page->locator('#fetch-result')->textContent();
         $this->assertStringContainsString('Error', $result);
     }
+
+    public function testCanRedirectNavigationRequest(): void
+    {
+        $target = $this->getBaseUrl().'/index.html';
+        $this->page->route('**/redirect-me', function (Route $route) use ($target): void {
+            $route->redirectNavigationRequest($target);
+        });
+
+        $response = $this->page->goto($this->getBaseUrl().'/redirect-me');
+
+        $this->assertSame($target, $this->page->url());
+        $this->assertSame($target, $response?->url());
+        $this->assertSame(200, $response?->status());
+    }
+
+    public function testCanRedirectNavigationRequestMoreThanOnce(): void
+    {
+        $baseUrl = $this->getBaseUrl();
+        $this->page->route('**/redirect-*', function (Route $route) use ($baseUrl): void {
+            $target = str_ends_with($route->request()->url(), '/redirect-first')
+                ? $baseUrl.'/redirect-second'
+                : $baseUrl.'/index.html';
+
+            $route->redirectNavigationRequest($target);
+        });
+
+        $this->page->goto($baseUrl.'/redirect-first');
+
+        $this->assertSame($baseUrl.'/index.html', $this->page->url());
+    }
+
+    public function testAllowsTenNavigationRedirects(): void
+    {
+        $baseUrl = $this->getBaseUrl();
+        $redirectCount = 0;
+        $this->page->route('**/redirect-chain-*', function (Route $route) use ($baseUrl, &$redirectCount): void {
+            preg_match('/(\d+)$/', $route->request()->url(), $matches);
+            $step = (int) ($matches[1] ?? 0);
+            ++$redirectCount;
+
+            $route->redirectNavigationRequest(9 === $step
+                ? $baseUrl.'/index.html'
+                : $baseUrl.'/redirect-chain-'.($step + 1));
+        });
+
+        $this->page->goto($baseUrl.'/redirect-chain-0');
+
+        $this->assertSame(10, $redirectCount);
+        $this->assertSame($baseUrl.'/index.html', $this->page->url());
+    }
+
+    public function testCanRedirectNavigationRequestAfterClick(): void
+    {
+        $baseUrl = $this->getBaseUrl();
+        $this->goto('/navigation.html');
+        $this->page->route('**/*', function (Route $route) use ($baseUrl): void {
+            $url = $route->request()->url();
+            if (str_ends_with($url, '/index.html')) {
+                $route->redirectNavigationRequest($baseUrl.'/redirect-after-click');
+
+                return;
+            }
+            if (str_ends_with($url, '/redirect-after-click')) {
+                $route->redirectNavigationRequest($baseUrl.'/page-2.html');
+
+                return;
+            }
+
+            $route->continue();
+        });
+
+        $this->page->locator('#link-home')->click();
+
+        $this->assertSame($baseUrl.'/page-2.html', $this->page->url());
+    }
+
+    public function testCanRedirectNavigationRequestAfterReload(): void
+    {
+        $baseUrl = $this->getBaseUrl();
+        $this->goto('/index.html');
+        $this->page->route('**/index.html', function (Route $route) use ($baseUrl): void {
+            $route->redirectNavigationRequest($baseUrl.'/page-2.html');
+        });
+
+        $this->page->reload();
+
+        $this->assertSame($baseUrl.'/page-2.html', $this->page->url());
+    }
+
+    public function testCanRedirectNavigationRequestWhenGoingBack(): void
+    {
+        $baseUrl = $this->getBaseUrl();
+        $this->goto('/navigation.html');
+        $this->page->goto($baseUrl.'/page-2.html');
+        $this->page->route('**/navigation.html', function (Route $route) use ($baseUrl): void {
+            $route->redirectNavigationRequest($baseUrl.'/index.html');
+        });
+
+        $this->page->goBack();
+
+        $this->assertSame($baseUrl.'/index.html', $this->page->url());
+    }
+
+    public function testCanRedirectNavigationRequestWhenGoingForward(): void
+    {
+        $baseUrl = $this->getBaseUrl();
+        $this->goto('/navigation.html');
+        $this->page->goto($baseUrl.'/page-2.html');
+        $this->page->goBack();
+        $this->page->route('**/page-2.html', function (Route $route) use ($baseUrl): void {
+            $route->redirectNavigationRequest($baseUrl.'/index.html');
+        });
+
+        $this->page->goForward();
+
+        $this->assertSame($baseUrl.'/index.html', $this->page->url());
+    }
+
+    public function testRejectsTooManyNavigationRedirects(): void
+    {
+        $target = $this->getBaseUrl().'/redirect-loop';
+        $this->page->route('**/redirect-loop', function (Route $route) use ($target): void {
+            $route->redirectNavigationRequest($target);
+        });
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Too many navigation redirects');
+
+        $this->page->goto($target);
+    }
+
+    public function testRedirectNavigationRequestPreservesResponseCookies(): void
+    {
+        $baseUrl = $this->getBaseUrl();
+        $this->page->route('**/redirect-with-cookie', function (Route $route) use ($baseUrl): void {
+            $route->redirectNavigationRequest($baseUrl.'/index.html', [
+                'headers' => ['set-cookie' => 'redirected=yes; Path=/'],
+            ]);
+        });
+
+        $this->page->goto($baseUrl.'/redirect-with-cookie');
+
+        $cookies = $this->context->cookies([$baseUrl]);
+        $this->assertSame('yes', array_column($cookies, 'value', 'name')['redirected'] ?? null);
+    }
 }
