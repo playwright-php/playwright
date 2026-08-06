@@ -1087,7 +1087,7 @@ final class Page implements PageInterface, EventDispatcherInterface
      */
     private function createConsoleMessage(array $params): ConsoleMessage
     {
-        return new ConsoleMessage($params);
+        return new ConsoleMessage($params, $this);
     }
 
     private static function normalizeForPage(string $expression): string

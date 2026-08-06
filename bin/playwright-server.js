@@ -159,7 +159,13 @@ class PlaywrightServer extends BaseHandler {
 
   formatEventParams(eventName, eventData) {
     const formatters = {
-      console: () => ({ type: eventData.type(), text: eventData.text(), args: [], location: eventData.location ? eventData.location() : {} }),
+      console: () => ({
+        type: eventData.type(),
+        text: eventData.text(),
+        args: [],
+        location: eventData.location ? eventData.location() : {},
+        timestamp: eventData.timestamp ? eventData.timestamp() : null,
+      }),
       dialog: () => {
         const dialogId = this.generateId('dialog');
         this.dialogs.set(dialogId, eventData);

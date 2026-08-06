@@ -151,6 +151,29 @@ final class ConsoleTest extends FunctionalTestCase
         $this->assertSame('log', $messageType, 'Message type should be "log"');
     }
 
+    public function testConsoleMessageIncludesItsPageAndTimestamp(): void
+    {
+        $message = null;
+        $before = (int) floor(microtime(true) * 1000);
+
+        $this->page->events()->onConsole(function (ConsoleMessage $consoleMessage) use (&$message): void {
+            if (str_contains($consoleMessage->text(), 'This is a log message')) {
+                $message = $consoleMessage;
+            }
+        });
+
+        $this->goto('/console.html');
+        $this->page->click('#log-message');
+        $this->page->waitForSelector('#output');
+
+        $after = (int) ceil(microtime(true) * 1000);
+
+        $this->assertInstanceOf(ConsoleMessage::class, $message);
+        $this->assertSame($this->page, $message->page());
+        $this->assertGreaterThanOrEqual($before, $message->timestamp());
+        $this->assertLessThanOrEqual($after, $message->timestamp());
+    }
+
     public function testCanCapturePageLoadLog(): void
     {
         $pageLoadMessages = [];
