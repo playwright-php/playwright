@@ -28,6 +28,7 @@ use Playwright\Locator\Options\GetByRoleOptions;
 use Playwright\Locator\Options\HoverOptions;
 use Playwright\Locator\Options\LocatorScreenshotOptions;
 use Playwright\Locator\Options\PressOptions;
+use Playwright\Locator\Options\ScrollIntoViewIfNeededOptions;
 use Playwright\Locator\Options\SelectOptionOptions;
 use Playwright\Locator\Options\SetInputFilesOptions;
 use Playwright\Locator\Options\TextContentOptions;
@@ -99,6 +100,11 @@ interface LocatorInterface
     public function focus(): void;
 
     public function blur(): void;
+
+    /**
+     * @param array<string, mixed>|ScrollIntoViewIfNeededOptions $options
+     */
+    public function scrollIntoViewIfNeeded(array|ScrollIntoViewIfNeededOptions $options = []): void;
 
     /**
      * @param array<string, mixed>|LocatorScreenshotOptions $options

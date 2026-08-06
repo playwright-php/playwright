@@ -376,6 +376,17 @@ class LocatorTest extends TestCase
     }
 
     #[Test]
+    public function testScrollIntoViewIfNeeded(): void
+    {
+        $this->page->setContent('<div style="height: 3000px"></div><button id="target">Target</button>');
+        $locator = $this->page->locator('#target');
+
+        $locator->scrollIntoViewIfNeeded();
+
+        $this->assertTrue($this->page->evaluate('() => document.querySelector("#target").getBoundingClientRect().top < window.innerHeight'));
+    }
+
+    #[Test]
     public function testPressSequentiallyWithOptionsObject(): void
     {
         $this->page->setContent('<input id="input" type="text" />');

@@ -32,6 +32,7 @@ use Playwright\Locator\Options\GetByRoleOptions;
 use Playwright\Locator\Options\HoverOptions;
 use Playwright\Locator\Options\LocatorScreenshotOptions;
 use Playwright\Locator\Options\PressOptions;
+use Playwright\Locator\Options\ScrollIntoViewIfNeededOptions;
 use Playwright\Locator\Options\SelectOptionOptions;
 use Playwright\Locator\Options\SetInputFilesOptions;
 use Playwright\Locator\Options\TextContentOptions;
@@ -129,6 +130,15 @@ final class Locator implements \Stringable, LocatorInterface
     public function blur(): void
     {
         $this->sendCommand('locator.blur');
+    }
+
+    /**
+     * @param array<string, mixed>|ScrollIntoViewIfNeededOptions $options
+     */
+    public function scrollIntoViewIfNeeded(array|ScrollIntoViewIfNeededOptions $options = []): void
+    {
+        $options = ScrollIntoViewIfNeededOptions::from($options);
+        $this->sendCommand('locator.scrollIntoViewIfNeeded', ['options' => $options->toArray()]);
     }
 
     /**

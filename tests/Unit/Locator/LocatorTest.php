@@ -143,6 +143,20 @@ final class LocatorTest extends TestCase
         $this->locator->blur();
     }
 
+    public function testScrollIntoViewIfNeededSendsOptions(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static function (array $payload): bool {
+                return 'locator.scrollIntoViewIfNeeded' === $payload['action']
+                    && ['timeout' => 500.0] === $payload['options'];
+            }))
+            ->willReturn([]);
+
+        $this->locator->scrollIntoViewIfNeeded(['timeout' => 500.0]);
+    }
+
     public function testScreenshotWithPath(): void
     {
         $this->transport
