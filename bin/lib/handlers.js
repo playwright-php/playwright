@@ -9,6 +9,7 @@ class ContextHandler extends BaseHandler {
 
     const registry = CommandRegistry.create({
       addInitScript: () => context.addInitScript(command.script),
+      setExtraHTTPHeaders: () => context.setExtraHTTPHeaders(command.headers),
       setOffline: () => context.setOffline(!!command.offline),
       setGeolocation: () => context.setGeolocation(command.geolocation),
       addCookies: () => context.addCookies(command.cookies),

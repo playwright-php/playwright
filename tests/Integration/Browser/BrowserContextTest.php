@@ -18,6 +18,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Playwright\Browser\BrowserContext;
+use Playwright\Network\RouteInterface;
 use Playwright\Page\PageInterface;
 use Playwright\Testing\PlaywrightTestCaseTrait;
 use Playwright\Tests\Support\RouteServerTestTrait;
@@ -124,6 +125,24 @@ class BrowserContextTest extends TestCase
         $page->goto('data:text/html,<h1>Test Page</h1>');
 
         $this->assertInstanceOf('Playwright\Page\Page', $page);
+
+        $page->close();
+    }
+
+    #[Test]
+    public function itSetsExtraHttpHeaders(): void
+    {
+        $requestHeaders = [];
+        $this->context->route('**/*', static function (RouteInterface $route) use (&$requestHeaders): void {
+            $requestHeaders = $route->request()->headers();
+            $route->fulfill(['body' => '<h1>Headers</h1>']);
+        });
+        $this->context->setExtraHTTPHeaders(['X-Playwright-PHP' => 'context']);
+
+        $page = $this->context->newPage();
+        $page->goto('https://headers.example.test/');
+
+        $this->assertSame('context', $requestHeaders['x-playwright-php'] ?? null);
 
         $page->close();
     }

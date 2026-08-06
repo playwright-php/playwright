@@ -35,6 +35,13 @@ interface BrowserContextInterface
     public function addInitScript(string $script): void;
 
     /**
+     * Set extra HTTP headers for every request made by pages in this context.
+     *
+     * @param array<string, string> $headers
+     */
+    public function setExtraHTTPHeaders(array $headers): void;
+
+    /**
      * @param array<array{domain: string, name: string, path: string}> $options
      */
     public function clearCookies(array $options = []): void;

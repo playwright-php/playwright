@@ -263,6 +263,20 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
     }
 
     /**
+     * @param array<string, string> $headers
+     */
+    public function setExtraHTTPHeaders(array $headers): void
+    {
+        self::validateExtraHttpHeaders($headers);
+
+        $this->transport->send([
+            'action' => 'context.setExtraHTTPHeaders',
+            'contextId' => $this->contextId,
+            'headers' => $headers,
+        ]);
+    }
+
+    /**
      * @param array<string, mixed> $options
      */
     public function clearCookies(array $options = []): void
@@ -588,6 +602,22 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
         $this->pages[$popupPageId] = $page;
 
         return $page;
+    }
+
+    /**
+     * @param array<mixed> $headers
+     */
+    private static function validateExtraHttpHeaders(array $headers): void
+    {
+        foreach ($headers as $name => $value) {
+            if (!is_string($name) || !preg_match("/^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/", $name)) {
+                throw new \InvalidArgumentException('HTTP header names must be non-empty token strings.');
+            }
+
+            if (!is_string($value) || str_contains($value, "\r") || str_contains($value, "\n")) {
+                throw new \InvalidArgumentException('HTTP header values must be strings without line breaks.');
+            }
+        }
     }
 
     /**

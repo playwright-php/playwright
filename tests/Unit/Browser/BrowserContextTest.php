@@ -141,6 +141,46 @@ final class BrowserContextTest extends TestCase
         $this->context->addInitScript($script);
     }
 
+    public function testSetExtraHTTPHeaders(): void
+    {
+        $headers = ['X-Playwright-PHP' => 'context'];
+
+        $this->mockTransport
+            ->expects($this->once())
+            ->method('send')
+            ->with([
+                'action' => 'context.setExtraHTTPHeaders',
+                'contextId' => 'context_1',
+                'headers' => $headers,
+            ]);
+
+        $this->context->setExtraHTTPHeaders($headers);
+    }
+
+    public function testSetExtraHTTPHeadersRejectsInvalidHeaderName(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('HTTP header names must be non-empty token strings.');
+
+        $this->context->setExtraHTTPHeaders(['Invalid Header' => 'value']);
+    }
+
+    public function testSetExtraHTTPHeadersRejectsInvalidHeaderValue(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('HTTP header values must be strings without line breaks.');
+
+        $this->context->setExtraHTTPHeaders(['X-Playwright-PHP' => "value\nnext"]);
+    }
+
+    public function testSetExtraHTTPHeadersRejectsNonStringHeaderValue(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('HTTP header values must be strings without line breaks.');
+
+        $this->context->setExtraHTTPHeaders(['X-Playwright-PHP' => 42]);
+    }
+
     public function testClearCookies(): void
     {
         $this->mockTransport
