@@ -145,4 +145,14 @@ interface BrowserContextInterface
      * Requests made with this API will use context cookies.
      */
     public function request(): APIRequestContextInterface;
+
+    /**
+     * Sets the default maximum time for methods that accept a timeout option.
+     */
+    public function setDefaultTimeout(int $timeout): void;
+
+    /**
+     * Sets the default maximum time for navigation methods.
+     */
+    public function setDefaultNavigationTimeout(int $timeout): void;
 }

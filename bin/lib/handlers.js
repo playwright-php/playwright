@@ -35,6 +35,8 @@ class ContextHandler extends BaseHandler {
       },
       waitForPopup: () => this.waitForPopup(context, command),
       setNetworkThrottling: () => this.setThrottling(command),
+      setDefaultTimeout: () => context.setDefaultTimeout(command.timeout),
+      setDefaultNavigationTimeout: () => context.setDefaultNavigationTimeout(command.timeout),
       route: () => RouteUtils.setupRoute(context, command.contextId, command.url, this.generateId, this.routes, this.extractRequestData, this.sendFramedResponse),
       unroute: () => context.unroute(command.url),
       cookies: async () => ({ cookies: await context.cookies(command.urls) }),

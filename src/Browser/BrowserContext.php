@@ -617,6 +617,24 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
         return new APIRequestContext($this->transport, $this->contextId, null);
     }
 
+    public function setDefaultTimeout(int $timeout): void
+    {
+        $this->transport->send([
+            'action' => 'context.setDefaultTimeout',
+            'contextId' => $this->contextId,
+            'timeout' => $timeout,
+        ]);
+    }
+
+    public function setDefaultNavigationTimeout(int $timeout): void
+    {
+        $this->transport->send([
+            'action' => 'context.setDefaultNavigationTimeout',
+            'contextId' => $this->contextId,
+            'timeout' => $timeout,
+        ]);
+    }
+
     public function getTransport(): TransportInterface
     {
         return $this->transport;

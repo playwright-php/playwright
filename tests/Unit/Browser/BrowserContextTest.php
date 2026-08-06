@@ -182,6 +182,34 @@ final class BrowserContextTest extends TestCase
         $this->context->clearPermissions();
     }
 
+    public function testSetDefaultTimeoutSendsCorrectCommand(): void
+    {
+        $this->mockTransport
+            ->expects($this->once())
+            ->method('send')
+            ->with([
+                'action' => 'context.setDefaultTimeout',
+                'contextId' => 'context_1',
+                'timeout' => 500,
+            ]);
+
+        $this->context->setDefaultTimeout(500);
+    }
+
+    public function testSetDefaultNavigationTimeoutSendsCorrectCommand(): void
+    {
+        $this->mockTransport
+            ->expects($this->once())
+            ->method('send')
+            ->with([
+                'action' => 'context.setDefaultNavigationTimeout',
+                'contextId' => 'context_1',
+                'timeout' => 10000,
+            ]);
+
+        $this->context->setDefaultNavigationTimeout(10000);
+    }
+
     public function testCookies(): void
     {
         $expectedCookies = [
