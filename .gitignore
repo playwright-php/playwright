@@ -1,7 +1,4 @@
 /.phpunit.cache/
-/bin/pnpm-lock.yaml
-/bin/package.lock
-/bin/yarn.lock
 /node_modules/
 /screenshots/
 /vendor/
