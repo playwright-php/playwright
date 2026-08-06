@@ -141,6 +141,12 @@ interface PageInterface
 
     public function content(): ?string;
 
+    /**
+     * Queues a script to run before any of the page's own scripts.
+     *
+     * It runs again on every navigation and in every frame the page creates, so
+     * it is the place to stub an API or seed state a page reads at startup.
+     */
     public function addInitScript(string $script): self;
 
     public function evaluate(string $expression, mixed $arg = null): mixed;
@@ -200,6 +206,11 @@ interface PageInterface
     public function setDefaultNavigationTimeout(int $timeout): self;
 
     public function setDefaultTimeout(int $timeout): self;
+
+    /**
+     * @param array<string, string> $headers
+     */
+    public function setExtraHTTPHeaders(array $headers): self;
 
     /**
      * @param array<string, mixed>|WaitForLoadStateOptions $options

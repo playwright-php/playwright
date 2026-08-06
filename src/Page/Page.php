@@ -849,6 +849,22 @@ final class Page implements PageInterface, EventDispatcherInterface
     }
 
     /**
+     * @param array<string, string> $headers
+     */
+    public function setExtraHTTPHeaders(array $headers): self
+    {
+        foreach ($headers as $name => $value) {
+            if (!is_string($name) || !is_string($value)) {
+                throw new \InvalidArgumentException('HTTP headers must be a string-to-string map.');
+            }
+        }
+
+        $this->sendCommand('setExtraHTTPHeaders', ['headers' => $headers]);
+
+        return $this;
+    }
+
+    /**
      * @param array<string, mixed>|WaitForLoadStateOptions $options
      */
     public function waitForLoadState(string $state = 'load', array|WaitForLoadStateOptions $options = []): self

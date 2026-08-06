@@ -94,6 +94,20 @@ class PageTest extends TestCase
     }
 
     #[Test]
+    public function itSendsExtraHttpHeaders(): void
+    {
+        $requestHeaders = [];
+        $this->page->events()->onRequest(static function ($request) use (&$requestHeaders): void {
+            $requestHeaders = array_change_key_case($request->headers(), CASE_LOWER);
+        });
+        $this->page->setExtraHTTPHeaders(['X-Page-Test' => 'present']);
+
+        $this->page->goto($this->routeUrl('/page2.html'));
+
+        $this->assertSame('present', $requestHeaders['x-page-test'] ?? null);
+    }
+
+    #[Test]
     public function itCanNavigateBackAndForward(): void
     {
         $this->page->click('a');

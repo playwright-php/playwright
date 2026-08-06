@@ -567,6 +567,29 @@ class PageTest extends TestCase
         $this->assertSame($this->page, $result);
     }
 
+    public function testSetExtraHTTPHeadersSendsCommandAndReturnsSelf(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'headers' => ['X-Test' => 'page'],
+                'action' => 'page.setExtraHTTPHeaders',
+                'pageId' => 'page-id',
+            ])
+            ->willReturn([]);
+
+        $result = $this->page->setExtraHTTPHeaders(['X-Test' => 'page']);
+
+        $this->assertSame($this->page, $result);
+    }
+
+    public function testSetExtraHTTPHeadersRejectsNonStringEntries(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        $this->page->setExtraHTTPHeaders(['X-Test' => 1]);
+    }
+
     public function testUnrouteSendsPageCommand(): void
     {
         $transport = $this->createMock(TransportInterface::class);
