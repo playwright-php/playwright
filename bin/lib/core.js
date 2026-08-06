@@ -226,12 +226,18 @@ class FrameUtils {
     return fl;
   }
 
-  static async evaluateInFrame(page, frameLocator, isMainFrame, expression) {
-    if (isMainFrame) return await page.evaluate(expression);
+  static async evaluateInFrame(page, frameLocator, isMainFrame, expression, arg) {
+    if (isMainFrame) return await page.evaluate(expression, arg);
     const loc = frameLocator.locator('html');
     const count = await loc.count();
     if (count === 0) return null;
-    return await loc.evaluate(expression);
+    if (typeof expression === 'function') return await loc.evaluate(expression);
+    return await loc.evaluate(async (element, payload) => {
+      const value = eval(`(${payload.expression})`);
+      return typeof value === 'function'
+        ? await value(payload.arg)
+        : await eval(payload.expression);
+    }, { expression, arg });
   }
 
   static async waitForReadyState(evalInFrame, state, timeoutMs) {

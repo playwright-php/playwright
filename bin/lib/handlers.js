@@ -684,6 +684,8 @@ class FrameHandler extends BaseHandler {
 
     const registry = CommandRegistry.create({
       name: () => evalInFrame(() => window.name || '').then(v => this.createValueResult(v ?? '')),
+      evaluate: () => FrameUtils.evaluateInFrame(page, frameLocator, isMainFrame, command.expression, command.arg).then(result => ({ result })),
+      title: () => evalInFrame(() => document.title).then(v => this.createValueResult(v ?? '')),
       url: () => evalInFrame(() => document.location.href).then(v => this.createValueResult(v ?? '')),
       isDetached: () => this.checkDetached(isMainFrame, frameLocator),
       waitForLoadState: () => isMainFrame ? page.waitForLoadState(command.state || 'load', command.options) : this.waitForLoadState(page, frameLocator, isMainFrame, command),

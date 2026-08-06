@@ -73,6 +73,52 @@ class FrameTest extends TestCase
         $this->assertTrue($frame->isDetached());
     }
 
+    public function testEvaluateSendsExpressionAndArgument(): void
+    {
+        $frame = new Frame($this->transport, $this->pageId, 'iframe#auth', $this->logger);
+
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'expression' => '(arg) => arg.value * 2',
+                'arg' => ['value' => 21],
+                'action' => 'frame.evaluate',
+                'pageId' => $this->pageId,
+                'frameSelector' => 'iframe#auth',
+            ])
+            ->willReturn(['result' => 42]);
+
+        $this->assertSame(42, $frame->evaluate('(arg) => arg.value * 2', ['value' => 21]));
+    }
+
+    public function testEvaluateNormalizesReturnExpression(): void
+    {
+        $frame = new Frame($this->transport, $this->pageId, 'iframe#auth', $this->logger);
+
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static fn (array $payload): bool => '(arg) => { return arg.value; }' === $payload['expression']))
+            ->willReturn(['result' => 'value']);
+
+        $this->assertSame('value', $frame->evaluate('return arg.value;', ['value' => 'value']));
+    }
+
+    public function testTitleSendsCommandAndReturnsString(): void
+    {
+        $frame = new Frame($this->transport, $this->pageId, 'iframe#auth', $this->logger);
+
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'action' => 'frame.title',
+                'pageId' => $this->pageId,
+                'frameSelector' => 'iframe#auth',
+            ])
+            ->willReturn(['value' => 'Authentication']);
+
+        $this->assertSame('Authentication', $frame->title());
+    }
+
     public function testWaitForLoadState(): void
     {
         $frame = new Frame($this->transport, $this->pageId, 'iframe#auth', $this->logger);

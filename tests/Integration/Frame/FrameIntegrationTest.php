@@ -44,6 +44,7 @@ class FrameIntegrationTest extends TestCase
                 <iframe id="inner" name="inn" src="/inner.html"></iframe>
             HTML,
             '/inner.html' => <<<'HTML'
+                <title>Inner frame</title>
                 <h4>Inner</h4>
                 <button id="btn" onclick="this.textContent='Clicked'">Click</button>
                 <input type="text" placeholder="Frame Input" />
@@ -94,6 +95,26 @@ class FrameIntegrationTest extends TestCase
 
         $locator = $frame->getByText('Frame Text');
         $this->assertSame('Frame Text', $locator->textContent());
+    }
+
+    #[Test]
+    public function itEvaluatesExpressionsInFrameWithArguments(): void
+    {
+        $frame = $this->page->frame(['urlRegex' => '/inner\.html$/']);
+        $this->assertNotNull($frame);
+
+        $this->assertSame('Inner!', $frame->evaluate('(arg) => document.querySelector("h4").textContent + arg.suffix', ['suffix' => '!']));
+        $this->assertSame('Inner', $frame->evaluate('return document.querySelector("h4").textContent;'));
+        $this->assertSame('Inner frame', $frame->evaluate('document.title'));
+    }
+
+    #[Test]
+    public function itReturnsTheFrameTitle(): void
+    {
+        $frame = $this->page->frame(['urlRegex' => '/inner\.html$/']);
+        $this->assertNotNull($frame);
+
+        $this->assertSame('Inner frame', $frame->title());
     }
 
     #[Test]

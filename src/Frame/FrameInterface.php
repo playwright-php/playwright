@@ -65,10 +65,17 @@ interface FrameInterface
      */
     public function owner(): LocatorInterface;
 
+    public function evaluate(string $expression, mixed $arg = null): mixed;
+
     /**
      * The frame's name attribute.
      */
     public function name(): string;
+
+    /**
+     * The frame document title.
+     */
+    public function title(): string;
 
     /**
      * The current URL loaded in this frame.

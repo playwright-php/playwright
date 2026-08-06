@@ -135,12 +135,33 @@ final class Frame implements \Stringable, FrameInterface
         return new Locator($this->transport, $this->pageId, $this->frameSelector, null, $this->logger);
     }
 
+    public function evaluate(string $expression, mixed $arg = null): mixed
+    {
+        $response = $this->sendCommand('frame.evaluate', [
+            'expression' => self::normalizeForPage($expression),
+            'arg' => $arg,
+        ]);
+
+        return $response['result'] ?? null;
+    }
+
     public function name(): string
     {
         $response = $this->sendCommand('frame.name');
         $value = $response['value'] ?? null;
         if (!is_string($value)) {
             throw new ProtocolErrorException('Invalid frame.name response', 0);
+        }
+
+        return $value;
+    }
+
+    public function title(): string
+    {
+        $response = $this->sendCommand('frame.title');
+        $value = $response['value'] ?? null;
+        if (!is_string($value)) {
+            throw new ProtocolErrorException('Invalid frame.title response', 0);
         }
 
         return $value;
@@ -227,5 +248,30 @@ final class Frame implements \Stringable, FrameInterface
         }
 
         return $response;
+    }
+
+    private static function normalizeForPage(string $expression): string
+    {
+        $trimmed = ltrim($expression);
+
+        if (self::isFunctionLike($trimmed)) {
+            return $expression;
+        }
+
+        if (self::startsWithReturn($trimmed)) {
+            return '(arg) => { '.$trimmed.' }';
+        }
+
+        return $expression;
+    }
+
+    private static function isFunctionLike(string $expression): bool
+    {
+        return (bool) preg_match('/^((async\s+)?function\b|\([^)]*\)\s*=>|[A-Za-z_$][A-Za-z0-9_$]*\s*=>|async\s*\([^)]*\)\s*=>)/', $expression);
+    }
+
+    private static function startsWithReturn(string $expression): bool
+    {
+        return (bool) preg_match('/^return\b/', $expression);
     }
 }
