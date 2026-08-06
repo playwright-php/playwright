@@ -16,6 +16,7 @@ namespace Playwright\Tests\Unit\Assertions;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Playwright\Assertions\AssertionOptions;
 use Playwright\Assertions\Failure\AssertionException;
 use Playwright\Assertions\LocatorAssertions;
 use Playwright\Locator\LocatorInterface;
@@ -30,7 +31,7 @@ final class LocatorAssertionsTest extends TestCase
 
         $assertions = new LocatorAssertions($locator);
 
-        self::assertSame($assertions, $assertions->toBeAttached());
+        $this->assertSame($assertions, $assertions->toBeAttached());
     }
 
     public function testToBeEditable(): void
@@ -40,7 +41,7 @@ final class LocatorAssertionsTest extends TestCase
 
         $assertions = new LocatorAssertions($locator);
 
-        self::assertSame($assertions, $assertions->toBeEditable());
+        $this->assertSame($assertions, $assertions->toBeEditable());
     }
 
     public function testToBeAttachedResetsNegationAfterFailure(): void
@@ -51,12 +52,12 @@ final class LocatorAssertionsTest extends TestCase
 
         try {
             $assertions->not()->toBeAttached();
-            self::fail('Expected the negated assertion to fail.');
+            $this->fail('Expected the negated assertion to fail.');
         } catch (AssertionException $exception) {
-            self::assertSame('Expected locator to be detached.', $exception->getMessage());
+            $this->assertSame('Expected locator to be detached.', $exception->getMessage());
         }
 
-        self::assertSame($assertions, $assertions->toBeAttached());
+        $this->assertSame($assertions, $assertions->toBeAttached());
     }
 
     public function testToBeEditableResetsNegationAfterFailure(): void
@@ -67,11 +68,76 @@ final class LocatorAssertionsTest extends TestCase
 
         try {
             $assertions->not()->toBeEditable();
-            self::fail('Expected the negated assertion to fail.');
+            $this->fail('Expected the negated assertion to fail.');
         } catch (AssertionException $exception) {
-            self::assertSame('Expected locator not to be editable.', $exception->getMessage());
+            $this->assertSame('Expected locator not to be editable.', $exception->getMessage());
         }
 
-        self::assertSame($assertions, $assertions->toBeEditable());
+        $this->assertSame($assertions, $assertions->toBeEditable());
+    }
+
+    public function testToBeInViewportUsesConfiguredRatio(): void
+    {
+        $locator = $this->createMock(LocatorInterface::class);
+        $locator->expects($this->once())
+            ->method('evaluate')
+            ->with($this->isType('string'), 0.5)
+            ->willReturn(true);
+
+        $this->assertInstanceOf(LocatorAssertions::class, (new LocatorAssertions($locator))->toBeInViewport(new AssertionOptions(ratio: 0.5)));
+    }
+
+    public function testToHaveJavaScriptPropertyUsesDeepNativeComparison(): void
+    {
+        $locator = $this->createMock(LocatorInterface::class);
+        $locator->expects($this->once())
+            ->method('evaluate')
+            ->with($this->isType('string'), ['name' => 'state', 'expected' => ['ready' => true]])
+            ->willReturn(true);
+
+        $this->assertInstanceOf(LocatorAssertions::class, (new LocatorAssertions($locator))->toHaveJSProperty('state', ['ready' => true]));
+    }
+
+    public function testToHaveValuesNormalizesASingleExpectedValue(): void
+    {
+        $locator = $this->createMock(LocatorInterface::class);
+        $locator->expects($this->once())
+            ->method('evaluate')
+            ->with($this->isType('string'))
+            ->willReturn(['second']);
+
+        $this->assertInstanceOf(LocatorAssertions::class, (new LocatorAssertions($locator))->toHaveValues('second'));
+    }
+
+    public function testToHaveRoleRespectsNegationAndTimeout(): void
+    {
+        $locator = $this->createMock(LocatorInterface::class);
+        $locator->expects($this->once())
+            ->method('evaluate')
+            ->with($this->isType('string'))
+            ->willReturn('button');
+
+        $this->assertInstanceOf(
+            LocatorAssertions::class,
+            (new LocatorAssertions($locator))->not()->toHaveRole('link', new AssertionOptions(timeoutMs: 0))
+        );
+    }
+
+    public function testToContainClassEvaluatesEachClassToken(): void
+    {
+        $locator = $this->createMock(LocatorInterface::class);
+        $locator->expects($this->once())
+            ->method('evaluate')
+            ->with($this->isType('string'), ['primary', 'active'])
+            ->willReturn(true);
+
+        $this->assertInstanceOf(LocatorAssertions::class, (new LocatorAssertions($locator))->toContainClass('primary active'));
+    }
+
+    public function testToContainClassRejectsAnEmptyClassList(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        (new LocatorAssertions($this->createMock(LocatorInterface::class)))->toContainClass('   ');
     }
 }
