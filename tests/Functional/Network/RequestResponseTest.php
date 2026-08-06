@@ -42,8 +42,8 @@ final class RequestResponseTest extends FunctionalTestCase
             'action' => 'document.getElementById("fetch-json").click()',
         ]);
 
-        self::assertInstanceOf(ResponseInterface::class, $response);
-        self::assertSame(200, $response->status());
+        $this->assertInstanceOf(ResponseInterface::class, $response);
+        $this->assertSame(200, $response->status());
     }
 
     public function testCanGetResponseStatus(): void
@@ -62,7 +62,7 @@ final class RequestResponseTest extends FunctionalTestCase
             'action' => 'document.getElementById("fetch-json").click()',
         ]);
 
-        self::assertSame(201, $response->status());
+        $this->assertSame(201, $response->status());
     }
 
     public function testCanCheckResponseHeaders(): void
@@ -85,8 +85,8 @@ final class RequestResponseTest extends FunctionalTestCase
         ]);
 
         $headers = $response->headers();
-        self::assertIsArray($headers);
-        self::assertArrayHasKey('content-type', $headers);
-        self::assertStringContainsString('json', $headers['content-type']);
+        $this->assertIsArray($headers);
+        $this->assertArrayHasKey('content-type', $headers);
+        $this->assertStringContainsString('json', $headers['content-type']);
     }
 }

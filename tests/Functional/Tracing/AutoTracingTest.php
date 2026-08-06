@@ -28,7 +28,7 @@ final class AutoTracingTest extends FunctionalTestCase
     {
         $node = (new ExecutableFinder())->find('node');
         if (null === $node) {
-            self::markTestSkipped('Node.js executable not found.');
+            $this->markTestSkipped('Node.js executable not found.');
         }
 
         $traceDir = sys_get_temp_dir().'/pw-php-auto-trace-'.uniqid();
@@ -52,8 +52,8 @@ final class AutoTracingTest extends FunctionalTestCase
             $context->close();
 
             $traces = glob($traceDir.'/trace-*.zip') ?: [];
-            self::assertCount(1, $traces);
-            self::assertGreaterThan(0, (int) filesize($traces[0]));
+            $this->assertCount(1, $traces);
+            $this->assertGreaterThan(0, (int) filesize($traces[0]));
         } finally {
             $browser->close();
 

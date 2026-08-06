@@ -42,7 +42,7 @@ final class RouteTest extends FunctionalTestCase
         $this->page->waitForSelector('#fetch-result:has-text("Mocked response")');
 
         $result = $this->page->locator('#fetch-result')->textContent();
-        self::assertStringContainsString('Mocked response', $result);
+        $this->assertStringContainsString('Mocked response', $result);
     }
 
     public function testCanInterceptAndAbortRequest(): void
@@ -58,7 +58,7 @@ final class RouteTest extends FunctionalTestCase
         $this->page->waitForSelector('#fetch-result:has-text("Error")');
 
         $result = $this->page->locator('#fetch-result')->textContent();
-        self::assertStringContainsString('Error', $result);
+        $this->assertStringContainsString('Error', $result);
     }
 
     public function testCanModifyRequestHeaders(): void
@@ -76,7 +76,7 @@ final class RouteTest extends FunctionalTestCase
 
         $this->page->click('#xhr-get');
 
-        self::assertTrue(true);
+        $this->assertTrue(true);
     }
 
     public function testCanMatchRoutePattern(): void
@@ -97,7 +97,7 @@ final class RouteTest extends FunctionalTestCase
         $this->page->click('#fetch-json');
         $this->page->waitForSelector('#fetch-result');
 
-        self::assertTrue($matched);
+        $this->assertTrue($matched);
     }
 
     public function testCanUnroute(): void
@@ -124,6 +124,6 @@ final class RouteTest extends FunctionalTestCase
         $this->page->waitForSelector('#fetch-result:has-text("Error")', ['timeout' => 5000]);
 
         $result = $this->page->locator('#fetch-result')->textContent();
-        self::assertStringContainsString('Error', $result);
+        $this->assertStringContainsString('Error', $result);
     }
 }

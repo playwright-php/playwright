@@ -29,7 +29,7 @@ final class RequestTimeoutTest extends FunctionalTestCase
     {
         $node = (new ExecutableFinder())->find('node');
         if (null === $node) {
-            self::markTestSkipped('Node.js executable not found.');
+            $this->markTestSkipped('Node.js executable not found.');
         }
 
         $config = new PlaywrightConfig(nodePath: $node, timeoutMs: 5000);
@@ -45,14 +45,14 @@ final class RequestTimeoutTest extends FunctionalTestCase
 
             try {
                 $page->waitForSelector('#does-not-exist', ['timeout' => 9000]);
-                self::fail('Expected a TimeoutException');
+                $this->fail('Expected a TimeoutException');
             } catch (TimeoutException $e) {
                 $elapsed = microtime(true) - $start;
 
                 // The wait must live for its full 9s and fail with the
                 // Playwright error, not be cut at 5s by the RPC deadline.
-                self::assertStringContainsString('Timeout 9000ms exceeded', $e->getMessage());
-                self::assertGreaterThan(8.0, $elapsed);
+                $this->assertStringContainsString('Timeout 9000ms exceeded', $e->getMessage());
+                $this->assertGreaterThan(8.0, $elapsed);
             }
         } finally {
             $browser->close();

@@ -30,7 +30,7 @@ final class FormInteractionTest extends FunctionalTestCase
         $this->page->locator('#name')->fill('John Doe');
 
         $value = $this->page->locator('#name')->inputValue();
-        self::assertSame('John Doe', $value);
+        $this->assertSame('John Doe', $value);
     }
 
     public function testCanSelectOption(): void
@@ -40,7 +40,7 @@ final class FormInteractionTest extends FunctionalTestCase
         $this->page->locator('#color')->selectOption('blue');
 
         $value = $this->page->locator('#color')->inputValue();
-        self::assertSame('blue', $value);
+        $this->assertSame('blue', $value);
     }
 
     public function testCanCheckCheckbox(): void
@@ -48,11 +48,11 @@ final class FormInteractionTest extends FunctionalTestCase
         $this->goto('/forms.html');
 
         $checkbox = $this->page->locator('#agree');
-        self::assertFalse($checkbox->isChecked());
+        $this->assertFalse($checkbox->isChecked());
 
         $checkbox->check();
 
-        self::assertTrue($checkbox->isChecked());
+        $this->assertTrue($checkbox->isChecked());
     }
 
     public function testCanUncheckCheckbox(): void
@@ -60,11 +60,11 @@ final class FormInteractionTest extends FunctionalTestCase
         $this->goto('/forms.html');
 
         $this->page->locator('#agree')->check();
-        self::assertTrue($this->page->locator('#agree')->isChecked());
+        $this->assertTrue($this->page->locator('#agree')->isChecked());
 
         $this->page->locator('#agree')->uncheck();
 
-        self::assertFalse($this->page->locator('#agree')->isChecked());
+        $this->assertFalse($this->page->locator('#agree')->isChecked());
     }
 
     public function testCanSelectRadioButton(): void
@@ -74,7 +74,7 @@ final class FormInteractionTest extends FunctionalTestCase
         $this->page->locator('input[name="size"][value="medium"]')->check();
 
         $mediumRadio = $this->page->locator('input[name="size"][value="medium"]');
-        self::assertTrue($mediumRadio->isChecked());
+        $this->assertTrue($mediumRadio->isChecked());
     }
 
     public function testCanFillTextarea(): void
@@ -84,7 +84,7 @@ final class FormInteractionTest extends FunctionalTestCase
         $this->page->locator('#comment')->fill('This is a test comment');
 
         $value = $this->page->locator('#comment')->inputValue();
-        self::assertSame('This is a test comment', $value);
+        $this->assertSame('This is a test comment', $value);
     }
 
     public function testCanSubmitForm(): void

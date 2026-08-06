@@ -57,9 +57,9 @@ final class ExpectTraceGroupsTest extends FunctionalTestCase
         $this->context->tracing()->stop(['path' => $tracePath]);
 
         $events = $this->readTraceEvents($tracePath);
-        self::assertStringContainsString('"method":"tracingGroup"', $events);
-        self::assertStringContainsString('expect(#heading).toBeVisible', $events);
-        self::assertStringContainsString('expect(page).toHaveTitle', $events);
+        $this->assertStringContainsString('"method":"tracingGroup"', $events);
+        $this->assertStringContainsString('expect(#heading).toBeVisible', $events);
+        $this->assertStringContainsString('expect(page).toHaveTitle', $events);
     }
 
     public function testExpectStillWorksWhenTracingIsNotActive(): void
@@ -68,13 +68,13 @@ final class ExpectTraceGroupsTest extends FunctionalTestCase
 
         $this->expect($this->page->locator('#heading'))->toBeVisible();
 
-        self::assertTrue(true);
+        $this->assertTrue(true);
     }
 
     private function readTraceEvents(string $zipPath): string
     {
         $zip = new \ZipArchive();
-        self::assertTrue($zip->open($zipPath));
+        $this->assertTrue($zip->open($zipPath));
 
         $events = '';
         for ($i = 0; $i < $zip->numFiles; ++$i) {
@@ -85,7 +85,7 @@ final class ExpectTraceGroupsTest extends FunctionalTestCase
         }
         $zip->close();
 
-        self::assertNotSame('', $events, 'No .trace events file found in the archive');
+        $this->assertNotSame('', $events, 'No .trace events file found in the archive');
 
         return $events;
     }

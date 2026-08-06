@@ -32,8 +32,8 @@ final class HtmlInjectionTest extends FunctionalTestCase
         $heading = $this->page->locator('#new-heading')->textContent();
         $paragraph = $this->page->locator('#new-paragraph')->textContent();
 
-        self::assertSame('New Content', $heading);
-        self::assertSame('This is injected HTML', $paragraph);
+        $this->assertSame('New Content', $heading);
+        $this->assertSame('This is injected HTML', $paragraph);
     }
 
     public function testCanSetCompleteHtmlDocument(): void
@@ -57,8 +57,8 @@ HTML;
         $title = $this->page->title();
         $content = $this->page->locator('#injected-content')->textContent();
 
-        self::assertSame('Injected Page', $title);
-        self::assertSame('Complete HTML document', $content);
+        $this->assertSame('Injected Page', $title);
+        $this->assertSame('Complete HTML document', $content);
     }
 
     public function testCanInjectHtmlWithStyles(): void
@@ -76,7 +76,7 @@ HTML;
 
         $color = $this->page->evaluate('window.getComputedStyle(document.getElementById("styled-element")).color');
 
-        self::assertSame('rgb(255, 0, 0)', $color);
+        $this->assertSame('rgb(255, 0, 0)', $color);
     }
 
     public function testCanInjectHtmlWithScripts(): void
@@ -96,8 +96,8 @@ HTML;
         $text = $this->page->locator('#target')->textContent();
         $scriptRan = $this->page->evaluate('window.scriptRan');
 
-        self::assertSame('Script executed', $text);
-        self::assertTrue($scriptRan);
+        $this->assertSame('Script executed', $text);
+        $this->assertTrue($scriptRan);
     }
 
     public function testCanGetCurrentContent(): void
@@ -106,8 +106,8 @@ HTML;
 
         $content = $this->page->content();
 
-        self::assertStringContainsString('Injection Tests', $content);
-        self::assertStringContainsString('<!doctype html>', \strtolower($content));
+        $this->assertStringContainsString('Injection Tests', $content);
+        $this->assertStringContainsString('<!doctype html>', \strtolower($content));
     }
 
     public function testCanGetInnerHtml(): void
@@ -116,7 +116,7 @@ HTML;
 
         $innerHTML = $this->page->locator('#test-element')->innerHTML();
 
-        self::assertStringContainsString('Original Content', $innerHTML);
+        $this->assertStringContainsString('Original Content', $innerHTML);
     }
 
     public function testCanSetComplexHtmlStructure(): void
@@ -139,8 +139,8 @@ HTML;
         $itemCount = $this->page->locator('.item')->count();
         $btnText = $this->page->locator('#action-btn')->textContent();
 
-        self::assertSame(3, $itemCount);
-        self::assertSame('Click Me', $btnText);
+        $this->assertSame(3, $itemCount);
+        $this->assertSame('Click Me', $btnText);
     }
 
     public function testCanInjectFormsAndInputs(): void
@@ -160,7 +160,7 @@ HTML;
         $usernameValue = $this->page->locator('#username')->inputValue();
         $emailValue = $this->page->locator('#email')->inputValue();
 
-        self::assertSame('testuser', $usernameValue);
-        self::assertSame('test@example.com', $emailValue);
+        $this->assertSame('testuser', $usernameValue);
+        $this->assertSame('test@example.com', $emailValue);
     }
 }

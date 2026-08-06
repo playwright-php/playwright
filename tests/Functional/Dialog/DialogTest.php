@@ -30,7 +30,7 @@ final class DialogTest extends FunctionalTestCase
         $dialogMessage = '';
 
         $this->page->events()->onDialog(function ($dialog) use (&$dialogHandled, &$dialogMessage): void {
-            self::assertInstanceOf(DialogInterface::class, $dialog);
+            $this->assertInstanceOf(DialogInterface::class, $dialog);
             $dialogMessage = $dialog->message();
             $dialog->accept();
             $dialogHandled = true;
@@ -42,18 +42,18 @@ final class DialogTest extends FunctionalTestCase
 
         $this->page->waitForSelector('#alert-result');
 
-        self::assertTrue($dialogHandled);
-        self::assertSame('This is an alert message', $dialogMessage);
+        $this->assertTrue($dialogHandled);
+        $this->assertSame('This is an alert message', $dialogMessage);
 
         $result = $this->page->locator('#alert-result')->textContent();
-        self::assertSame('Alert was shown', $result);
+        $this->assertSame('Alert was shown', $result);
     }
 
     public function testCanAcceptConfirm(): void
     {
         $this->page->events()->onDialog(function ($dialog): void {
-            self::assertSame('confirm', $dialog->type());
-            self::assertSame('Do you confirm?', $dialog->message());
+            $this->assertSame('confirm', $dialog->type());
+            $this->assertSame('Do you confirm?', $dialog->message());
             $dialog->accept();
         });
 
@@ -64,13 +64,13 @@ final class DialogTest extends FunctionalTestCase
         $this->page->waitForSelector('#confirm-result');
 
         $result = $this->page->locator('#confirm-result')->textContent();
-        self::assertSame('Confirmed', $result);
+        $this->assertSame('Confirmed', $result);
     }
 
     public function testCanDismissConfirm(): void
     {
         $this->page->events()->onDialog(function ($dialog): void {
-            self::assertSame('confirm', $dialog->type());
+            $this->assertSame('confirm', $dialog->type());
             $dialog->dismiss();
         });
 
@@ -81,15 +81,15 @@ final class DialogTest extends FunctionalTestCase
         $this->page->waitForSelector('#confirm-result');
 
         $result = $this->page->locator('#confirm-result')->textContent();
-        self::assertSame('Cancelled', $result);
+        $this->assertSame('Cancelled', $result);
     }
 
     public function testCanHandlePromptWithInput(): void
     {
         $this->page->events()->onDialog(function ($dialog): void {
-            self::assertSame('prompt', $dialog->type());
-            self::assertSame('Enter your name:', $dialog->message());
-            self::assertSame('Default Name', $dialog->defaultValue());
+            $this->assertSame('prompt', $dialog->type());
+            $this->assertSame('Enter your name:', $dialog->message());
+            $this->assertSame('Default Name', $dialog->defaultValue());
             $dialog->accept('John Doe');
         });
 
@@ -100,13 +100,13 @@ final class DialogTest extends FunctionalTestCase
         $this->page->waitForSelector('#prompt-result');
 
         $result = $this->page->locator('#prompt-result')->textContent();
-        self::assertSame('You entered: John Doe', $result);
+        $this->assertSame('You entered: John Doe', $result);
     }
 
     public function testCanDismissPrompt(): void
     {
         $this->page->events()->onDialog(function ($dialog): void {
-            self::assertSame('prompt', $dialog->type());
+            $this->assertSame('prompt', $dialog->type());
             $dialog->dismiss();
         });
 
@@ -117,7 +117,7 @@ final class DialogTest extends FunctionalTestCase
         $this->page->waitForSelector('#prompt-result');
 
         $result = $this->page->locator('#prompt-result')->textContent();
-        self::assertSame('Prompt cancelled', $result);
+        $this->assertSame('Prompt cancelled', $result);
     }
 
     public function testDialogTypeProperty(): void
@@ -135,6 +135,6 @@ final class DialogTest extends FunctionalTestCase
 
         $this->page->waitForSelector('#alert-result');
 
-        self::assertSame('alert', $dialogType);
+        $this->assertSame('alert', $dialogType);
     }
 }

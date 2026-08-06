@@ -42,10 +42,10 @@ final class NetworkTest extends FunctionalTestCase
         $this->page->waitForSelector('#fetch-result');
 
         $apiRequests = array_filter($requests, fn ($r) => str_contains($r['url'], '/api/data.json'));
-        self::assertNotEmpty($apiRequests, 'Should have captured API request');
+        $this->assertNotEmpty($apiRequests, 'Should have captured API request');
 
         $apiRequest = reset($apiRequests);
-        self::assertSame('GET', $apiRequest['method'], 'Request method should be GET');
+        $this->assertSame('GET', $apiRequest['method'], 'Request method should be GET');
     }
 
     public function testCanCaptureResponseEvent(): void
@@ -61,13 +61,13 @@ final class NetworkTest extends FunctionalTestCase
 
         $this->goto('/network.html');
 
-        self::assertNotEmpty($responses, 'Should have captured at least one response');
+        $this->assertNotEmpty($responses, 'Should have captured at least one response');
 
         $htmlResponse = array_filter($responses, fn ($r) => str_contains($r['url'], 'network.html'));
-        self::assertNotEmpty($htmlResponse, 'Should have captured network.html response');
+        $this->assertNotEmpty($htmlResponse, 'Should have captured network.html response');
 
         $htmlResp = reset($htmlResponse);
-        self::assertSame(200, $htmlResp['status'], 'Response status should be 200');
+        $this->assertSame(200, $htmlResp['status'], 'Response status should be 200');
     }
 
     public function testCanCapturePostRequest(): void
@@ -88,10 +88,10 @@ final class NetworkTest extends FunctionalTestCase
         $this->page->click('#xhr-post');
         $this->page->waitForSelector('#xhr-result');
 
-        self::assertNotEmpty($postRequests, 'Should have captured POST request');
+        $this->assertNotEmpty($postRequests, 'Should have captured POST request');
 
         $createRequest = array_filter($postRequests, fn ($r) => str_contains($r['url'], '/api/create'));
-        self::assertNotEmpty($createRequest, 'Should have captured /api/create POST request');
+        $this->assertNotEmpty($createRequest, 'Should have captured /api/create POST request');
     }
 
     public function testCanCaptureMultipleRequests(): void
@@ -112,7 +112,7 @@ final class NetworkTest extends FunctionalTestCase
         $this->page->click('#xhr-get');
         $this->page->waitForSelector('#xhr-result');
 
-        self::assertGreaterThanOrEqual(2, count($requests), 'Should have captured multiple API requests');
+        $this->assertGreaterThanOrEqual(2, count($requests), 'Should have captured multiple API requests');
     }
 
     public function testRequestHasCorrectProperties(): void
@@ -130,9 +130,9 @@ final class NetworkTest extends FunctionalTestCase
         $this->page->click('#fetch-json');
         $this->page->waitForSelector('#fetch-result');
 
-        self::assertNotNull($capturedRequest, 'Should have captured the request');
-        self::assertStringContainsString('/api/data.json', $capturedRequest->url());
-        self::assertSame('GET', $capturedRequest->method());
+        $this->assertNotNull($capturedRequest, 'Should have captured the request');
+        $this->assertStringContainsString('/api/data.json', $capturedRequest->url());
+        $this->assertSame('GET', $capturedRequest->method());
     }
 
     public function testResponseHasCorrectProperties(): void
@@ -147,9 +147,9 @@ final class NetworkTest extends FunctionalTestCase
 
         $this->goto('/network.html');
 
-        self::assertNotNull($capturedResponse, 'Should have captured the response');
-        self::assertStringContainsString('network.html', $capturedResponse->url());
-        self::assertSame(200, $capturedResponse->status());
+        $this->assertNotNull($capturedResponse, 'Should have captured the response');
+        $this->assertStringContainsString('network.html', $capturedResponse->url());
+        $this->assertSame(200, $capturedResponse->status());
     }
 
     public function testCanCaptureRequestFailedEvent(): void
@@ -167,10 +167,10 @@ final class NetworkTest extends FunctionalTestCase
         $result = $this->page->waitForSelector('#resource-result')->textContent();
 
         if ('Image loaded' === $result || empty($failedRequests)) {
-            self::markTestSkipped('Image did not fail to load in test environment, cannot test requestfailed event');
+            $this->markTestSkipped('Image did not fail to load in test environment, cannot test requestfailed event');
         }
 
-        self::assertNotEmpty($failedRequests, 'Should have captured failed request');
+        $this->assertNotEmpty($failedRequests, 'Should have captured failed request');
     }
 
     public function testCanCaptureResourceLoadRequests(): void
@@ -190,6 +190,6 @@ final class NetworkTest extends FunctionalTestCase
         $this->page->waitForSelector('#resource-result');
 
         $imageRequests = array_filter($resourceRequests, fn ($url) => str_contains($url, '.png'));
-        self::assertNotEmpty($imageRequests, 'Should have captured image request');
+        $this->assertNotEmpty($imageRequests, 'Should have captured image request');
     }
 }

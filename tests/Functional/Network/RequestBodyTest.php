@@ -38,7 +38,7 @@ final class RequestBodyTest extends FunctionalTestCase
             await fetch('/upload', { method: 'POST', body: binary });
         }");
 
-        self::assertSame($binary, $captured);
+        $this->assertSame($binary, $captured);
     }
 
     public function testPostDataBufferMatchesTextBodies(): void
@@ -56,6 +56,6 @@ final class RequestBodyTest extends FunctionalTestCase
             await fetch('/upload', { method: 'POST', body: 'plain text body' });
         }");
 
-        self::assertSame('plain text body', $captured);
+        $this->assertSame('plain text body', $captured);
     }
 }

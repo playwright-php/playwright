@@ -32,12 +32,12 @@ final class PageTimeoutTest extends FunctionalTestCase
 
         try {
             $this->page->waitForSelector('#does-not-exist');
-            self::fail('Expected a TimeoutException');
+            $this->fail('Expected a TimeoutException');
         } catch (TimeoutException) {
         }
 
         $elapsed = microtime(true) - $start;
-        self::assertLessThan(10.0, $elapsed, 'The 500ms default timeout should apply instead of the 30s built-in default');
+        $this->assertLessThan(10.0, $elapsed, 'The 500ms default timeout should apply instead of the 30s built-in default');
     }
 
     public function testSetDefaultNavigationTimeoutIsAccepted(): void
@@ -46,6 +46,6 @@ final class PageTimeoutTest extends FunctionalTestCase
 
         $result = $this->page->setDefaultNavigationTimeout(10000);
 
-        self::assertSame($this->page, $result);
+        $this->assertSame($this->page, $result);
     }
 }

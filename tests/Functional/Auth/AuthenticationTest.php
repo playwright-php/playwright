@@ -34,7 +34,7 @@ final class AuthenticationTest extends FunctionalTestCase
         $this->page->waitForSelector('#auth-status:has-text("Authenticated")');
 
         $status = $this->page->locator('#auth-status')->textContent();
-        self::assertSame('Authenticated', $status);
+        $this->assertSame('Authenticated', $status);
     }
 
     public function testCanLogout(): void
@@ -49,7 +49,7 @@ final class AuthenticationTest extends FunctionalTestCase
         $this->page->click('#logout-btn');
 
         $status = $this->page->locator('#auth-status')->textContent();
-        self::assertSame('Not authenticated', $status);
+        $this->assertSame('Not authenticated', $status);
     }
 
     public function testUserInfoDisplayedAfterLogin(): void
@@ -63,7 +63,7 @@ final class AuthenticationTest extends FunctionalTestCase
         $this->page->waitForSelector('#user-info');
 
         $userInfo = $this->page->locator('#user-info')->textContent();
-        self::assertStringContainsString('john_doe', $userInfo);
+        $this->assertStringContainsString('john_doe', $userInfo);
     }
 
     public function testAuthPersistsAcrossPageReload(): void
@@ -81,7 +81,7 @@ final class AuthenticationTest extends FunctionalTestCase
         $this->page->waitForSelector('#auth-status:has-text("Authenticated")');
 
         $status = $this->page->locator('#auth-status')->textContent();
-        self::assertSame('Authenticated', $status);
+        $this->assertSame('Authenticated', $status);
     }
 
     public function testCanGetAuthCookies(): void
@@ -97,7 +97,7 @@ final class AuthenticationTest extends FunctionalTestCase
         $cookies = $this->context->cookies();
 
         $cookieNames = \array_column($cookies, 'name');
-        self::assertContains('auth_token', $cookieNames);
-        self::assertContains('username', $cookieNames);
+        $this->assertContains('auth_token', $cookieNames);
+        $this->assertContains('username', $cookieNames);
     }
 }

@@ -118,13 +118,13 @@ final class OrphanedBrowserTest extends TestCase
         $phpPid = $this->startProbe();
 
         $bridgePids = $children($phpPid);
-        self::assertNotSame([], $bridgePids, 'the probe should have spawned a Node bridge');
+        $this->assertNotSame([], $bridgePids, 'the probe should have spawned a Node bridge');
 
         $browserPids = [];
         foreach ($bridgePids as $bridgePid) {
             $browserPids = [...$browserPids, ...$children($bridgePid)];
         }
-        self::assertNotSame([], $browserPids, 'the Node bridge should have spawned a browser');
+        $this->assertNotSame([], $browserPids, 'the Node bridge should have spawned a browser');
 
         // Remember each command line: a pid alone would give false positives once
         // the OS recycles it, and this test polls for several seconds.
@@ -144,7 +144,7 @@ final class OrphanedBrowserTest extends TestCase
 
         $survivors = $this->waitForDeath($watched, $commandLine);
 
-        self::assertSame([], $survivors, sprintf(
+        $this->assertSame([], $survivors, sprintf(
             'killing the PHP process left %d orphan(s) behind: %s',
             \count($survivors),
             implode(', ', array_map(
@@ -168,16 +168,16 @@ final class OrphanedBrowserTest extends TestCase
 
         $pid = $probe->getPid();
         if (null === $pid) {
-            self::markTestSkipped('could not start the probe process');
+            $this->markTestSkipped('could not start the probe process');
         }
 
         $deadline = microtime(true) + self::READY_TIMEOUT_SECONDS;
         while (!file_exists($this->readyFile)) {
             if (!$probe->isRunning()) {
-                self::markTestSkipped('probe could not launch a browser (missing Node or browser binaries): '.trim($probe->getErrorOutput()));
+                $this->markTestSkipped('probe could not launch a browser (missing Node or browser binaries): '.trim($probe->getErrorOutput()));
             }
             if (microtime(true) > $deadline) {
-                self::markTestSkipped(sprintf('probe did not report ready within %ds', self::READY_TIMEOUT_SECONDS));
+                $this->markTestSkipped(sprintf('probe did not report ready within %ds', self::READY_TIMEOUT_SECONDS));
             }
             usleep(200_000);
         }
@@ -326,7 +326,7 @@ final class OrphanedBrowserTest extends TestCase
         $powerShell->run();
 
         if (!$powerShell->isSuccessful()) {
-            self::markTestSkipped('cannot inspect the process tree, PowerShell failed: '.trim($powerShell->getErrorOutput()));
+            $this->markTestSkipped('cannot inspect the process tree, PowerShell failed: '.trim($powerShell->getErrorOutput()));
         }
 
         return $powerShell->getOutput();

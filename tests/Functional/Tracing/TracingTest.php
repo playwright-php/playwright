@@ -64,8 +64,8 @@ final class TracingTest extends FunctionalTestCase
 
         $this->context->stopTracing($this->page, $tracePath);
 
-        self::assertFileExists($tracePath);
-        self::assertGreaterThan(0, filesize($tracePath));
+        $this->assertFileExists($tracePath);
+        $this->assertGreaterThan(0, filesize($tracePath));
     }
 
     public function testTracingCapturesInteractions(): void
@@ -87,8 +87,8 @@ final class TracingTest extends FunctionalTestCase
 
         $this->context->stopTracing($this->page, $tracePath);
 
-        self::assertFileExists($tracePath);
-        self::assertGreaterThan(1000, filesize($tracePath));
+        $this->assertFileExists($tracePath);
+        $this->assertGreaterThan(1000, filesize($tracePath));
     }
 
     public function testTracingWithoutScreenshots(): void
@@ -105,7 +105,7 @@ final class TracingTest extends FunctionalTestCase
 
         $this->context->stopTracing($this->page, $tracePath);
 
-        self::assertFileExists($tracePath);
+        $this->assertFileExists($tracePath);
     }
 
     public function testTracingWithNavigation(): void
@@ -123,7 +123,7 @@ final class TracingTest extends FunctionalTestCase
 
         $this->context->stopTracing($this->page, $tracePath);
 
-        self::assertFileExists($tracePath);
-        self::assertGreaterThan(1000, filesize($tracePath));
+        $this->assertFileExists($tracePath);
+        $this->assertGreaterThan(1000, filesize($tracePath));
     }
 }

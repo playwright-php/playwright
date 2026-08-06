@@ -30,7 +30,7 @@ final class ClickInteractionTest extends FunctionalTestCase
         $this->page->click('#click-btn');
 
         $result = $this->page->locator('#click-result')->textContent();
-        self::assertSame('Clicked!', $result);
+        $this->assertSame('Clicked!', $result);
     }
 
     public function testCanDoubleClick(): void
@@ -40,7 +40,7 @@ final class ClickInteractionTest extends FunctionalTestCase
         $this->page->locator('#dblclick-btn')->dblclick();
 
         $result = $this->page->locator('#click-result')->textContent();
-        self::assertSame('Double Clicked!', $result);
+        $this->assertSame('Double Clicked!', $result);
     }
 
     public function testCanTypeInInput(): void
@@ -50,7 +50,7 @@ final class ClickInteractionTest extends FunctionalTestCase
         $this->page->locator('#type-input')->fill('Hello World');
 
         $result = $this->page->locator('#input-result')->textContent();
-        self::assertSame('Input: Hello World', $result);
+        $this->assertSame('Input: Hello World', $result);
     }
 
     public function testCanHoverOverElement(): void
@@ -60,6 +60,6 @@ final class ClickInteractionTest extends FunctionalTestCase
         $this->page->locator('#hover-target')->hover();
 
         $result = $this->page->locator('#hover-result')->textContent();
-        self::assertSame('Hovered!', $result);
+        $this->assertSame('Hovered!', $result);
     }
 }

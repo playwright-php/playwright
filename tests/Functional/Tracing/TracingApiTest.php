@@ -56,9 +56,9 @@ final class TracingApiTest extends FunctionalTestCase
 
         $tracing->stop(['path' => $tracePath]);
 
-        self::assertFileExists($tracePath);
-        self::assertGreaterThan(0, (int) filesize($tracePath));
-        self::assertStringContainsString('textContent', $this->readTraceEvents($tracePath));
+        $this->assertFileExists($tracePath);
+        $this->assertGreaterThan(0, (int) filesize($tracePath));
+        $this->assertStringContainsString('textContent', $this->readTraceEvents($tracePath));
     }
 
     public function testGroupsAppearInTheTrace(): void
@@ -77,8 +77,8 @@ final class TracingApiTest extends FunctionalTestCase
         $tracing->stop(['path' => $tracePath]);
 
         $events = $this->readTraceEvents($tracePath);
-        self::assertStringContainsString('"method":"tracingGroup"', $events);
-        self::assertStringContainsString('my custom step', $events);
+        $this->assertStringContainsString('"method":"tracingGroup"', $events);
+        $this->assertStringContainsString('my custom step', $events);
     }
 
     public function testChunksProduceSeparateArchives(): void
@@ -96,14 +96,14 @@ final class TracingApiTest extends FunctionalTestCase
 
         $tracing->stop();
 
-        self::assertFileExists($chunkPath);
-        self::assertGreaterThan(0, (int) filesize($chunkPath));
+        $this->assertFileExists($chunkPath);
+        $this->assertGreaterThan(0, (int) filesize($chunkPath));
     }
 
     private function readTraceEvents(string $zipPath): string
     {
         $zip = new \ZipArchive();
-        self::assertTrue($zip->open($zipPath));
+        $this->assertTrue($zip->open($zipPath));
 
         $events = '';
         for ($i = 0; $i < $zip->numFiles; ++$i) {
@@ -114,7 +114,7 @@ final class TracingApiTest extends FunctionalTestCase
         }
         $zip->close();
 
-        self::assertNotSame('', $events, 'No .trace events file found in the archive');
+        $this->assertNotSame('', $events, 'No .trace events file found in the archive');
 
         return $events;
     }

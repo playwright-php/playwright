@@ -38,7 +38,7 @@ final class CookieTest extends FunctionalTestCase
         $this->page->reload();
 
         $cookieValue = $this->page->evaluate('document.cookie');
-        self::assertStringContainsString('test_cookie=test_value', $cookieValue);
+        $this->assertStringContainsString('test_cookie=test_value', $cookieValue);
     }
 
     public function testCanSetMultipleCookies(): void
@@ -68,9 +68,9 @@ final class CookieTest extends FunctionalTestCase
         $cookies = $this->context->cookies();
         $cookieNames = \array_column($cookies, 'name');
 
-        self::assertContains('cookie1', $cookieNames);
-        self::assertContains('cookie2', $cookieNames);
-        self::assertContains('cookie3', $cookieNames);
+        $this->assertContains('cookie1', $cookieNames);
+        $this->assertContains('cookie2', $cookieNames);
+        $this->assertContains('cookie3', $cookieNames);
     }
 
     public function testCanGetCookies(): void
@@ -95,8 +95,8 @@ final class CookieTest extends FunctionalTestCase
             }
         }
 
-        self::assertNotNull($myCookie);
-        self::assertSame('my_value', $myCookie['value']);
+        $this->assertNotNull($myCookie);
+        $this->assertSame('my_value', $myCookie['value']);
     }
 
     public function testCanDeleteSingleCookie(): void
@@ -110,13 +110,13 @@ final class CookieTest extends FunctionalTestCase
 
         $cookies = $this->context->cookies();
         $cookieNames = \array_column($cookies, 'name');
-        self::assertContains('to_delete', $cookieNames);
+        $this->assertContains('to_delete', $cookieNames);
 
         $this->context->clearCookies(['name' => 'to_delete']);
 
         $cookiesAfter = $this->context->cookies();
-        self::assertCount(1, $cookiesAfter);
-        self::assertSame('keep_me', $cookiesAfter[0]['value']);
+        $this->assertCount(1, $cookiesAfter);
+        $this->assertSame('keep_me', $cookiesAfter[0]['value']);
     }
 
     public function testCanSetCookieWithExpiration(): void
@@ -144,9 +144,9 @@ final class CookieTest extends FunctionalTestCase
             }
         }
 
-        self::assertNotNull($persistentCookie);
-        self::assertSame('persistent_value', $persistentCookie['value']);
-        self::assertArrayHasKey('expires', $persistentCookie);
+        $this->assertNotNull($persistentCookie);
+        $this->assertSame('persistent_value', $persistentCookie['value']);
+        $this->assertArrayHasKey('expires', $persistentCookie);
     }
 
     public function testCookiesFromJavaScript(): void
@@ -160,7 +160,7 @@ final class CookieTest extends FunctionalTestCase
         $cookies = $this->context->cookies();
         $cookieNames = \array_column($cookies, 'name');
 
-        self::assertContains('simple_cookie', $cookieNames);
+        $this->assertContains('simple_cookie', $cookieNames);
     }
 
     public function testCanClearAllCookies(): void
@@ -174,11 +174,11 @@ final class CookieTest extends FunctionalTestCase
         ]);
 
         $cookiesBefore = $this->context->cookies();
-        self::assertNotEmpty($cookiesBefore);
+        $this->assertNotEmpty($cookiesBefore);
 
         $this->context->clearCookies();
 
         $cookiesAfter = $this->context->cookies();
-        self::assertEmpty($cookiesAfter);
+        $this->assertEmpty($cookiesAfter);
     }
 }

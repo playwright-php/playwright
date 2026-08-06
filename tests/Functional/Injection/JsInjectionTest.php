@@ -29,7 +29,7 @@ final class JsInjectionTest extends FunctionalTestCase
 
         $value = $this->page->evaluate('window.injectedValue');
 
-        self::assertSame(123, $value);
+        $this->assertSame(123, $value);
     }
 
     public function testCanAddScriptTagFromUrl(): void
@@ -43,7 +43,7 @@ final class JsInjectionTest extends FunctionalTestCase
 
         $value = $this->page->evaluate('window.fromUrl');
 
-        self::assertSame('loaded', $value);
+        $this->assertSame('loaded', $value);
     }
 
     public function testCanInjectFunction(): void
@@ -54,7 +54,7 @@ final class JsInjectionTest extends FunctionalTestCase
 
         $result = $this->page->evaluate('window.multiply(5, 7)');
 
-        self::assertSame(35, $result);
+        $this->assertSame(35, $result);
     }
 
     public function testCanInjectComplexScript(): void
@@ -75,9 +75,9 @@ JS;
         $avg = $this->page->evaluate('window.utils.average(10, 20, 30)');
         $max = $this->page->evaluate('window.utils.max(5, 15, 10)');
 
-        self::assertSame(15, $sum);
-        self::assertSame(20, $avg);
-        self::assertSame(15, $max);
+        $this->assertSame(15, $sum);
+        $this->assertSame(20, $avg);
+        $this->assertSame(15, $max);
     }
 
     public function testCanAccessExistingWindowObjects(): void
@@ -88,7 +88,7 @@ JS;
 
         $value = $this->page->evaluate('window.combined');
 
-        self::assertSame(84, $value);
+        $this->assertSame(84, $value);
     }
 
     public function testCanManipulateDOM(): void
@@ -106,7 +106,7 @@ JS;
 
         $text = $this->page->locator('#injected-element')->textContent();
 
-        self::assertSame('Injected by script', $text);
+        $this->assertSame('Injected by script', $text);
     }
 
     public function testCanInjectMultipleScripts(): void
@@ -119,7 +119,7 @@ JS;
 
         $result = $this->page->evaluate('window.step3');
 
-        self::assertSame(60, $result);
+        $this->assertSame(60, $result);
     }
 
     public function testCanEvaluateInlineExpression(): void
@@ -128,7 +128,7 @@ JS;
 
         $result = $this->page->evaluate('2 + 2');
 
-        self::assertSame(4, $result);
+        $this->assertSame(4, $result);
     }
 
     public function testCanEvaluateWithArguments(): void
@@ -137,6 +137,6 @@ JS;
 
         $result = $this->page->evaluate('(arg) => arg.x * arg.y', ['x' => 10, 'y' => 5]);
 
-        self::assertSame(50, $result);
+        $this->assertSame(50, $result);
     }
 }

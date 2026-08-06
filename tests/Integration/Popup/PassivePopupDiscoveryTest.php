@@ -55,13 +55,13 @@ final class PassivePopupDiscoveryTest extends TestCase
             </html>
         HTML);
 
-        self::assertCount(1, $context->pages());
+        $this->assertCount(1, $context->pages());
 
         // No waitForPopup()/waitForEvent('page') armed beforehand - this is the passive
         // discovery path that used to depend on the (missing) server-side subscription.
         $page->click('#open');
 
-        self::assertCount(2, $this->waitForPageCount($context, 2), 'New tab was not discovered passively after the click.');
+        $this->assertCount(2, $this->waitForPageCount($context, 2), 'New tab was not discovered passively after the click.');
 
         $context->close();
     }

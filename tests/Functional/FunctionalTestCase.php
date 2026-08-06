@@ -172,7 +172,7 @@ abstract class FunctionalTestCase extends TestCase
     protected function assertUrlContains(string $needle): void
     {
         $currentUrl = $this->page->url();
-        self::assertStringContainsString(
+        $this->assertStringContainsString(
             $needle,
             $currentUrl,
             \sprintf('Expected URL to contain "%s", got "%s"', $needle, $currentUrl)
@@ -185,7 +185,7 @@ abstract class FunctionalTestCase extends TestCase
     protected function assertUrlEquals(string $expected): void
     {
         $currentUrl = $this->page->url();
-        self::assertSame(
+        $this->assertSame(
             $expected,
             $currentUrl,
             \sprintf('Expected URL to be "%s", got "%s"', $expected, $currentUrl)
@@ -200,7 +200,7 @@ abstract class FunctionalTestCase extends TestCase
         $locator = $this->page->locator($selector);
         $count = $locator->count();
 
-        self::assertGreaterThan(
+        $this->assertGreaterThan(
             0,
             $count,
             \sprintf('Expected element matching selector "%s" to exist', $selector)
@@ -215,7 +215,7 @@ abstract class FunctionalTestCase extends TestCase
         $locator = $this->page->locator($selector);
         $isVisible = $locator->isVisible();
 
-        self::assertTrue(
+        $this->assertTrue(
             $isVisible,
             \sprintf('Expected element matching selector "%s" to be visible', $selector)
         );
@@ -229,7 +229,7 @@ abstract class FunctionalTestCase extends TestCase
         $locator = $this->page->locator($selector);
         $actualText = $locator->textContent();
 
-        self::assertSame(
+        $this->assertSame(
             $expectedText,
             $actualText,
             \sprintf('Expected element "%s" to have text "%s", got "%s"', $selector, $expectedText, $actualText)
