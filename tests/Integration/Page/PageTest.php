@@ -67,6 +67,15 @@ class PageTest extends TestCase
     }
 
     #[Test]
+    public function itAddsInitScriptBeforeNavigation(): void
+    {
+        $this->page->addInitScript('window.pageInit = "ready";');
+        $this->page->goto('data:text/html,<title>Init script</title>');
+
+        $this->assertSame('ready', $this->page->evaluate('window.pageInit'));
+    }
+
+    #[Test]
     public function itCanNavigateBackAndForward(): void
     {
         $this->page->click('a');

@@ -514,6 +514,22 @@ class PageTest extends TestCase
         $this->assertSame($this->page, $result);
     }
 
+    public function testAddInitScriptSendsCommandAndReturnsSelf(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'script' => 'window.pageInit = true;',
+                'action' => 'page.addInitScript',
+                'pageId' => 'page-id',
+            ])
+            ->willReturn([]);
+
+        $result = $this->page->addInitScript('window.pageInit = true;');
+
+        $this->assertSame($this->page, $result);
+    }
+
     public function testSetDefaultNavigationTimeoutSendsCommandAndReturnsSelf(): void
     {
         $this->transport->expects($this->once())

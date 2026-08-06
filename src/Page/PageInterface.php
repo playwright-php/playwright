@@ -135,6 +135,8 @@ interface PageInterface
 
     public function content(): ?string;
 
+    public function addInitScript(string $script): self;
+
     public function evaluate(string $expression, mixed $arg = null): mixed;
 
     /**

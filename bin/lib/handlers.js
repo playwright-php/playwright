@@ -233,6 +233,7 @@ class PageHandler extends BaseHandler {
       close: () => this.closePage(command.pageId),
       goto: () => this.goto(page, command),
       evaluate: () => this.evaluate(page, command),
+      addInitScript: () => page.addInitScript(command.script),
       waitForResponse: () => this.waitForResponse(page, command),
       content: async () => ({ content: await page.content() }),
       setContent: () => page.setContent(command.html, command.options),

@@ -501,6 +501,13 @@ final class Page implements PageInterface, EventDispatcherInterface
         return is_string($content) ? $content : null;
     }
 
+    public function addInitScript(string $script): self
+    {
+        $this->sendCommand('addInitScript', ['script' => $script]);
+
+        return $this;
+    }
+
     public function evaluate(string $expression, mixed $arg = null): mixed
     {
         $normalized = self::normalizeForPage($expression);
