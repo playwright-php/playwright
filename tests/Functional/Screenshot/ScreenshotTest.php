@@ -59,11 +59,11 @@ final class ScreenshotTest extends FunctionalTestCase
         $path = $this->tempDir.'/page.png';
         $this->page->screenshot($path);
 
-        self::assertFileExists($path);
+        $this->assertFileExists($path);
 
         $content = \file_get_contents($path);
-        self::assertNotFalse($content);
-        self::assertStringStartsWith(\base64_decode('iVBORw0KGgo='), $content);
+        $this->assertNotFalse($content);
+        $this->assertStringStartsWith(\base64_decode('iVBORw0KGgo='), $content);
     }
 
     public function testCanTakeElementScreenshot(): void
@@ -75,11 +75,11 @@ final class ScreenshotTest extends FunctionalTestCase
         $path = $this->tempDir.'/element.png';
         $element->screenshot($path);
 
-        self::assertFileExists($path);
+        $this->assertFileExists($path);
 
         $content = \file_get_contents($path);
-        self::assertNotFalse($content);
-        self::assertStringStartsWith(\base64_decode('iVBORw0KGgo='), $content);
+        $this->assertNotFalse($content);
+        $this->assertStringStartsWith(\base64_decode('iVBORw0KGgo='), $content);
     }
 
     public function testCanTakeFullPageScreenshot(): void
@@ -89,14 +89,14 @@ final class ScreenshotTest extends FunctionalTestCase
         $path = $this->tempDir.'/fullpage.png';
         $this->page->screenshot($path, ['fullPage' => true]);
 
-        self::assertFileExists($path);
+        $this->assertFileExists($path);
 
         $content = \file_get_contents($path);
-        self::assertNotFalse($content);
+        $this->assertNotFalse($content);
 
         $size = \getimagesize($path);
-        self::assertIsArray($size);
-        self::assertGreaterThan(1000, $size[1]);
+        $this->assertIsArray($size);
+        $this->assertGreaterThan(1000, $size[1]);
     }
 
     public function testScreenshotReturnsPath(): void
@@ -105,8 +105,8 @@ final class ScreenshotTest extends FunctionalTestCase
 
         $path = $this->page->screenshot();
 
-        self::assertIsString($path);
-        self::assertFileExists($path);
+        $this->assertIsString($path);
+        $this->assertFileExists($path);
 
         \unlink($path);
     }
@@ -118,10 +118,10 @@ final class ScreenshotTest extends FunctionalTestCase
         $path = $this->tempDir.'/custom.png';
         $this->page->screenshot($path, ['type' => 'png']);
 
-        self::assertFileExists($path);
+        $this->assertFileExists($path);
 
         $info = \getimagesize($path);
-        self::assertIsArray($info);
-        self::assertSame('image/png', $info['mime']);
+        $this->assertIsArray($info);
+        $this->assertSame('image/png', $info['mime']);
     }
 }

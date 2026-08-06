@@ -43,8 +43,8 @@ final class VideoRecordingTest extends FunctionalTestCase
             $context->close();
 
             $videos = glob($videosDir.'/*.webm') ?: [];
-            self::assertCount(1, $videos);
-            self::assertGreaterThan(0, (int) filesize($videos[0]));
+            $this->assertCount(1, $videos);
+            $this->assertGreaterThan(0, (int) filesize($videos[0]));
         } finally {
             $browser->close();
             $this->removeDirectory($videosDir);
@@ -69,8 +69,8 @@ final class VideoRecordingTest extends FunctionalTestCase
             $browser->context()->close();
 
             $videos = glob($videosDir.'/*.webm') ?: [];
-            self::assertCount(1, $videos);
-            self::assertGreaterThan(0, (int) filesize($videos[0]));
+            $this->assertCount(1, $videos);
+            $this->assertGreaterThan(0, (int) filesize($videos[0]));
         } finally {
             $browser->close();
             $this->removeDirectory($videosDir);
@@ -81,7 +81,7 @@ final class VideoRecordingTest extends FunctionalTestCase
     {
         $node = (new ExecutableFinder())->find('node');
         if (null === $node) {
-            self::markTestSkipped('Node.js executable not found.');
+            $this->markTestSkipped('Node.js executable not found.');
         }
 
         return $node;

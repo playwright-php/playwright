@@ -32,7 +32,7 @@ final class AutoWaitingTest extends FunctionalTestCase
         $this->page->waitForSelector('#delayed-element.visible');
 
         $text = $this->page->locator('#delayed-element')->textContent();
-        self::assertSame('This appeared after a delay', $text);
+        $this->assertSame('This appeared after a delay', $text);
     }
 
     public function testWaitsForLoadingToComplete(): void
@@ -44,7 +44,7 @@ final class AutoWaitingTest extends FunctionalTestCase
         $this->page->waitForSelector('#loaded-content:not(.hidden)');
 
         $content = $this->page->locator('#loaded-content')->textContent();
-        self::assertSame('Content loaded!', $content);
+        $this->assertSame('Content loaded!', $content);
     }
 
     public function testWaitsForDynamicElementsToBeAdded(): void
@@ -56,7 +56,7 @@ final class AutoWaitingTest extends FunctionalTestCase
         $this->page->waitForSelector('.list-item:nth-child(3)');
 
         $items = $this->page->locator('.list-item')->all();
-        self::assertCount(3, $items);
+        $this->assertCount(3, $items);
     }
 
     public function testWaitsForElementToBeEnabled(): void
@@ -64,13 +64,13 @@ final class AutoWaitingTest extends FunctionalTestCase
         $this->goto('/waiting.html');
 
         $button = $this->page->locator('#enable-button-later');
-        self::assertFalse($button->isEnabled());
+        $this->assertFalse($button->isEnabled());
 
         $this->page->click('#trigger-enable');
 
         $this->page->waitForSelector('#enable-button-later:enabled');
 
-        self::assertTrue($button->isEnabled());
+        $this->assertTrue($button->isEnabled());
     }
 
     public function testWaitsForElementToBeVisible(): void
@@ -78,13 +78,13 @@ final class AutoWaitingTest extends FunctionalTestCase
         $this->goto('/waiting.html');
 
         $element = $this->page->locator('#delayed-element');
-        self::assertFalse($element->isVisible());
+        $this->assertFalse($element->isVisible());
 
         $this->page->click('#show-after-delay');
 
         $element->waitFor(['state' => 'visible']);
 
-        self::assertTrue($element->isVisible());
+        $this->assertTrue($element->isVisible());
     }
 
     public function testWaitsForAjaxContentToLoad(): void
@@ -96,7 +96,7 @@ final class AutoWaitingTest extends FunctionalTestCase
         $this->page->waitForSelector('#fetched-data');
 
         $data = $this->page->locator('#fetched-data')->textContent();
-        self::assertSame('Data from server', $data);
+        $this->assertSame('Data from server', $data);
     }
 
     public function testClickAutomaticallyWaitsForElement(): void
@@ -107,7 +107,7 @@ final class AutoWaitingTest extends FunctionalTestCase
 
         $this->page->waitForSelector('#delayed-element.visible');
 
-        self::assertTrue($this->page->locator('#delayed-element')->isVisible());
+        $this->assertTrue($this->page->locator('#delayed-element')->isVisible());
     }
 
     public function testFillAutomaticallyWaitsForElement(): void
@@ -128,7 +128,7 @@ JS);
         $this->page->locator('#delayed-input')->fill('test value');
 
         $value = $this->page->locator('#delayed-input')->inputValue();
-        self::assertSame('test value', $value);
+        $this->assertSame('test value', $value);
     }
 
     public function testCanWaitForMultipleStates(): void
@@ -140,9 +140,9 @@ JS);
         $element = $this->page->locator('#delayed-element');
         $element->waitFor(['state' => 'visible']);
 
-        self::assertTrue($element->isVisible());
+        $this->assertTrue($element->isVisible());
 
         $count = $element->count();
-        self::assertSame(1, $count);
+        $this->assertSame(1, $count);
     }
 }

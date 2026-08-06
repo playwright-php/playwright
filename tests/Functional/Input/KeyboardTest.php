@@ -30,7 +30,7 @@ final class KeyboardTest extends FunctionalTestCase
         $this->page->locator('#input-field')->fill('Hello World');
 
         $value = $this->page->locator('#input-value')->textContent();
-        self::assertSame('Value: Hello World', $value);
+        $this->assertSame('Value: Hello World', $value);
     }
 
     public function testCanTypeCharacters(): void
@@ -42,7 +42,7 @@ final class KeyboardTest extends FunctionalTestCase
         $input->type('ABC');
 
         $lastKey = $this->page->locator('#last-key')->textContent();
-        self::assertNotEmpty($lastKey);
+        $this->assertNotEmpty($lastKey);
     }
 
     public function testCanClearInput(): void
@@ -54,7 +54,7 @@ final class KeyboardTest extends FunctionalTestCase
         $input->clear();
 
         $value = $input->inputValue();
-        self::assertSame('', $value);
+        $this->assertSame('', $value);
     }
 
     public function testCanClearTextarea(): void
@@ -66,9 +66,9 @@ final class KeyboardTest extends FunctionalTestCase
         $editor->fill('');
 
         $value = $editor->inputValue();
-        self::assertSame('', $value);
+        $this->assertSame('', $value);
 
         $info = $this->page->locator('#editor-info')->textContent();
-        self::assertSame('Length: 0', $info);
+        $this->assertSame('Length: 0', $info);
     }
 }

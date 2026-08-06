@@ -29,7 +29,7 @@ final class CssInjectionTest extends FunctionalTestCase
 
         $color = $this->page->evaluate('window.getComputedStyle(document.getElementById("test-element")).backgroundColor');
 
-        self::assertSame('rgb(255, 0, 0)', $color);
+        $this->assertSame('rgb(255, 0, 0)', $color);
     }
 
     public function testCanAddStyleTagFromUrl(): void
@@ -43,7 +43,7 @@ final class CssInjectionTest extends FunctionalTestCase
 
         $color = $this->page->evaluate('window.getComputedStyle(document.getElementById("test-element")).color');
 
-        self::assertSame('rgb(0, 0, 255)', $color);
+        $this->assertSame('rgb(0, 0, 255)', $color);
     }
 
     public function testCanInjectMultipleStyleTags(): void
@@ -56,8 +56,8 @@ final class CssInjectionTest extends FunctionalTestCase
         $fontSize = $this->page->evaluate('window.getComputedStyle(document.getElementById("test-element")).fontSize');
         $fontWeight = $this->page->evaluate('window.getComputedStyle(document.getElementById("test-element")).fontWeight');
 
-        self::assertSame('24px', $fontSize);
-        self::assertStringContainsString('700', $fontWeight);
+        $this->assertSame('24px', $fontSize);
+        $this->assertStringContainsString('700', $fontWeight);
     }
 
     public function testCanOverrideExistingStyles(): void
@@ -70,8 +70,8 @@ final class CssInjectionTest extends FunctionalTestCase
 
         $newBg = $this->page->evaluate('window.getComputedStyle(document.getElementById("test-element")).backgroundColor');
 
-        self::assertNotSame($originalBg, $newBg);
-        self::assertSame('rgb(0, 255, 0)', $newBg);
+        $this->assertNotSame($originalBg, $newBg);
+        $this->assertSame('rgb(0, 255, 0)', $newBg);
     }
 
     public function testCanInjectComplexCss(): void
@@ -90,6 +90,6 @@ CSS;
 
         $borderRadius = $this->page->evaluate('window.getComputedStyle(document.getElementById("test-element")).borderRadius');
 
-        self::assertSame('10px', $borderRadius);
+        $this->assertSame('10px', $borderRadius);
     }
 }

@@ -32,7 +32,7 @@ final class MouseTest extends FunctionalTestCase
         $this->page->locator('#click-area')->click();
 
         $result = $this->page->locator('#click-result')->textContent();
-        self::assertStringContainsString('Clicked at', $result);
+        $this->assertStringContainsString('Clicked at', $result);
     }
 
     public function testCanDoubleClickElement(): void
@@ -42,7 +42,7 @@ final class MouseTest extends FunctionalTestCase
         $this->page->locator('#click-area')->dblclick();
 
         $result = $this->page->locator('#click-result')->textContent();
-        self::assertSame('Double clicked!', $result);
+        $this->assertSame('Double clicked!', $result);
     }
 
     public function testCanHoverOverElement(): void
@@ -52,7 +52,7 @@ final class MouseTest extends FunctionalTestCase
         $this->page->locator('#hover-area')->hover();
 
         $result = $this->page->locator('#hover-result')->textContent();
-        self::assertSame('Mouse entered', $result);
+        $this->assertSame('Mouse entered', $result);
     }
 
     public function testCanTriggerContextMenu(): void
@@ -62,7 +62,7 @@ final class MouseTest extends FunctionalTestCase
         $this->page->locator('#context-menu-area')->click(['button' => 'right']);
 
         $result = $this->page->locator('#context-result')->textContent();
-        self::assertSame('Context menu triggered', $result);
+        $this->assertSame('Context menu triggered', $result);
     }
 
     public function testCanDragAndDrop(): void
@@ -75,6 +75,6 @@ final class MouseTest extends FunctionalTestCase
         $source->dragTo($target);
 
         $result = $this->page->locator('#drag-result')->textContent();
-        self::assertSame('Dropped!', $result);
+        $this->assertSame('Dropped!', $result);
     }
 }

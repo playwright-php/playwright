@@ -35,8 +35,8 @@ final class BrowserBuilderConnectTest extends TestCase
         $this->builder($logger, $sent)->connect(self::WS_ENDPOINT);
 
         $context = $logger->records[0]['context'];
-        self::assertSame('ws://[REDACTED]@127.0.0.1:9222/devtools', $context['wsEndpoint']);
-        self::assertStringNotContainsString('s3cr3t', json_encode($logger->records) ?: '');
+        $this->assertSame('ws://[REDACTED]@127.0.0.1:9222/devtools', $context['wsEndpoint']);
+        $this->assertStringNotContainsString('s3cr3t', json_encode($logger->records) ?: '');
     }
 
     public function testConnectKeepsSensitiveOptionsOutOfTheLog(): void
@@ -47,7 +47,7 @@ final class BrowserBuilderConnectTest extends TestCase
         $this->builder($logger, $sent)->connect(self::WS_ENDPOINT, ['headers' => ['authorization' => 'Bearer t0ken']]);
 
         $context = $logger->records[0]['context'];
-        self::assertSame('[REDACTED]', $context['options']['headers']['authorization']);
+        $this->assertSame('[REDACTED]', $context['options']['headers']['authorization']);
     }
 
     public function testConnectSendsTheEndpointAndOptionsUnchanged(): void
@@ -57,8 +57,8 @@ final class BrowserBuilderConnectTest extends TestCase
 
         $this->builder($logger, $sent)->connect(self::WS_ENDPOINT, ['headers' => ['authorization' => 'Bearer t0ken']]);
 
-        self::assertSame(self::WS_ENDPOINT, $sent[0]['wsEndpoint']);
-        self::assertSame(['headers' => ['authorization' => 'Bearer t0ken']], $sent[0]['options']);
+        $this->assertSame(self::WS_ENDPOINT, $sent[0]['wsEndpoint']);
+        $this->assertSame(['headers' => ['authorization' => 'Bearer t0ken']], $sent[0]['options']);
     }
 
     public function testConnectOverCdpKeepsEndpointCredentialsOutOfTheLog(): void
@@ -69,8 +69,8 @@ final class BrowserBuilderConnectTest extends TestCase
         $this->builder($logger, $sent)->connectOverCDP(self::CDP_ENDPOINT);
 
         $context = $logger->records[0]['context'];
-        self::assertSame('http://[REDACTED]@127.0.0.1:9222/', $context['endpointURL']);
-        self::assertStringNotContainsString('s3cr3t', json_encode($logger->records) ?: '');
+        $this->assertSame('http://[REDACTED]@127.0.0.1:9222/', $context['endpointURL']);
+        $this->assertStringNotContainsString('s3cr3t', json_encode($logger->records) ?: '');
     }
 
     public function testConnectOverCdpKeepsSensitiveOptionsOutOfTheLog(): void
@@ -81,7 +81,7 @@ final class BrowserBuilderConnectTest extends TestCase
         $this->builder($logger, $sent)->connectOverCDP(self::CDP_ENDPOINT, ['headers' => ['authorization' => 'Bearer t0ken']]);
 
         $context = $logger->records[0]['context'];
-        self::assertSame('[REDACTED]', $context['options']['headers']['authorization']);
+        $this->assertSame('[REDACTED]', $context['options']['headers']['authorization']);
     }
 
     public function testConnectOverCdpSendsTheEndpointAndOptionsUnchanged(): void
@@ -91,8 +91,8 @@ final class BrowserBuilderConnectTest extends TestCase
 
         $this->builder($logger, $sent)->connectOverCDP(self::CDP_ENDPOINT, ['headers' => ['authorization' => 'Bearer t0ken']]);
 
-        self::assertSame(self::CDP_ENDPOINT, $sent[0]['endpointURL']);
-        self::assertSame(['headers' => ['authorization' => 'Bearer t0ken']], $sent[0]['options']);
+        $this->assertSame(self::CDP_ENDPOINT, $sent[0]['endpointURL']);
+        $this->assertSame(['headers' => ['authorization' => 'Bearer t0ken']], $sent[0]['options']);
     }
 
     /**

@@ -59,13 +59,13 @@ final class LocatorSetInputFilesTest extends TestCase
 
         (new Locator($transport, 'page1', '#f'))->setInputFiles('upload.txt');
 
-        self::assertSame([$this->tmpDir.'/upload.txt'], $sent['files']);
+        $this->assertSame([$this->tmpDir.'/upload.txt'], $sent['files']);
     }
 
     public function testMissingFileIsRejectedBeforeAnythingIsSent(): void
     {
         $transport = $this->createMock(TransportInterface::class);
-        $transport->expects(self::never())->method('send');
+        $transport->expects($this->never())->method('send');
 
         $this->expectException(PlaywrightException::class);
         $this->expectExceptionMessage('File not found: nope.txt');

@@ -120,12 +120,12 @@ class ClockTest extends FunctionalTestCase
     private function assertTimeNear(string $selector, int $expected, int $tolerance = 200): void
     {
         $text = $this->page->locator($selector)->textContent();
-        self::assertIsString($text, sprintf('Element %s did not contain time text', $selector));
+        $this->assertIsString($text, sprintf('Element %s did not contain time text', $selector));
 
         $actual = (int) trim($text);
         $diff = abs($actual - $expected);
 
-        self::assertLessThanOrEqual(
+        $this->assertLessThanOrEqual(
             $tolerance,
             $diff,
             sprintf('Expected %s time near %d (±%d), got %d (diff %d)', $selector, $expected, $tolerance, $actual, $diff)

@@ -22,5 +22,6 @@ return (new PhpCsFixer\Config())
         'declare_strict_types' => true,
         'header_comment' => ['header' => $license],
         'no_unused_imports' => true,
+        'php_unit_test_case_static_method_calls' => ['call_type' => 'this'],
     ])
 ;

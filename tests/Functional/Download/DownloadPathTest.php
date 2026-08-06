@@ -28,7 +28,7 @@ final class DownloadPathTest extends FunctionalTestCase
     {
         $node = (new ExecutableFinder())->find('node');
         if (null === $node) {
-            self::markTestSkipped('Node.js executable not found.');
+            $this->markTestSkipped('Node.js executable not found.');
         }
 
         $downloadsDir = sys_get_temp_dir().'/pw-php-downloads-'.uniqid();
@@ -50,8 +50,8 @@ final class DownloadPathTest extends FunctionalTestCase
             // downloadsPath. Poll until it lands rather than guessing a delay.
             $file = $this->waitForFirstFile($downloadsDir, 5.0);
 
-            self::assertNotNull($file, 'no file appeared in the downloads directory');
-            self::assertGreaterThan(0, (int) filesize($file));
+            $this->assertNotNull($file, 'no file appeared in the downloads directory');
+            $this->assertGreaterThan(0, (int) filesize($file));
         } finally {
             $browser->close();
             $this->removeDirectory($downloadsDir);

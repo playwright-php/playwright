@@ -76,7 +76,7 @@ final class ExpectTraceGroupTest extends TestCase
 
         try {
             $expect->toBeVisible();
-            self::fail('Expected an AssertionException');
+            $this->fail('Expected an AssertionException');
         } catch (AssertionException) {
         }
     }
@@ -85,6 +85,6 @@ final class ExpectTraceGroupTest extends TestCase
     {
         (new Expect($this->createVisibleLocator()))->toBeVisible();
 
-        self::assertTrue(true);
+        $this->assertTrue(true);
     }
 }

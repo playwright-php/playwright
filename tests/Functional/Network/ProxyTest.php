@@ -28,7 +28,7 @@ final class ProxyTest extends FunctionalTestCase
     {
         $node = (new ExecutableFinder())->find('node');
         if (null === $node) {
-            self::markTestSkipped('Node.js executable not found.');
+            $this->markTestSkipped('Node.js executable not found.');
         }
 
         // A dead proxy (nothing listens on port 1) plus a non-loopback target,
@@ -53,8 +53,8 @@ final class ProxyTest extends FunctionalTestCase
                 $message = $e->getMessage();
             }
 
-            self::assertNotNull($message, 'navigation through a dead proxy should fail');
-            self::assertStringContainsStringIgnoringCase('PROXY', $message);
+            $this->assertNotNull($message, 'navigation through a dead proxy should fail');
+            $this->assertStringContainsStringIgnoringCase('PROXY', $message);
         } finally {
             $browser->close();
         }

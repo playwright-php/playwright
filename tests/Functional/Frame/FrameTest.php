@@ -32,7 +32,7 @@ final class FrameTest extends FunctionalTestCase
 
         $frame = $this->page->frameLocator('#frame1');
 
-        self::assertInstanceOf(FrameLocatorInterface::class, $frame);
+        $this->assertInstanceOf(FrameLocatorInterface::class, $frame);
     }
 
     public function testCanInteractWithFrameContent(): void
@@ -44,7 +44,7 @@ final class FrameTest extends FunctionalTestCase
         $frame = $this->page->frameLocator('#frame1');
 
         $heading = $frame->locator('#frame-heading')->textContent();
-        self::assertSame('This is frame content', $heading);
+        $this->assertSame('This is frame content', $heading);
     }
 
     public function testCanClickButtonInFrame(): void
@@ -57,7 +57,7 @@ final class FrameTest extends FunctionalTestCase
         $frame->locator('#frame-button')->click();
 
         $text = $frame->locator('#frame-text')->textContent();
-        self::assertSame('Button clicked in frame', $text);
+        $this->assertSame('Button clicked in frame', $text);
     }
 
     public function testCanFillInputInFrame(): void
@@ -70,7 +70,7 @@ final class FrameTest extends FunctionalTestCase
         $frame->locator('#frame-input')->fill('test input');
 
         $value = $frame->locator('#frame-input')->inputValue();
-        self::assertSame('test input', $value);
+        $this->assertSame('test input', $value);
     }
 
     public function testCanAccessNestedFrames(): void
@@ -82,12 +82,12 @@ final class FrameTest extends FunctionalTestCase
         $parentFrame = $this->page->frameLocator('#parent-frame');
 
         $parentHeading = $parentFrame->locator('#parent-heading')->textContent();
-        self::assertSame('Parent Frame', $parentHeading);
+        $this->assertSame('Parent Frame', $parentHeading);
 
         $childFrame = $parentFrame->frameLocator('#child-frame');
 
         $childHeading = $childFrame->locator('#frame-heading')->textContent();
-        self::assertSame('This is frame content', $childHeading);
+        $this->assertSame('This is frame content', $childHeading);
     }
 
     public function testCanGetAllFrames(): void
@@ -99,7 +99,7 @@ final class FrameTest extends FunctionalTestCase
 
         $frames = $this->page->frames();
 
-        self::assertGreaterThanOrEqual(1, count($frames));
+        $this->assertGreaterThanOrEqual(1, count($frames));
     }
 
     public function testCanWaitForDynamicFrame(): void
@@ -112,7 +112,7 @@ final class FrameTest extends FunctionalTestCase
 
         $frame = $this->page->frameLocator('#dynamic-frame');
         $heading = $frame->locator('#frame-heading')->textContent();
-        self::assertSame('This is frame content', $heading);
+        $this->assertSame('This is frame content', $heading);
     }
 
     public function testFrameLocatorBySelector(): void
@@ -124,6 +124,6 @@ final class FrameTest extends FunctionalTestCase
         $frame = $this->page->frameLocator('iframe[name="frame1"]');
 
         $heading = $frame->locator('#frame-heading')->textContent();
-        self::assertSame('This is frame content', $heading);
+        $this->assertSame('This is frame content', $heading);
     }
 }

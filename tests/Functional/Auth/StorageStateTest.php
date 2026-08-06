@@ -50,9 +50,9 @@ final class StorageStateTest extends FunctionalTestCase
         $this->goto('/index.html');
 
         $cookieNames = array_column($this->context->cookies(), 'name');
-        self::assertContains('auth_token', $cookieNames);
+        $this->assertContains('auth_token', $cookieNames);
 
-        self::assertSame('alice', $this->page->evaluate("() => localStorage.getItem('user')"));
+        $this->assertSame('alice', $this->page->evaluate("() => localStorage.getItem('user')"));
     }
 
     public function testCanReloadASavedStorageState(): void
@@ -80,9 +80,9 @@ final class StorageStateTest extends FunctionalTestCase
                 $page->goto($this->getBaseUrl().'/index.html');
 
                 $cookieNames = array_column($fresh->cookies(), 'name');
-                self::assertContains('session_cookie', $cookieNames);
+                $this->assertContains('session_cookie', $cookieNames);
 
-                self::assertSame('saved-value', $page->evaluate("() => localStorage.getItem('session')"));
+                $this->assertSame('saved-value', $page->evaluate("() => localStorage.getItem('session')"));
             } finally {
                 $fresh->close();
             }

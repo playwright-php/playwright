@@ -74,6 +74,6 @@ final class ExpectFactoryTest extends TestCase
     {
         expect($this->createVisibleLocator())->toBeVisible();
 
-        self::assertTrue(true);
+        $this->assertTrue(true);
     }
 }

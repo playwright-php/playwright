@@ -29,8 +29,8 @@ final class SelectorTest extends FunctionalTestCase
 
         $element = $this->page->locator('#unique-element');
 
-        self::assertSame(1, $element->count());
-        self::assertSame('By ID', $element->textContent());
+        $this->assertSame(1, $element->count());
+        $this->assertSame('By ID', $element->textContent());
     }
 
     public function testCanSelectByClass(): void
@@ -39,7 +39,7 @@ final class SelectorTest extends FunctionalTestCase
 
         $elements = $this->page->locator('.test-class');
 
-        self::assertSame(2, $elements->count());
+        $this->assertSame(2, $elements->count());
     }
 
     public function testCanSelectByDataAttribute(): void
@@ -48,8 +48,8 @@ final class SelectorTest extends FunctionalTestCase
 
         $button = $this->page->locator('[data-testid="test-button"]');
 
-        self::assertTrue($button->isVisible());
-        self::assertSame('By Data Attribute', $button->textContent());
+        $this->assertTrue($button->isVisible());
+        $this->assertSame('By Data Attribute', $button->textContent());
     }
 
     public function testCanSelectByText(): void
@@ -58,7 +58,7 @@ final class SelectorTest extends FunctionalTestCase
 
         $button = $this->page->getByText('Click Here');
 
-        self::assertTrue($button->isVisible());
+        $this->assertTrue($button->isVisible());
     }
 
     public function testCanCheckVisibility(): void
@@ -68,8 +68,8 @@ final class SelectorTest extends FunctionalTestCase
         $visibleElement = $this->page->locator('#visible-element');
         $hiddenElement = $this->page->locator('#hidden-element');
 
-        self::assertTrue($visibleElement->isVisible());
-        self::assertFalse($hiddenElement->isVisible());
+        $this->assertTrue($visibleElement->isVisible());
+        $this->assertFalse($hiddenElement->isVisible());
     }
 
     public function testCanCheckEnabledState(): void
@@ -79,8 +79,8 @@ final class SelectorTest extends FunctionalTestCase
         $enabledButton = $this->page->locator('#enabled-button');
         $disabledButton = $this->page->locator('#disabled-button');
 
-        self::assertTrue($enabledButton->isEnabled());
-        self::assertFalse($disabledButton->isEnabled());
+        $this->assertTrue($enabledButton->isEnabled());
+        $this->assertFalse($disabledButton->isEnabled());
     }
 
     public function testCanCheckCheckedState(): void
@@ -90,7 +90,7 @@ final class SelectorTest extends FunctionalTestCase
         $checkedCheckbox = $this->page->locator('#checked-checkbox');
         $uncheckedCheckbox = $this->page->locator('#unchecked-checkbox');
 
-        self::assertTrue($checkedCheckbox->isChecked());
-        self::assertFalse($uncheckedCheckbox->isChecked());
+        $this->assertTrue($checkedCheckbox->isChecked());
+        $this->assertFalse($uncheckedCheckbox->isChecked());
     }
 }

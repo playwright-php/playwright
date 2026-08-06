@@ -40,7 +40,7 @@ final class ConsoleTest extends FunctionalTestCase
         $this->page->waitForSelector('#output');
 
         $logMessages = array_filter($messages, fn ($m) => 'log' === $m['type']);
-        self::assertNotEmpty($logMessages, 'Should have captured at least one log message');
+        $this->assertNotEmpty($logMessages, 'Should have captured at least one log message');
 
         $hasExpectedLog = false;
         foreach ($logMessages as $msg) {
@@ -50,7 +50,7 @@ final class ConsoleTest extends FunctionalTestCase
             }
         }
 
-        self::assertTrue($hasExpectedLog, 'Should have captured the expected log message');
+        $this->assertTrue($hasExpectedLog, 'Should have captured the expected log message');
     }
 
     public function testCanCaptureWarningMessage(): void
@@ -68,8 +68,8 @@ final class ConsoleTest extends FunctionalTestCase
         $this->page->click('#warn-message');
         $this->page->waitForSelector('#output');
 
-        self::assertNotEmpty($warnings, 'Should have captured warning messages');
-        self::assertStringContainsString('This is a warning message', $warnings[0]);
+        $this->assertNotEmpty($warnings, 'Should have captured warning messages');
+        $this->assertStringContainsString('This is a warning message', $warnings[0]);
     }
 
     public function testCanCaptureErrorMessage(): void
@@ -87,8 +87,8 @@ final class ConsoleTest extends FunctionalTestCase
         $this->page->click('#error-message');
         $this->page->waitForSelector('#output');
 
-        self::assertNotEmpty($errors, 'Should have captured error messages');
-        self::assertStringContainsString('This is an error message', $errors[0]);
+        $this->assertNotEmpty($errors, 'Should have captured error messages');
+        $this->assertStringContainsString('This is an error message', $errors[0]);
     }
 
     public function testCanCaptureInfoMessage(): void
@@ -106,8 +106,8 @@ final class ConsoleTest extends FunctionalTestCase
         $this->page->click('#info-message');
         $this->page->waitForSelector('#output');
 
-        self::assertNotEmpty($infoMessages, 'Should have captured info messages');
-        self::assertStringContainsString('This is an info message', $infoMessages[0]);
+        $this->assertNotEmpty($infoMessages, 'Should have captured info messages');
+        $this->assertStringContainsString('This is an info message', $infoMessages[0]);
     }
 
     public function testCanCaptureMultipleMessages(): void
@@ -128,9 +128,9 @@ final class ConsoleTest extends FunctionalTestCase
 
         $types = array_column($messages, 'type');
 
-        self::assertContains('log', $types, 'Should have captured log message');
-        self::assertContains('warning', $types, 'Should have captured warning message');
-        self::assertContains('error', $types, 'Should have captured error message');
+        $this->assertContains('log', $types, 'Should have captured log message');
+        $this->assertContains('warning', $types, 'Should have captured warning message');
+        $this->assertContains('error', $types, 'Should have captured error message');
     }
 
     public function testConsoleMessageHasCorrectType(): void
@@ -148,7 +148,7 @@ final class ConsoleTest extends FunctionalTestCase
         $this->page->click('#log-message');
         $this->page->waitForSelector('#output');
 
-        self::assertSame('log', $messageType, 'Message type should be "log"');
+        $this->assertSame('log', $messageType, 'Message type should be "log"');
     }
 
     public function testCanCapturePageLoadLog(): void
@@ -163,7 +163,7 @@ final class ConsoleTest extends FunctionalTestCase
 
         $this->goto('/console.html');
 
-        self::assertNotEmpty($pageLoadMessages, 'Should have captured page load message');
-        self::assertStringContainsString('Page loaded', $pageLoadMessages[0]);
+        $this->assertNotEmpty($pageLoadMessages, 'Should have captured page load message');
+        $this->assertStringContainsString('Page loaded', $pageLoadMessages[0]);
     }
 }
