@@ -42,6 +42,7 @@ use Playwright\JSHandle\JSHandle;
 use Playwright\JSHandle\JSHandleInterface;
 use Playwright\Locator\Locator;
 use Playwright\Locator\LocatorInterface;
+use Playwright\Locator\Options\AriaSnapshotOptions;
 use Playwright\Locator\Options\GetByRoleOptions;
 use Playwright\Locator\Options\LocatorOptions;
 use Playwright\Locator\RoleSelectorBuilder;
@@ -74,6 +75,8 @@ use Playwright\Screencast\Screencast;
 use Playwright\Screencast\ScreencastInterface;
 use Playwright\Screenshot\ScreenshotHelper;
 use Playwright\Transport\TransportInterface;
+use Playwright\Video\Video;
+use Playwright\Video\VideoInterface;
 use Playwright\WebStorage\WebStorage;
 use Playwright\WebStorage\WebStorageInterface;
 use Psr\Log\LoggerInterface;
@@ -807,6 +810,50 @@ final class Page implements PageInterface, EventDispatcherInterface
     public function context(): BrowserContextInterface
     {
         return $this->context;
+    }
+
+    public function clock(): ClockInterface
+    {
+        return $this->clock;
+    }
+
+    public function video(): ?VideoInterface
+    {
+        $response = $this->sendCommand('video');
+        $video = $response['video'] ?? null;
+        if (!is_array($video)) {
+            return null;
+        }
+
+        $videoId = $video['videoId'] ?? null;
+        $path = $video['path'] ?? null;
+        if (!is_string($videoId) || !is_string($path)) {
+            throw new ProtocolErrorException('Invalid video response', 0);
+        }
+
+        return new Video($this->transport, $videoId, $path);
+    }
+
+    public function hideHighlight(): self
+    {
+        $this->sendCommand('hideHighlight');
+
+        return $this;
+    }
+
+    /**
+     * @param array<string, mixed>|AriaSnapshotOptions $options
+     */
+    public function ariaSnapshot(array|AriaSnapshotOptions $options = []): string
+    {
+        $options = AriaSnapshotOptions::from($options);
+        $response = $this->sendCommand('ariaSnapshot', ['options' => $options->toArray()]);
+        $value = $response['value'] ?? null;
+        if (!is_string($value)) {
+            throw new ProtocolErrorException('Invalid ariaSnapshot response', 0);
+        }
+
+        return $value;
     }
 
     /**

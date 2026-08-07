@@ -16,6 +16,7 @@ namespace Playwright\Page;
 
 use Playwright\API\APIRequestContextInterface;
 use Playwright\Browser\BrowserContextInterface;
+use Playwright\Clock\ClockInterface;
 use Playwright\Console\ConsoleMessage;
 use Playwright\Frame\FrameInterface;
 use Playwright\Frame\FrameLocatorInterface;
@@ -24,6 +25,7 @@ use Playwright\Input\MouseInterface;
 use Playwright\Input\TouchscreenInterface;
 use Playwright\JSHandle\JSHandleInterface;
 use Playwright\Locator\LocatorInterface;
+use Playwright\Locator\Options\AriaSnapshotOptions;
 use Playwright\Locator\Options\GetByRoleOptions;
 use Playwright\Locator\Options\LocatorOptions;
 use Playwright\Network\RequestInterface;
@@ -50,6 +52,7 @@ use Playwright\Page\Options\WaitForSelectorOptions;
 use Playwright\Page\Options\WaitForUrlOptions;
 use Playwright\Regex;
 use Playwright\Screencast\ScreencastInterface;
+use Playwright\Video\VideoInterface;
 use Playwright\WebStorage\WebStorageInterface;
 
 interface PageInterface
@@ -184,6 +187,13 @@ interface PageInterface
     public function clearPageErrors(): self;
 
     /**
+     * Captures the accessibility tree of the whole page as YAML.
+     *
+     * @param array<string, mixed>|AriaSnapshotOptions $options
+     */
+    public function ariaSnapshot(array|AriaSnapshotOptions $options = []): string;
+
+    /**
      * Queues a script to run before any of the page's own scripts.
      *
      * It runs again on every navigation and in every frame the page creates, so
@@ -221,6 +231,27 @@ interface PageInterface
     public function bringToFront(): self;
 
     public function context(): BrowserContextInterface;
+
+    /**
+     * Fake timers for this page.
+     *
+     * The clock belongs to the browser context, so installing it here affects every
+     * page of that context.
+     */
+    public function clock(): ClockInterface;
+
+    /**
+     * Video recorded for this page, or null when the context does not record one.
+     *
+     * The file is only complete once the page is closed, so save or delete it after
+     * closing the page.
+     */
+    public function video(): ?VideoInterface;
+
+    /**
+     * Removes every highlight painted on this page by LocatorInterface::highlight().
+     */
+    public function hideHighlight(): self;
 
     /**
      * @param array<string>|null $urls
