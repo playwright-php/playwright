@@ -35,4 +35,8 @@ interface PageAssertionsInterface
 
     /** @return $this */
     public function not(): self;
+
+    public function withTimeout(int $timeoutMs): self;
+
+    public function withPollInterval(int $pollIntervalMs): self;
 }

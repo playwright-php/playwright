@@ -180,7 +180,7 @@ Notes:
 
 - The trait provides `$this->playwright`, `$this->browser`, `$this->context`, and `$this->page` properties.
 - Call `setUpPlaywright()` in `setUp()` and `tearDownPlaywright()` in `tearDown()` for proper lifecycle management.
-- Use `$this->expect($locator)` or `$this->expect($page)` for fluent assertions.
+- Use `$this->expect($locator)` or `$this->expect($page)` for fluent assertions with auto-waiting.
 - If you prefer full control, you can skip the trait and use the static `Playwright` facade directly.
 
 ## CI usage (GitHub Actions)

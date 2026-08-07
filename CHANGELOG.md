@@ -8,9 +8,15 @@
 - `KeyboardInterface::insertText()`
 - `PageInterface::pause()`
 - `ResponseInterface::headerValue()`
+- `expect($locator)->toBeAttached()`
+
+### Changed
+- `Testing\Expect` delegates to `LocatorAssertions` and `PageAssertions`, sharing one auto-waiting and tracing implementation
 
 ### Fixed
 - `expect()->toHaveClass()` matches the class attribute exactly
+- `expect()->toBeEmpty()` evaluates input values and text content in the DOM
+- `expect()->not()` applies to one assertion instead of leaking to later assertions on the same object
 
 ## [1.3.1] - 2026-08-04
 

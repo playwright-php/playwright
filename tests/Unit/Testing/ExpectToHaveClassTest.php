@@ -90,7 +90,7 @@ final class ExpectToHaveClassTest extends TestCase
     public function testANegatedAssertionFailsOnTheExactList(): void
     {
         $this->expectException(\Throwable::class);
-        $this->expectExceptionMessage('Expected class list not to be');
+        $this->expectExceptionMessage('Expected locator class list not to match.');
 
         (new Expect($this->locatorWithClass('primary active')))
             ->not()->withTimeout(0)->toHaveClass('primary active');

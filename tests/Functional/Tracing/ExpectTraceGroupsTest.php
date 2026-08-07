@@ -15,11 +15,17 @@ declare(strict_types=1);
 namespace Playwright\Tests\Functional\Tracing;
 
 use PHPUnit\Framework\Attributes\CoversClass;
+use Playwright\Assertions\LocatorAssertions;
+use Playwright\Assertions\PageAssertions;
 use Playwright\Testing\Expect;
+use Playwright\Testing\ExpectDecorator;
 use Playwright\Tests\Functional\FunctionalTestCase;
 use Playwright\Tracing\Tracing;
 
 #[CoversClass(Expect::class)]
+#[CoversClass(ExpectDecorator::class)]
+#[CoversClass(LocatorAssertions::class)]
+#[CoversClass(PageAssertions::class)]
 #[CoversClass(Tracing::class)]
 final class ExpectTraceGroupsTest extends FunctionalTestCase
 {

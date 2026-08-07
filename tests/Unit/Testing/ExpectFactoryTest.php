@@ -14,11 +14,15 @@ declare(strict_types=1);
 
 namespace Playwright\Tests\Unit\Testing;
 
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\CoversTrait;
 use PHPUnit\Framework\TestCase;
 use Playwright\Browser\BrowserContextInterface;
 use Playwright\Locator\LocatorInterface;
+use Playwright\Page\PageInterface;
+use Playwright\Testing\Expect;
+use Playwright\Testing\ExpectDecorator;
 use Playwright\Testing\ExpectInterface;
 use Playwright\Testing\PlaywrightTestCaseTrait;
 use Playwright\Tracing\TracingInterface;
@@ -27,6 +31,8 @@ use function Playwright\Testing\expect;
 
 #[CoversTrait(PlaywrightTestCaseTrait::class)]
 #[CoversFunction('Playwright\Testing\expect')]
+#[CoversClass(Expect::class)]
+#[CoversClass(ExpectDecorator::class)]
 final class ExpectFactoryTest extends TestCase
 {
     private function createVisibleLocator(): LocatorInterface
@@ -58,7 +64,9 @@ final class ExpectFactoryTest extends TestCase
             }
         };
 
-        $harness->callExpect($context, $this->createVisibleLocator())->toBeVisible();
+        $harness->callExpect($context, $this->createVisibleLocator())
+            ->withTimeout(100)
+            ->toBeVisible();
     }
 
     public function testTheExpectFunctionAcceptsATracingHandle(): void
@@ -75,5 +83,48 @@ final class ExpectFactoryTest extends TestCase
         expect($this->createVisibleLocator())->toBeVisible();
 
         $this->assertTrue(true);
+    }
+
+    public function testTheExpectFunctionExposesLocatorAssertions(): void
+    {
+        $locator = $this->createMock(LocatorInterface::class);
+        $locator->expects($this->once())->method('isAttached')->willReturn(true);
+        $locator->method('getSelector')->willReturn('#x');
+
+        expect($locator)->toBeAttached();
+    }
+
+    public function testTheExpectFunctionKeepsLegacyToHaveTextContainsSemantics(): void
+    {
+        $locator = $this->createMock(LocatorInterface::class);
+        $locator->expects($this->once())->method('textContent')->willReturn('Welcome Simon');
+        $locator->method('getSelector')->willReturn('#x');
+
+        expect($locator)->toHaveText('Welcome');
+    }
+
+    public function testLocatorAssertionsRejectAPageSubject(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        expect($this->createMock(PageInterface::class))->toBeVisible();
+    }
+
+    public function testPageAssertionsRejectALocatorSubject(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        expect($this->createVisibleLocator())->toHaveTitle('Title');
+    }
+
+    public function testNegationDoesNotLeakToTheNextAssertion(): void
+    {
+        $locator = $this->createMock(LocatorInterface::class);
+        $locator->expects($this->exactly(2))->method('isVisible')->willReturn(false, true);
+        $locator->method('getSelector')->willReturn('#x');
+        $expect = expect($locator)->withPollInterval(0);
+
+        $expect->not()->toBeVisible();
+        $expect->toBeVisible();
     }
 }

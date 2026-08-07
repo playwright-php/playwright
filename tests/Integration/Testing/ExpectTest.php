@@ -17,11 +17,17 @@ namespace Playwright\Tests\Integration\Testing;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Playwright\Assertions\LocatorAssertions;
+use Playwright\Assertions\PageAssertions;
 use Playwright\Testing\Expect;
+use Playwright\Testing\ExpectDecorator;
 use Playwright\Testing\PlaywrightTestCaseTrait;
 use Playwright\Tests\Support\RouteServerTestTrait;
 
 #[CoversClass(Expect::class)]
+#[CoversClass(ExpectDecorator::class)]
+#[CoversClass(LocatorAssertions::class)]
+#[CoversClass(PageAssertions::class)]
 class ExpectTest extends TestCase
 {
     use PlaywrightTestCaseTrait;
@@ -41,8 +47,9 @@ class ExpectTest extends TestCase
         $this->installRouteServer($this->page, [
             '/index.html' => <<<'HTML'
                 <title>Expect Test</title>
-                <h1>Expect Test</h1>
+                <h1 id="heading" class="title primary">Expect Test</h1>
                 <input type="text" id="input-text" value="initial value">
+                <div id="empty-element"></div>
                 <input type="checkbox" id="input-checkbox" checked>
                 <button id="button-1">Button 1</button>
                 <button id="button-2" disabled>Button 2</button>
@@ -62,6 +69,7 @@ class ExpectTest extends TestCase
     public function itAssertsVisibility(): void
     {
         $expect = $this->expect($this->page->locator('#div-1'));
+        $expect->withPollInterval(10)->toBeAttached();
         $expect->toBeVisible();
 
         $expect = $this->expect($this->page->locator('#div-2'));
@@ -153,9 +161,25 @@ class ExpectTest extends TestCase
     {
         $expect = $this->expect($this->page->locator('#div-1'));
         $expect->toHaveCSS('width', '50px');
+        $expect->toHaveCSS('background-color', 'rgb(0, 0, 255)');
 
         $expect = $this->expect($this->page->locator('#div-1'));
         $expect->not()->toHaveCSS('width', '10px');
+    }
+
+    #[Test]
+    public function itAssertsIdentityClassEmptinessAndFocus(): void
+    {
+        $heading = $this->expect($this->page->locator('h1'));
+        $heading->toHaveId('heading');
+        $heading->toHaveClass(['title', 'primary']);
+
+        $this->expect($this->page->locator('#empty-element'))->toBeEmpty();
+
+        $button = $this->page->locator('#button-1');
+        $button->focus();
+        $this->expect($button)->toBeFocused();
+        $this->expect($button)->toHaveFocus();
     }
 
     #[Test]

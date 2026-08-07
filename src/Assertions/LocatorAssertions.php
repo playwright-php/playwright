@@ -14,12 +14,12 @@ declare(strict_types=1);
 
 namespace Playwright\Assertions;
 
-use Playwright\Assertions\Failure\AssertionException;
+use Playwright\Assertions\Internal\AbstractAssertions;
 use Playwright\Assertions\Internal\AriaSnapshot;
-use Playwright\Assertions\Internal\Waiter;
 use Playwright\Locator\LocatorInterface;
+use Playwright\Tracing\TracingInterface;
 
-final class LocatorAssertions implements LocatorAssertionsInterface
+final class LocatorAssertions extends AbstractAssertions implements LocatorAssertionsInterface
 {
     /**
      * Resolves one accessible text of the element and compares it with the
@@ -83,15 +83,30 @@ final class LocatorAssertions implements LocatorAssertionsInterface
         }
         JS;
 
-    private bool $negated = false;
-
-    public function __construct(private LocatorInterface $locator)
-    {
+    public function __construct(
+        private readonly LocatorInterface $locator,
+        ?TracingInterface $tracing = null,
+    ) {
+        parent::__construct($tracing);
     }
 
     public function not(): self
     {
-        $this->negated = !$this->negated;
+        $this->negate();
+
+        return $this;
+    }
+
+    public function withTimeout(int $timeoutMs): self
+    {
+        $this->setTimeout($timeoutMs);
+
+        return $this;
+    }
+
+    public function withPollInterval(int $pollIntervalMs): self
+    {
+        $this->setPollInterval($pollIntervalMs);
 
         return $this;
     }
@@ -100,6 +115,7 @@ final class LocatorAssertions implements LocatorAssertionsInterface
     {
         return $this->assertState(
             fn (): bool => $this->locator->isAttached(),
+            'toBeAttached',
             $options,
             'Expected locator to be attached.',
             'Expected locator to be detached.',
@@ -110,6 +126,7 @@ final class LocatorAssertions implements LocatorAssertionsInterface
     {
         return $this->assertState(
             fn (): bool => $this->locator->isEditable(),
+            'toBeEditable',
             $options,
             'Expected locator to be editable.',
             'Expected locator not to be editable.',
@@ -143,6 +160,7 @@ final class LocatorAssertions implements LocatorAssertionsInterface
                     return elementArea > 0 && visibleArea > 0 && visibleArea / elementArea >= requiredRatio;
                 }
                 JS, $ratio),
+            'toBeInViewport',
             $options,
             'Expected locator to be in the viewport.',
             'Expected locator not to be in the viewport.',
@@ -151,53 +169,24 @@ final class LocatorAssertions implements LocatorAssertionsInterface
 
     public function toBeVisible(?AssertionOptions $options = null): self
     {
-        $timeout = $options?->timeoutMs;
-        if (!is_int($timeout)) {
-            $timeout = Waiter::DEFAULT_TIMEOUT_MS;
-        }
-        $interval = $options?->intervalMs;
-        if (!is_int($interval)) {
-            $interval = 50;
-        }
-
-        try {
-            Waiter::eventually(fn () => $this->locator->isVisible(), $timeout, $interval);
-        } catch (\Throwable $e) {
-            $ok = false;
-            if ($this->negated) {
-                $ok = true;
-                $this->negated = false;
-            }
-            if (!$ok) {
-                $msg = $options?->message;
-                if (null === $msg) {
-                    $msg = 'Expected locator to be visible.';
-                }
-                throw new AssertionException($msg);
-            }
-
-            return $this;
-        }
-
-        $ok = true;
-        if ($this->negated) {
-            $ok = false;
-            $this->negated = false;
-        }
-        if (!$ok) {
-            $msg = $options?->message;
-            if (null === $msg) {
-                $msg = 'Expected locator to be hidden.';
-            }
-            throw new AssertionException($msg);
-        }
-
-        return $this;
+        return $this->assertState(
+            fn (): bool => $this->locator->isVisible(),
+            'toBeVisible',
+            $options,
+            'Expected locator to be visible.',
+            'Expected locator to be hidden.',
+        );
     }
 
     public function toBeHidden(?AssertionOptions $options = null): self
     {
-        return $this->not()->toBeVisible($options);
+        return $this->assertState(
+            fn (): bool => !$this->locator->isVisible(),
+            'toBeHidden',
+            $options,
+            'Expected locator to be hidden.',
+            'Expected locator to be visible.',
+        );
     }
 
     /**
@@ -205,17 +194,9 @@ final class LocatorAssertions implements LocatorAssertionsInterface
      */
     public function toHaveText(string|array $expected, ?AssertionOptions $options = null): self
     {
-        $timeout = $options?->timeoutMs;
-        if (!is_int($timeout)) {
-            $timeout = Waiter::DEFAULT_TIMEOUT_MS;
-        }
         $useInner = $options?->useInnerText;
         if (!is_bool($useInner)) {
             $useInner = false;
-        }
-        $interval = $options?->intervalMs;
-        if (!is_int($interval)) {
-            $interval = 50;
         }
 
         $predicate = function () use ($expected, $useInner) {
@@ -226,54 +207,209 @@ final class LocatorAssertions implements LocatorAssertionsInterface
             return $actual === $expected;
         };
 
-        $ok = true;
-        try {
-            Waiter::eventually($predicate, $timeout, $interval);
-        } catch (\Throwable) {
-            $ok = false;
-        }
-
-        if ($this->negated) {
-            $ok = !$ok;
-            $this->negated = false;
-        }
-
-        if (!$ok) {
-            $msg = $options?->message;
-            if (null === $msg) {
-                $msg = 'Expected locator to have text.';
-            }
-            throw new AssertionException($msg, actual: $useInner ? $this->locator->innerText() : $this->locator->textContent(), expected: $expected);
-        }
+        $this->assertCondition(
+            $predicate,
+            'toHaveText',
+            $options,
+            'Expected locator to have text.',
+            'Expected locator not to have text.',
+            $expected,
+            fn (): mixed => $useInner ? $this->locator->innerText() : $this->locator->textContent(),
+        );
 
         return $this;
     }
 
+    public function toContainText(string $expected, ?AssertionOptions $options = null): self
+    {
+        $this->assertCondition(
+            fn (): bool => str_contains($this->locator->textContent() ?? '', $expected),
+            'toContainText',
+            $options,
+            sprintf('Expected locator text to contain %s.', json_encode($expected)),
+            sprintf('Expected locator text not to contain %s.', json_encode($expected)),
+            $expected,
+            fn (): ?string => $this->locator->textContent(),
+        );
+
+        return $this;
+    }
+
+    public function toHaveExactText(string $expected, ?AssertionOptions $options = null): self
+    {
+        $this->assertCondition(
+            fn (): bool => ($this->locator->textContent() ?? '') === $expected,
+            'toHaveExactText',
+            $options,
+            'Expected locator to have exact text.',
+            'Expected locator not to have exact text.',
+            $expected,
+            fn (): ?string => $this->locator->textContent(),
+        );
+
+        return $this;
+    }
+
+    public function toHaveValue(string $expected, ?AssertionOptions $options = null): self
+    {
+        $this->assertCondition(
+            fn (): bool => $this->locator->inputValue() === $expected,
+            'toHaveValue',
+            $options,
+            'Expected locator to have value.',
+            'Expected locator not to have value.',
+            $expected,
+            fn (): string => $this->locator->inputValue(),
+        );
+
+        return $this;
+    }
+
+    public function toHaveAttribute(string $name, string $expected, ?AssertionOptions $options = null): self
+    {
+        $this->assertCondition(
+            fn (): bool => $this->locator->getAttribute($name) === $expected,
+            'toHaveAttribute',
+            $options,
+            sprintf('Expected locator attribute "%s" to match.', $name),
+            sprintf('Expected locator attribute "%s" not to match.', $name),
+            $expected,
+            fn (): ?string => $this->locator->getAttribute($name),
+        );
+
+        return $this;
+    }
+
+    public function toBeChecked(?AssertionOptions $options = null): self
+    {
+        return $this->assertState(
+            fn (): bool => $this->locator->isChecked(),
+            'toBeChecked',
+            $options,
+            'Expected locator to be checked.',
+            'Expected locator not to be checked.',
+        );
+    }
+
+    public function toBeEnabled(?AssertionOptions $options = null): self
+    {
+        return $this->assertState(
+            fn (): bool => $this->locator->isEnabled(),
+            'toBeEnabled',
+            $options,
+            'Expected locator to be enabled.',
+            'Expected locator not to be enabled.',
+        );
+    }
+
+    public function toBeDisabled(?AssertionOptions $options = null): self
+    {
+        return $this->assertState(
+            fn (): bool => !$this->locator->isEnabled(),
+            'toBeDisabled',
+            $options,
+            'Expected locator to be disabled.',
+            'Expected locator not to be disabled.',
+        );
+    }
+
+    public function toHaveCSS(string $name, string $expected, ?AssertionOptions $options = null): self
+    {
+        $actual = fn (): mixed => $this->locator->evaluate(
+            '(element, property) => window.getComputedStyle(element).getPropertyValue(property)',
+            $name,
+        );
+
+        $this->assertCondition(
+            fn (): bool => $actual() === $expected,
+            'toHaveCSS',
+            $options,
+            sprintf('Expected locator CSS property "%s" to match.', $name),
+            sprintf('Expected locator CSS property "%s" not to match.', $name),
+            $expected,
+            $actual,
+        );
+
+        return $this;
+    }
+
+    public function toHaveId(string $expected, ?AssertionOptions $options = null): self
+    {
+        return $this->toHaveAttribute('id', $expected, $options);
+    }
+
+    /**
+     * @param string|string[] $expected
+     */
+    public function toHaveClass(string|array $expected, ?AssertionOptions $options = null): self
+    {
+        $expectedClasses = self::classTokens(is_array($expected) ? implode(' ', $expected) : $expected);
+
+        $this->assertCondition(
+            function () use ($expectedClasses): bool {
+                $actual = $this->locator->getAttribute('class');
+
+                return null !== $actual && self::classTokens($actual) === $expectedClasses;
+            },
+            'toHaveClass',
+            $options,
+            'Expected locator class list to match.',
+            'Expected locator class list not to match.',
+            implode(' ', $expectedClasses),
+            fn (): ?string => $this->locator->getAttribute('class'),
+        );
+
+        return $this;
+    }
+
+    public function toBeEmpty(?AssertionOptions $options = null): self
+    {
+        return $this->assertState(
+            fn (): bool => true === $this->locator->evaluate(<<<'JS'
+                (element) => 'value' in element
+                    ? element.value === ''
+                    : (element.textContent ?? '') === ''
+                JS),
+            'toBeEmpty',
+            $options,
+            'Expected locator to be empty.',
+            'Expected locator not to be empty.',
+        );
+    }
+
+    public function toBeFocused(?AssertionOptions $options = null): self
+    {
+        return $this->assertState(
+            fn (): bool => true === $this->locator->evaluate('(element) => document.activeElement === element'),
+            'toBeFocused',
+            $options,
+            'Expected locator to be focused.',
+            'Expected locator not to be focused.',
+        );
+    }
+
+    public function toHaveFocus(?AssertionOptions $options = null): self
+    {
+        return $this->assertState(
+            fn (): bool => true === $this->locator->evaluate('(element) => document.activeElement === element'),
+            'toHaveFocus',
+            $options,
+            'Expected locator to have focus.',
+            'Expected locator not to have focus.',
+        );
+    }
+
     public function toHaveCount(int $expected, ?AssertionOptions $options = null): self
     {
-        $timeout = $options?->timeoutMs;
-        if (!is_int($timeout)) {
-            $timeout = Waiter::DEFAULT_TIMEOUT_MS;
-        }
-        $interval = $options?->intervalMs;
-        if (!is_int($interval)) {
-            $interval = 50;
-        }
-
-        $ok = true;
-        try {
-            Waiter::eventually(fn () => $this->locator->count() === $expected, $timeout, $interval);
-        } catch (\Throwable) {
-            $ok = false;
-        }
-
-        if ($this->negated) {
-            $ok = !$ok;
-            $this->negated = false;
-        }
-        if (!$ok) {
-            throw new AssertionException('Expected locator count to match.', actual: $this->locator->count(), expected: $expected);
-        }
+        $this->assertCondition(
+            fn (): bool => $this->locator->count() === $expected,
+            'toHaveCount',
+            $options,
+            'Expected locator count to match.',
+            'Expected locator count not to match.',
+            $expected,
+            fn (): int => $this->locator->count(),
+        );
 
         return $this;
     }
@@ -302,6 +438,7 @@ final class LocatorAssertions implements LocatorAssertionsInterface
                     return equal(element[payload.name], payload.expected);
                 }
                 JS, ['name' => $name, 'expected' => $expected]),
+            'toHaveJSProperty',
             $options,
             sprintf('Expected locator JavaScript property "%s" to match.', $name),
             sprintf('Expected locator JavaScript property "%s" not to match.', $name),
@@ -321,6 +458,7 @@ final class LocatorAssertions implements LocatorAssertionsInterface
                     ? Array.from(element.selectedOptions, option => option.value)
                     : null
                 JS) === $expected,
+            'toHaveValues',
             $options,
             'Expected locator to have selected values.',
             'Expected locator not to have selected values.',
@@ -379,6 +517,7 @@ final class LocatorAssertions implements LocatorAssertionsInterface
                     }
                 }
                 JS) === $role,
+            'toHaveRole',
             $options,
             sprintf('Expected locator to have role "%s".', $role),
             sprintf('Expected locator not to have role "%s".', $role),
@@ -397,6 +536,7 @@ final class LocatorAssertions implements LocatorAssertionsInterface
                 '(element, expectedClasses) => expectedClasses.every(className => element.classList.contains(className))',
                 $classes
             ),
+            'toContainClass',
             $options,
             sprintf('Expected locator to contain class "%s".', $expected),
             sprintf('Expected locator not to contain class "%s".', $expected),
@@ -406,6 +546,7 @@ final class LocatorAssertions implements LocatorAssertionsInterface
     public function toHaveAccessibleName(string $expected, ?AssertionOptions $options = null): self
     {
         return $this->assertAccessibleText(
+            'toHaveAccessibleName',
             'name',
             $expected,
             $options,
@@ -417,6 +558,7 @@ final class LocatorAssertions implements LocatorAssertionsInterface
     public function toHaveAccessibleDescription(string $expected, ?AssertionOptions $options = null): self
     {
         return $this->assertAccessibleText(
+            'toHaveAccessibleDescription',
             'description',
             $expected,
             $options,
@@ -428,6 +570,7 @@ final class LocatorAssertions implements LocatorAssertionsInterface
     public function toHaveAccessibleErrorMessage(string $expected, ?AssertionOptions $options = null): self
     {
         return $this->assertAccessibleText(
+            'toHaveAccessibleErrorMessage',
             'errorMessage',
             $expected,
             $options,
@@ -442,13 +585,14 @@ final class LocatorAssertions implements LocatorAssertionsInterface
 
         return $this->assertState(
             fn (): bool => AriaSnapshot::normalize($this->locator->ariaSnapshot()) === $normalized,
+            'toMatchAriaSnapshot',
             $options,
             'Expected locator to match the ARIA snapshot.',
             'Expected locator not to match the ARIA snapshot.',
         );
     }
 
-    private function assertAccessibleText(string $kind, string $expected, ?AssertionOptions $options, string $expectedMessage, string $negatedMessage): self
+    private function assertAccessibleText(string $matcher, string $kind, string $expected, ?AssertionOptions $options, string $expectedMessage, string $negatedMessage): self
     {
         $payload = [
             'kind' => $kind,
@@ -458,6 +602,7 @@ final class LocatorAssertions implements LocatorAssertionsInterface
 
         return $this->assertState(
             fn (): bool => true === $this->locator->evaluate(self::ACCESSIBLE_TEXT_JS, $payload),
+            $matcher,
             $options,
             $expectedMessage,
             $negatedMessage,
@@ -466,35 +611,27 @@ final class LocatorAssertions implements LocatorAssertionsInterface
 
     /**
      * @param callable(): bool $predicate
+     * @param callable(): bool $predicate
      */
-    private function assertState(callable $predicate, ?AssertionOptions $options, string $expectedMessage, string $negatedMessage): self
+    private function assertState(callable $predicate, string $matcher, ?AssertionOptions $options, string $expectedMessage, string $negatedMessage): self
     {
-        $timeout = $options?->timeoutMs;
-        if (!is_int($timeout)) {
-            $timeout = Waiter::DEFAULT_TIMEOUT_MS;
-        }
-        $interval = $options?->intervalMs;
-        if (!is_int($interval)) {
-            $interval = 50;
-        }
-
-        $ok = true;
-        try {
-            Waiter::eventually($predicate, $timeout, $interval);
-        } catch (\Throwable) {
-            $ok = false;
-        }
-
-        $wasNegated = $this->negated;
-        if ($wasNegated) {
-            $ok = !$ok;
-            $this->negated = false;
-        }
-        if (!$ok) {
-            $message = $options instanceof AssertionOptions ? $options->message : null;
-            throw new AssertionException($message ?? ($wasNegated ? $negatedMessage : $expectedMessage));
-        }
+        $this->assertCondition($predicate, $matcher, $options, $expectedMessage, $negatedMessage);
 
         return $this;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function classTokens(string $classAttribute): array
+    {
+        $tokens = preg_split('/\s+/', trim($classAttribute), -1, PREG_SPLIT_NO_EMPTY);
+
+        return false === $tokens ? [] : $tokens;
+    }
+
+    protected function subjectName(): string
+    {
+        return $this->locator->getSelector();
     }
 }

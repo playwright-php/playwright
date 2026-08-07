@@ -29,6 +29,12 @@ final class ExpectDecorator implements ExpectInterface
     ) {
     }
 
+    public function toBeAttached(): void
+    {
+        $this->expect->toBeAttached();
+        $this->recordAssertion(1);
+    }
+
     public function toBeVisible(): void
     {
         $this->expect->toBeVisible();
