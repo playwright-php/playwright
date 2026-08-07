@@ -272,7 +272,7 @@ final class Locator implements \Stringable, LocatorInterface
         $newSelectorChain = clone $this->selectorChain;
         $newSelectorChain->append($selector);
 
-        return new Locator($this->transport, $this->pageId, $newSelectorChain, $this->frameSelector);
+        return new Locator($this->transport, $this->pageId, $newSelectorChain, $this->frameSelector, $this->logger);
     }
 
     /**
@@ -660,6 +660,7 @@ final class Locator implements \Stringable, LocatorInterface
                     return;
                 }
             } catch (PlaywrightException $e) {
+                $this->logger->error($e->getMessage());
             }
 
             usleep(100000);
