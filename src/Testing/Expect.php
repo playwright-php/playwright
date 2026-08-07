@@ -330,7 +330,7 @@ final class Expect implements ExpectInterface
             throw new \InvalidArgumentException('toHaveClass() can only be used with LocatorInterface');
         }
 
-        $expectedClasses = is_array($class) ? $class : [$class];
+        $expectedClasses = self::classTokens(is_array($class) ? implode(' ', $class) : $class);
 
         $this->retryAssertion(
             function () use ($expectedClasses) {
@@ -339,14 +339,8 @@ final class Expect implements ExpectInterface
                 if (null === $elementClass) {
                     return false;
                 }
-                $classes = explode(' ', $elementClass);
-                foreach ($expectedClasses as $expectedClass) {
-                    if (!in_array($expectedClass, $classes, true)) {
-                        return false;
-                    }
-                }
 
-                return true;
+                return self::classTokens($elementClass) === $expectedClasses;
             },
             !$this->negated,
             $this->negated
@@ -358,10 +352,20 @@ final class Expect implements ExpectInterface
                 $expected = implode(' ', $expectedClasses);
 
                 return $this->negated
-                    ? \sprintf('Expected class list not to contain %s. Actual: %s', \json_encode($expected), \json_encode($actual))
-                    : \sprintf('Expected class list to contain %s. Actual: %s', \json_encode($expected), \json_encode($actual));
+                    ? \sprintf('Expected class list not to be %s. Actual: %s', \json_encode($expected), \json_encode($actual))
+                    : \sprintf('Expected class list to be %s. Actual: %s', \json_encode($expected), \json_encode($actual));
             }
         );
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private static function classTokens(string $classAttribute): array
+    {
+        $tokens = preg_split('/\s+/', trim($classAttribute), -1, PREG_SPLIT_NO_EMPTY);
+
+        return false === $tokens ? [] : $tokens;
     }
 
     public function toHaveId(string $id): void
