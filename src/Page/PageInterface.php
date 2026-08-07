@@ -49,6 +49,7 @@ use Playwright\Page\Options\WaitForResponseOptions;
 use Playwright\Page\Options\WaitForSelectorOptions;
 use Playwright\Page\Options\WaitForUrlOptions;
 use Playwright\Regex;
+use Playwright\WebStorage\WebStorageInterface;
 
 interface PageInterface
 {
@@ -305,6 +306,16 @@ interface PageInterface
      * hasTouch enabled, otherwise the browser ignores the events.
      */
     public function touchscreen(): TouchscreenInterface;
+
+    /**
+     * The `localStorage` of the page's current origin.
+     */
+    public function localStorage(): WebStorageInterface;
+
+    /**
+     * The `sessionStorage` of the page's current origin.
+     */
+    public function sessionStorage(): WebStorageInterface;
 
     public function events(): PageEventHandlerInterface;
 

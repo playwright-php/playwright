@@ -427,6 +427,23 @@ class PageHandler extends BaseHandler {
     }));
   }
 
+  async handleWebStorage(command, method) {
+    const page = this.validateResource(this.pages, command.pageId, 'Page');
+    // Never index the page with the client-supplied name: only these two exist.
+    const storage = command.storage === 'sessionStorage' ? page.sessionStorage : page.localStorage;
+
+    const registry = CommandRegistry.create({
+      clear: () => storage.clear(),
+      getItem: () => PromiseUtils.wrapValue(storage.getItem(command.name)),
+      items: async () => ({ items: await storage.items() }),
+      removeItem: () => storage.removeItem(command.name),
+      setItem: () => storage.setItem(command.name, command.value)
+    });
+
+    const result = await ErrorHandler.safeExecute(() => this.executeWithRegistry(registry, method), { method, pageId: command.pageId });
+    return this.wrapResult(result);
+  }
+
   async handleDialog(command) {
     const dialog = this.dialogs.get(command.dialogId);
     if (dialog) {
