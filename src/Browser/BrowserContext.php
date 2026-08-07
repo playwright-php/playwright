@@ -510,6 +510,19 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
         ]);
     }
 
+    /**
+     * @param array{behavior?: 'default'|'wait'|'ignoreErrors'} $options
+     */
+    public function unrouteAll(array $options = []): void
+    {
+        $this->routeHandlers = [];
+        $this->transport->send([
+            'action' => 'context.unrouteAll',
+            'contextId' => $this->contextId,
+            'options' => $options,
+        ]);
+    }
+
     public function getEnv(string $name): ?string
     {
         $response = $this->transport->send([

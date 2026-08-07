@@ -311,6 +311,14 @@ class RouteUtils {
     });
     return { success: true };
   }
+
+  // unrouteAll drops the handlers inside Playwright, but the pending Route
+  // objects we handed out stay in the map and can never be answered again.
+  static forgetRoutes(routes, ownerId) {
+    for (const [routeId, info] of routes.entries()) {
+      if (info?.contextId === ownerId) routes.delete(routeId);
+    }
+  }
 }
 
 const logger = new Logger();

@@ -18,8 +18,10 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Playwright\Console\ConsoleMessage;
+use Playwright\Exception\PlaywrightException;
 use Playwright\Network\RequestInterface;
 use Playwright\Network\ResponseInterface;
+use Playwright\Network\RouteInterface;
 use Playwright\Page\Page;
 use Playwright\Testing\PlaywrightTestCaseTrait;
 use Playwright\Tests\Support\RouteServerTestTrait;
@@ -309,6 +311,33 @@ class PageTest extends TestCase
     }
 
     #[Test]
+    public function itRemovesEveryPageRoute(): void
+    {
+        $page = $this->context->newPage();
+
+        try {
+            $page->route('**/*', static function (RouteInterface $route): void {
+                $route->fulfill(['body' => '<h1>Routed</h1>']);
+            });
+            $page->goto('https://page-unroute-all.example.test/');
+            $this->assertSame('Routed', $page->locator('h1')->innerText());
+
+            $page->unrouteAll();
+
+            $intercepted = true;
+            try {
+                $page->goto('https://page-unroute-all.example.test/');
+            } catch (PlaywrightException) {
+                $intercepted = false;
+            }
+
+            $this->assertFalse($intercepted, 'Requests should no longer be intercepted');
+        } finally {
+            $page->close();
+        }
+    }
+
+    #[Test]
     public function itWaitsForLoadState(): void
     {
         $this->page->click('a');
@@ -394,7 +423,7 @@ class PageTest extends TestCase
     #[Test]
     public function itThrowsExceptionOnInvalidWaitForFunctionPolling(): void
     {
-        $this->expectException(\Playwright\Exception\PlaywrightException::class);
+        $this->expectException(PlaywrightException::class);
         $this->expectExceptionMessage('Unknown polling option: invalid');
 
         $this->page->waitForFunction(

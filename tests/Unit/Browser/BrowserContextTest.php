@@ -476,6 +476,20 @@ final class BrowserContextTest extends TestCase
         $this->context->unroute('**/*.api');
     }
 
+    public function testUnrouteAll(): void
+    {
+        $this->mockTransport
+            ->expects($this->once())
+            ->method('send')
+            ->with([
+                'action' => 'context.unrouteAll',
+                'contextId' => 'context_1',
+                'options' => ['behavior' => 'ignoreErrors'],
+            ]);
+
+        $this->context->unrouteAll(['behavior' => 'ignoreErrors']);
+    }
+
     public function testTracingReturnsTheSameInstance(): void
     {
         $tracing = $this->context->tracing();

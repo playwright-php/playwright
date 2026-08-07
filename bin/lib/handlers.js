@@ -40,6 +40,7 @@ class ContextHandler extends BaseHandler {
       setDefaultNavigationTimeout: () => context.setDefaultNavigationTimeout(command.timeout),
       route: () => RouteUtils.setupRoute(context, command.contextId, command.url, this.generateId, this.routes, this.extractRequestData, this.sendFramedResponse),
       unroute: () => context.unroute(command.url),
+      unrouteAll: () => this.unrouteAll(context, command.contextId, command.options),
       cookies: async () => ({ cookies: await context.cookies(command.urls) }),
       storageState: async () => ({ storageState: await context.storageState(command.options) }),
       setStorageState: () => context.setStorageState(command.storageState),
@@ -108,6 +109,11 @@ class ContextHandler extends BaseHandler {
 
     const result = await ErrorHandler.safeExecute(() => this.executeWithRegistry(registry, method), { method, contextId: command.contextId });
     return this.wrapResult(result);
+  }
+
+  async unrouteAll(context, contextId, options) {
+    await context.unrouteAll(options || {});
+    RouteUtils.forgetRoutes(this.routes, contextId);
   }
 
   setThrottling(command) {
@@ -268,6 +274,7 @@ class PageHandler extends BaseHandler {
       handleDialog: () => this.handleDialog(command),
       route: () => RouteUtils.setupRoute(page, command.pageId, command.url, this.generateId, this.routes, this.extractRequestData, this.sendFramedResponse, () => `route_${++this.routeCounter.value}`),
       unroute: () => page.unroute(command.url),
+      unrouteAll: () => this.unrouteAll(page, command.pageId, command.options),
       goBack: () => this.followNavigationRedirects(command.pageId, page, () => page.goBack(command.options)),
       goForward: () => this.followNavigationRedirects(command.pageId, page, () => page.goForward(command.options)),
       reload: () => this.followNavigationRedirects(command.pageId, page, () => page.reload(command.options)),
@@ -380,6 +387,11 @@ class PageHandler extends BaseHandler {
     const filter = command.options?.filter;
     const messages = await page.consoleMessages(typeof filter === 'string' ? { filter } : {});
     return { messages: messages.map(message => this.serializeConsoleMessage(message)) };
+  }
+
+  async unrouteAll(page, pageId, options) {
+    await page.unrouteAll(options || {});
+    RouteUtils.forgetRoutes(this.routes, pageId);
   }
 
   async querySelector(page, command) {

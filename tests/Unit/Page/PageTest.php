@@ -1140,6 +1140,20 @@ class PageTest extends TestCase
         $this->page->opener();
     }
 
+    public function testUnrouteAllSendsItsBehavior(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'options' => ['behavior' => 'wait'],
+                'action' => 'page.unrouteAll',
+                'pageId' => 'page-id',
+            ])
+            ->willReturn([]);
+
+        $this->page->unrouteAll(['behavior' => 'wait']);
+    }
+
     private function createPage(string $pageId = 'page-1'): Page
     {
         return new Page($this->transport, $this->context, $pageId, new PlaywrightConfig());

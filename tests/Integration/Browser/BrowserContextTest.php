@@ -18,6 +18,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Playwright\Browser\BrowserContext;
+use Playwright\Exception\PlaywrightException;
 use Playwright\Network\RouteInterface;
 use Playwright\Page\PageInterface;
 use Playwright\Testing\PlaywrightTestCaseTrait;
@@ -143,6 +144,31 @@ class BrowserContextTest extends TestCase
         $page->goto('https://headers.example.test/');
 
         $this->assertSame('context', $requestHeaders['x-playwright-php'] ?? null);
+
+        $page->close();
+    }
+
+    #[Test]
+    public function itRemovesEveryRouteAtOnce(): void
+    {
+        $this->context->route('**/*', static function (RouteInterface $route): void {
+            $route->fulfill(['body' => '<h1>Routed</h1>']);
+        });
+
+        $page = $this->context->newPage();
+        $page->goto('https://context-unroute-all.example.test/');
+        $this->assertSame('Routed', $page->locator('h1')->innerText());
+
+        $this->context->unrouteAll();
+
+        $intercepted = true;
+        try {
+            $page->goto('https://context-unroute-all.example.test/');
+        } catch (PlaywrightException) {
+            $intercepted = false;
+        }
+
+        $this->assertFalse($intercepted, 'Requests should no longer be intercepted');
 
         $page->close();
     }

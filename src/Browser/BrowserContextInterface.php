@@ -130,6 +130,16 @@ interface BrowserContextInterface
 
     public function unroute(string $url, ?callable $handler = null): void;
 
+    /**
+     * Removes every route registered on this context in one call.
+     *
+     * 'behavior' decides what happens to handlers still running: wait for them,
+     * wait but swallow their errors, or return without waiting.
+     *
+     * @param array{behavior?: 'default'|'wait'|'ignoreErrors'} $options
+     */
+    public function unrouteAll(array $options = []): void;
+
     public function getEnv(string $name): ?string;
 
     /**

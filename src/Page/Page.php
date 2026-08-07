@@ -1108,6 +1108,14 @@ final class Page implements PageInterface, EventDispatcherInterface
         $this->sendCommand('unroute', ['url' => $url]);
     }
 
+    /**
+     * @param array{behavior?: 'default'|'wait'|'ignoreErrors'} $options
+     */
+    public function unrouteAll(array $options = []): void
+    {
+        $this->sendCommand('unrouteAll', ['options' => $options]);
+    }
+
     public function handleDialog(string $dialogId, bool $accept, ?string $promptText = null): void
     {
         $params = ['dialogId' => $dialogId, 'accept' => $accept];
