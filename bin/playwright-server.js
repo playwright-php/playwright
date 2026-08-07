@@ -185,7 +185,7 @@ class PlaywrightServer extends BaseHandler {
       const buffer = req.postDataBuffer ? req.postDataBuffer() : null;
       if (buffer) postDataBuffer = buffer.toString('base64');
     } catch {}
-    return { url: req.url(), method: req.method(), headers: req.headers(), postData: postData ?? null, postDataBuffer, resourceType: req.resourceType ? req.resourceType() : 'document' };
+    return { url: req.url(), method: req.method(), headers: req.headers(), postData: postData ?? null, postDataBuffer, resourceType: req.resourceType ? req.resourceType() : 'document', isNavigationRequest: req.isNavigationRequest ? req.isNavigationRequest() : false };
   }
 
   serializeResponse(response) {
