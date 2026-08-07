@@ -996,7 +996,7 @@ class JSHandleHandler extends BaseHandler {
 
 class SelectorsHandler extends BaseHandler {
   async handle(command, method) {
-    const { playwright } = require('playwright');
+    const playwright = require('playwright');
 
     const registry = CommandRegistry.create({
       register: async () => {
