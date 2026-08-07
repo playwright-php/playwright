@@ -21,6 +21,7 @@ use Playwright\Frame\FrameInterface;
 use Playwright\Frame\FrameLocatorInterface;
 use Playwright\Input\KeyboardInterface;
 use Playwright\Input\MouseInterface;
+use Playwright\Input\TouchscreenInterface;
 use Playwright\Locator\LocatorInterface;
 use Playwright\Locator\Options\GetByRoleOptions;
 use Playwright\Locator\Options\LocatorOptions;
@@ -289,6 +290,12 @@ interface PageInterface
 
     public function mouse(): MouseInterface;
 
+    /**
+     * Touch input for this page. The owning context must have been created with
+     * hasTouch enabled, otherwise the browser ignores the events.
+     */
+    public function touchscreen(): TouchscreenInterface;
+
     public function events(): PageEventHandlerInterface;
 
     public function route(string $url, callable $handler): void;
@@ -322,6 +329,11 @@ interface PageInterface
      * @param array<string, mixed>|WaitForRequestOptions $options
      */
     public function waitForRequest(string $url, array|WaitForRequestOptions $options = []): RequestInterface;
+
+    /**
+     * The page that opened this one, or null when nothing did.
+     */
+    public function opener(): ?PageInterface;
 
     /**
      * Network requests recorded for this page, oldest first.

@@ -250,6 +250,29 @@ class PageTest extends TestCase
     }
 
     #[Test]
+    public function itUsesTheTouchscreen(): void
+    {
+        $context = $this->browser->newContext(['hasTouch' => true, 'viewport' => ['width' => 200, 'height' => 200]]);
+        $page = $context->newPage();
+
+        try {
+            $page->setContent(<<<'HTML'
+                <button id="target" style="width: 80px; height: 80px">Tap</button>
+                <script>
+                    window.__tapped = false;
+                    document.querySelector('#target').addEventListener('touchstart', () => { window.__tapped = true; });
+                </script>
+                HTML);
+
+            $page->touchscreen()->tap(20, 20);
+
+            $this->assertTrue($page->evaluate('window.__tapped'));
+        } finally {
+            $context->close();
+        }
+    }
+
+    #[Test]
     public function itListsStoredConsoleMessages(): void
     {
         $this->page->evaluate("console.log('stored message from PHP')");

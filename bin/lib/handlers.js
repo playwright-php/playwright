@@ -242,6 +242,7 @@ class PageHandler extends BaseHandler {
       waitForResponse: () => this.waitForResponse(page, command),
       waitForRequest: () => this.waitForRequest(page, command),
       requests: () => this.getRequests(page),
+      opener: () => this.getOpener(page, command),
       consoleMessages: () => this.consoleMessages(page, command),
       clearConsoleMessages: () => page.clearConsoleMessages(),
       clearPageErrors: () => page.clearPageErrors(),
@@ -352,6 +353,25 @@ class PageHandler extends BaseHandler {
   async getRequests(page) {
     const requests = await page.requests();
     return { requests: requests.map(request => this.extractRequestData(request)) };
+  }
+
+  async getOpener(page, command) {
+    const opener = await page.opener();
+    if (!opener) return { pageId: null };
+
+    for (const [pageId, candidate] of this.pages.entries()) {
+      if (candidate === opener) return { pageId };
+    }
+
+    // The opener predates this server's page map only when nothing ever
+    // surfaced it to PHP. Adopt it now rather than report "no opener".
+    const openerPageId = this.generateId('page');
+    this.pages.set(openerPageId, opener);
+    const contextId = this.pageContexts.get(command.pageId);
+    if (contextId) this.pageContexts.set(openerPageId, contextId);
+    if (this.setupPageEventListeners) this.setupPageEventListeners(opener, openerPageId);
+
+    return { pageId: openerPageId };
   }
 
   async consoleMessages(page, command) {

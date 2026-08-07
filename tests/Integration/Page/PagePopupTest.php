@@ -67,6 +67,11 @@ final class PagePopupTest extends TestCase
         $this->assertNotNull($popup);
         $this->assertNotSame($page, $popup);
 
+        $opener = $popup->opener();
+        $this->assertInstanceOf(PageInterface::class, $opener);
+        $this->assertSame($page->getPageIdForTransport(), $opener->getPageIdForTransport());
+        $this->assertNull($page->opener());
+
         // Small delay to ensure popup is fully ready
         usleep(100000); // 100ms
 

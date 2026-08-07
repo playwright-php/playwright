@@ -36,6 +36,8 @@ use Playwright\Input\KeyboardInterface;
 use Playwright\Input\ModifierKey;
 use Playwright\Input\Mouse;
 use Playwright\Input\MouseInterface;
+use Playwright\Input\Touchscreen;
+use Playwright\Input\TouchscreenInterface;
 use Playwright\Locator\Locator;
 use Playwright\Locator\LocatorInterface;
 use Playwright\Locator\Options\GetByRoleOptions;
@@ -79,6 +81,8 @@ final class Page implements PageInterface, EventDispatcherInterface
 
     public readonly MouseInterface $mouse;
 
+    public readonly TouchscreenInterface $touchscreen;
+
     private PageEventHandlerInterface $eventHandler;
 
     private ?APIRequestContextInterface $apiRequestContext = null;
@@ -99,6 +103,7 @@ final class Page implements PageInterface, EventDispatcherInterface
     ) {
         $this->keyboard = new Keyboard($this->transport, $this->pageId);
         $this->mouse = new Mouse($this->transport, $this->pageId);
+        $this->touchscreen = new Touchscreen($this->transport, $this->pageId);
         $this->eventHandler = new PageEventHandler();
 
         $this->clock = $this->context->clock();
@@ -184,6 +189,11 @@ final class Page implements PageInterface, EventDispatcherInterface
     public function mouse(): MouseInterface
     {
         return $this->mouse;
+    }
+
+    public function touchscreen(): TouchscreenInterface
+    {
+        return $this->touchscreen;
     }
 
     public function events(): PageEventHandlerInterface
@@ -912,6 +922,20 @@ final class Page implements PageInterface, EventDispatcherInterface
         $this->sendCommand('setExtraHTTPHeaders', ['headers' => $headers]);
 
         return $this;
+    }
+
+    public function opener(): ?PageInterface
+    {
+        $response = $this->sendCommand('opener');
+        $pageId = $response['pageId'] ?? null;
+        if (null === $pageId) {
+            return null;
+        }
+        if (!is_string($pageId)) {
+            throw new ProtocolErrorException('Invalid opener response from transport', 0);
+        }
+
+        return new self($this->transport, $this->context, $pageId, $this->config, $this->logger);
     }
 
     /**

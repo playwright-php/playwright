@@ -27,6 +27,7 @@ use Playwright\Exception\RuntimeException;
 use Playwright\Exception\TimeoutException;
 use Playwright\Input\KeyboardInterface;
 use Playwright\Input\MouseInterface;
+use Playwright\Input\TouchscreenInterface;
 use Playwright\Locator\Locator;
 use Playwright\Locator\Options\GetByRoleOptions;
 use Playwright\Locator\Options\LocatorOptions;
@@ -65,6 +66,13 @@ class PageTest extends TestCase
         $mouse = $this->page->mouse();
 
         $this->assertInstanceOf(MouseInterface::class, $mouse);
+    }
+
+    public function testGetTouchscreen(): void
+    {
+        $touchscreen = $this->page->touchscreen();
+
+        $this->assertInstanceOf(TouchscreenInterface::class, $touchscreen);
     }
 
     public function testGetEvents(): void
@@ -1094,6 +1102,42 @@ class PageTest extends TestCase
             ->willReturn([]);
 
         $this->assertSame($this->page, $this->page->requestGC());
+    }
+
+    public function testOpenerHydratesAPageFromTheTransportId(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'action' => 'page.opener',
+                'pageId' => 'page-id',
+            ])
+            ->willReturn(['pageId' => 'page-opener']);
+
+        $opener = $this->page->opener();
+
+        $this->assertInstanceOf(Page::class, $opener);
+        $this->assertSame('page-opener', $opener->getPageIdForTransport());
+    }
+
+    public function testOpenerReturnsNullWithoutAnOpenerPage(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->willReturn(['pageId' => null]);
+
+        $this->assertNull($this->page->opener());
+    }
+
+    public function testOpenerRejectsANonStringPageId(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->willReturn(['pageId' => 42]);
+
+        $this->expectException(ProtocolErrorException::class);
+
+        $this->page->opener();
     }
 
     private function createPage(string $pageId = 'page-1'): Page
