@@ -71,6 +71,24 @@ class PageTest extends TestCase
     }
 
     #[Test]
+    public function itEvaluatesAHandle(): void
+    {
+        $handle = $this->page->evaluateHandle('() => ({ answer: 42 })');
+
+        $this->assertSame(['answer' => 42], $handle->jsonValue());
+        $handle->dispose();
+    }
+
+    #[Test]
+    public function itEvaluatesAHandleWithAnArgument(): void
+    {
+        $handle = $this->page->evaluateHandle('(arg) => ({ doubled: arg.value * 2 })', ['value' => 21]);
+
+        $this->assertSame(['doubled' => 42], $handle->jsonValue());
+        $handle->dispose();
+    }
+
+    #[Test]
     public function itPerformsDragAndDrop(): void
     {
         $this->page->setContent(<<<'HTML'

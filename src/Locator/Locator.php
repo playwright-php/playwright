@@ -20,6 +20,8 @@ use Playwright\Exception\RuntimeException;
 use Playwright\Exception\TimeoutException;
 use Playwright\Frame\FrameLocator;
 use Playwright\Frame\FrameLocatorInterface;
+use Playwright\JSHandle\JSHandle;
+use Playwright\JSHandle\JSHandleInterface;
 use Playwright\Locator\Options\AriaSnapshotOptions;
 use Playwright\Locator\Options\BoundingBoxOptions;
 use Playwright\Locator\Options\CheckOptions;
@@ -650,6 +652,21 @@ final class Locator implements \Stringable, LocatorInterface
         $response = $this->sendCommand('locator.evaluate', ['expression' => $normalized, 'arg' => $arg]);
 
         return $response['value'] ?? null;
+    }
+
+    public function evaluateHandle(string $expression, mixed $arg = null): JSHandleInterface
+    {
+        $response = $this->sendCommand('locator.evaluateHandle', [
+            'expression' => self::normalizeForLocator($expression),
+            'arg' => $arg,
+        ]);
+
+        $handleId = $response['handleId'] ?? null;
+        if (!is_string($handleId)) {
+            throw new ProtocolErrorException('Invalid locator.evaluateHandle response', 0);
+        }
+
+        return new JSHandle($this->transport, $handleId);
     }
 
     public function page(): PageInterface

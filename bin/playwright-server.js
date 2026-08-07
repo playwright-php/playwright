@@ -1,6 +1,6 @@
 const {chromium, firefox, webkit} = require('playwright');
 const { logger, ErrorHandler, LspFraming, sendFramedResponse, CommandRegistry, BaseHandler } = require('./lib/core');
-const { ContextHandler, PageHandler, LocatorHandler, InteractionHandler, FrameHandler, SelectorsHandler } = require('./lib/handlers');
+const { ContextHandler, PageHandler, LocatorHandler, InteractionHandler, FrameHandler, JSHandleHandler, SelectorsHandler } = require('./lib/handlers');
 const { globalCoordinator } = require('./lib/coordination');
 
 class PlaywrightServer extends BaseHandler {
@@ -42,6 +42,7 @@ class PlaywrightServer extends BaseHandler {
     this.locatorHandler = new LocatorHandler(deps);
     this.interactionHandler = new InteractionHandler(deps);
     this.frameHandler = new FrameHandler(deps);
+    this.jsHandleHandler = new JSHandleHandler(deps);
     this.selectorsHandler = new SelectorsHandler(deps);
   }
 
@@ -75,6 +76,7 @@ class PlaywrightServer extends BaseHandler {
       keyboard: () => this.interactionHandler.handleKeyboard(command, actionMethod),
       touchscreen: () => this.interactionHandler.handleTouchscreen(command, actionMethod),
       frame: () => this.frameHandler.handle(command, actionMethod),
+      jsHandle: () => this.jsHandleHandler.handle(command, actionMethod),
       browserServer: () => this.handleBrowserServer(command, actionMethod),
       selectors: () => this.selectorsHandler.handle(command, actionMethod),
       clock: () => this.contextHandler.handleClock(command, actionMethod),

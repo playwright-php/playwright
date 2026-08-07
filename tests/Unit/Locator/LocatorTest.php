@@ -21,6 +21,7 @@ use Playwright\Exception\ProtocolErrorException;
 use Playwright\Exception\RuntimeException;
 use Playwright\Exception\TimeoutException;
 use Playwright\Frame\FrameLocatorInterface;
+use Playwright\JSHandle\JSHandleInterface;
 use Playwright\Locator\Locator;
 use Playwright\Locator\Options\AriaSnapshotOptions;
 use Playwright\Locator\Options\BoundingBoxOptions;
@@ -1017,6 +1018,7 @@ final class LocatorTest extends TestCase
         (new Locator($transport, 'page1', '#f'))->setInputFiles('nope.txt');
     }
 
+<<<<<<< HEAD
     public function testAriaSnapshotRejectsANonStringPayload(): void
     {
         $this->transport->method('send')->willReturn(['value' => ['not', 'a', 'string']]);
@@ -1054,6 +1056,34 @@ final class LocatorTest extends TestCase
         $this->expectExceptionMessage('Invalid boundingBox response');
 
         $this->locator->boundingBox();
+=======
+    public function testEvaluateHandleReturnsAJavaScriptHandle(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static function (array $payload): bool {
+                return 'locator.evaluateHandle' === $payload['action']
+                    && '(el, arg) => { return el.dataset; }' === $payload['expression']
+                    && ['key' => 'value'] === $payload['arg'];
+            }))
+            ->willReturn(['handleId' => 'handle-1']);
+
+        $this->assertInstanceOf(
+            JSHandleInterface::class,
+            $this->locator->evaluateHandle('return el.dataset;', ['key' => 'value'])
+        );
+    }
+
+    public function testEvaluateHandleRejectsAResponseWithoutAHandleId(): void
+    {
+        $this->transport->method('send')->willReturn([]);
+
+        $this->expectException(ProtocolErrorException::class);
+        $this->expectExceptionMessage('Invalid locator.evaluateHandle response');
+
+        $this->locator->evaluateHandle('(el) => el');
+>>>>>>> 75e0bba (Add handle evaluation APIs)
     }
 
     public function testPageReturnsTheOriginatingPage(): void

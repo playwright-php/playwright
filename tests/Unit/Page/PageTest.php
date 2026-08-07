@@ -21,14 +21,21 @@ use PHPUnit\Framework\TestCase;
 use Playwright\API\APIRequestContextInterface;
 use Playwright\Browser\BrowserContextInterface;
 use Playwright\Configuration\PlaywrightConfig;
+<<<<<<< HEAD
 use Playwright\Console\ConsoleMessage;
+=======
+>>>>>>> 75e0bba (Add handle evaluation APIs)
 use Playwright\Exception\ProtocolErrorException;
 use Playwright\Exception\RuntimeException;
 use Playwright\Exception\TimeoutException;
 use Playwright\Frame\FrameInterface;
 use Playwright\Input\KeyboardInterface;
 use Playwright\Input\MouseInterface;
+<<<<<<< HEAD
 use Playwright\Input\TouchscreenInterface;
+=======
+use Playwright\JSHandle\JSHandleInterface;
+>>>>>>> 75e0bba (Add handle evaluation APIs)
 use Playwright\Locator\Locator;
 use Playwright\Locator\Options\GetByRoleOptions;
 use Playwright\Locator\Options\LocatorOptions;
@@ -901,6 +908,7 @@ class PageTest extends TestCase
         $this->assertSame($first, $second, 'Page::request should return cached instance');
     }
 
+<<<<<<< HEAD
     public function testConsoleMessagesSendsFilterAndHydratesSnapshots(): void
     {
         $this->transport->expects($this->once())
@@ -1153,6 +1161,31 @@ class PageTest extends TestCase
             ->willReturn([]);
 
         $this->page->unrouteAll(['behavior' => 'wait']);
+=======
+    public function testEvaluateHandleNormalizesTheExpressionAndReturnsAHandle(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static function (array $payload): bool {
+                return 'page.evaluateHandle' === $payload['action']
+                    && '(arg) => { return document.body; }' === $payload['expression']
+                    && null === $payload['arg'];
+            }))
+            ->willReturn(['handleId' => 'handle-1']);
+
+        $this->assertInstanceOf(JSHandleInterface::class, $this->page->evaluateHandle('return document.body;'));
+    }
+
+    public function testEvaluateHandleRejectsAResponseWithoutAHandleId(): void
+    {
+        $this->transport->method('send')->willReturn([]);
+
+        $this->expectException(ProtocolErrorException::class);
+        $this->expectExceptionMessage('Invalid page.evaluateHandle response');
+
+        $this->page->evaluateHandle('() => document.body');
+>>>>>>> 75e0bba (Add handle evaluation APIs)
     }
 
     public function testLocatorRetainsItsOriginatingPage(): void

@@ -38,6 +38,8 @@ use Playwright\Input\Mouse;
 use Playwright\Input\MouseInterface;
 use Playwright\Input\Touchscreen;
 use Playwright\Input\TouchscreenInterface;
+use Playwright\JSHandle\JSHandle;
+use Playwright\JSHandle\JSHandleInterface;
 use Playwright\Locator\Locator;
 use Playwright\Locator\LocatorInterface;
 use Playwright\Locator\Options\GetByRoleOptions;
@@ -558,6 +560,19 @@ final class Page implements PageInterface, EventDispatcherInterface
         $response = $this->sendCommand('evaluate', ['expression' => $normalized, 'arg' => $arg]);
 
         return $response['result'] ?? null;
+    }
+
+    public function evaluateHandle(string $expression, mixed $arg = null): JSHandleInterface
+    {
+        $normalized = self::normalizeForPage($expression);
+        $response = $this->sendCommand('evaluateHandle', ['expression' => $normalized, 'arg' => $arg]);
+
+        $handleId = $response['handleId'] ?? null;
+        if (!is_string($handleId)) {
+            throw new ProtocolErrorException('Invalid page.evaluateHandle response', 0);
+        }
+
+        return new JSHandle($this->transport, $handleId);
     }
 
     /**

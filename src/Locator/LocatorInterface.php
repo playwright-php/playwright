@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace Playwright\Locator;
 
 use Playwright\Frame\FrameLocatorInterface;
+use Playwright\JSHandle\JSHandleInterface;
 use Playwright\Locator\Options\AriaSnapshotOptions;
 use Playwright\Locator\Options\BoundingBoxOptions;
 use Playwright\Locator\Options\CheckOptions;
@@ -244,6 +245,15 @@ interface LocatorInterface
     public function nth(int $index): self;
 
     public function evaluate(string $expression, mixed $arg = null): mixed;
+
+    /**
+     * Returns a handle to the result instead of a serialized copy, so a DOM node
+     * or a live object survives the round trip.
+     *
+     * Strict: the selector has to resolve to exactly one element. Dispose the
+     * handle once done with it, otherwise it pins its target until the page closes.
+     */
+    public function evaluateHandle(string $expression, mixed $arg = null): JSHandleInterface;
 
     /**
      * The page this locator resolves against.

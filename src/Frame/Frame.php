@@ -17,6 +17,8 @@ namespace Playwright\Frame;
 use Playwright\Exception\PlaywrightException;
 use Playwright\Exception\ProtocolErrorException;
 use Playwright\Exception\RuntimeException;
+use Playwright\JSHandle\JSHandle;
+use Playwright\JSHandle\JSHandleInterface;
 use Playwright\Locator\Locator;
 use Playwright\Locator\LocatorInterface;
 use Playwright\Locator\RoleSelectorBuilder;
@@ -262,6 +264,23 @@ final class Frame implements \Stringable, FrameInterface
         return $response['result'] ?? null;
     }
 
+    public function evaluateHandle(string $expression, mixed $arg = null): JSHandleInterface
+    {
+        $response = $this->sendCommand('frame.evaluateHandle', [
+            'expression' => self::normalizeForPage($expression),
+            'arg' => $arg,
+        ]);
+
+        return $this->createHandle($response, 'frame.evaluateHandle');
+    }
+
+    public function frameElement(): JSHandleInterface
+    {
+        $response = $this->sendCommand('frame.frameElement');
+
+        return $this->createHandle($response, 'frame.frameElement');
+    }
+
     public function page(): PageInterface
     {
         if (null === $this->page) {
@@ -374,6 +393,19 @@ final class Frame implements \Stringable, FrameInterface
         }
 
         return $response;
+    }
+
+    /**
+     * @param array<string, mixed> $response
+     */
+    private function createHandle(array $response, string $action): JSHandleInterface
+    {
+        $handleId = $response['handleId'] ?? null;
+        if (!is_string($handleId)) {
+            throw new ProtocolErrorException(\sprintf('Invalid %s response', $action), 0);
+        }
+
+        return new JSHandle($this->transport, $handleId);
     }
 
     private function createResponse(mixed $data): ?ResponseInterface

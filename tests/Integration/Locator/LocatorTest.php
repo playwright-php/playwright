@@ -183,6 +183,17 @@ class LocatorTest extends TestCase
     }
 
     #[Test]
+    public function itEvaluatesAHandleForTheMatchedElement(): void
+    {
+        $this->page->setContent('<div id="target" data-value="42">Target</div>');
+
+        $handle = $this->page->locator('#target')->evaluateHandle('(element) => ({ value: element.dataset.value })');
+
+        $this->assertSame(['value' => '42'], $handle->jsonValue());
+        $handle->dispose();
+    }
+
+    #[Test]
     public function itExposesThePageItResolvesAgainst(): void
     {
         $this->assertSame($this->page, $this->page->locator('#button-1')->page());

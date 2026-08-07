@@ -21,6 +21,7 @@ use Playwright\Exception\ProtocolErrorException;
 use Playwright\Exception\RuntimeException;
 use Playwright\Frame\Frame;
 use Playwright\Frame\FrameInterface;
+use Playwright\JSHandle\JSHandleInterface;
 use Playwright\Locator\LocatorInterface;
 use Playwright\Network\ResponseInterface;
 use Playwright\Page\Options\GotoOptions;
@@ -451,6 +452,60 @@ class FrameTest extends TestCase
         $this->expectExceptionMessage('non-string key');
 
         $frame->goto('https://example.com');
+    }
+
+    public function testEvaluateHandleNormalizesTheExpressionAndReturnsAHandle(): void
+    {
+        $frame = new Frame($this->transport, $this->pageId, 'iframe#auth', $this->logger);
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'expression' => '(arg) => { return document.body; }',
+                'arg' => null,
+                'action' => 'frame.evaluateHandle',
+                'pageId' => $this->pageId,
+                'frameSelector' => 'iframe#auth',
+            ])
+            ->willReturn(['handleId' => 'handle-1']);
+
+        $this->assertInstanceOf(JSHandleInterface::class, $frame->evaluateHandle('return document.body;'));
+    }
+
+    public function testEvaluateHandleRejectsAResponseWithoutAHandleId(): void
+    {
+        $this->transport->method('send')->willReturn([]);
+        $frame = new Frame($this->transport, $this->pageId, 'iframe#auth', $this->logger);
+
+        $this->expectException(ProtocolErrorException::class);
+        $this->expectExceptionMessage('Invalid frame.evaluateHandle response');
+
+        $frame->evaluateHandle('() => document.body');
+    }
+
+    public function testFrameElementReturnsAHandleToTheEmbeddingElement(): void
+    {
+        $frame = new Frame($this->transport, $this->pageId, 'iframe#auth', $this->logger);
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'action' => 'frame.frameElement',
+                'pageId' => $this->pageId,
+                'frameSelector' => 'iframe#auth',
+            ])
+            ->willReturn(['handleId' => 'handle-2']);
+
+        $this->assertInstanceOf(JSHandleInterface::class, $frame->frameElement());
+    }
+
+    public function testFrameElementRejectsAResponseWithoutAHandleId(): void
+    {
+        $this->transport->method('send')->willReturn(['handleId' => null]);
+        $frame = new Frame($this->transport, $this->pageId, 'iframe#auth', $this->logger);
+
+        $this->expectException(ProtocolErrorException::class);
+        $this->expectExceptionMessage('Invalid frame.frameElement response');
+
+        $frame->frameElement();
     }
 
     public function testPageReturnsTheOwningPage(): void

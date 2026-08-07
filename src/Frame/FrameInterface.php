@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 namespace Playwright\Frame;
 
+use Playwright\JSHandle\JSHandleInterface;
 use Playwright\Locator\LocatorInterface;
 use Playwright\Network\ResponseInterface;
 use Playwright\Page\Options\DragAndDropOptions;
@@ -129,6 +130,23 @@ interface FrameInterface
      * defined is not reachable here.
      */
     public function evaluate(string $expression, mixed $arg = null): mixed;
+
+    /**
+     * Returns a handle to the result instead of a serialized copy, so a DOM node
+     * or a live object survives the round trip.
+     *
+     * Dispose the handle once done with it, otherwise it pins its target until
+     * the page closes.
+     */
+    public function evaluateHandle(string $expression, mixed $arg = null): JSHandleInterface;
+
+    /**
+     * A handle to the <iframe> element embedding this frame, resolved from the
+     * parent document.
+     *
+     * The main frame has no embedding element and reports an error instead.
+     */
+    public function frameElement(): JSHandleInterface;
 
     /**
      * The page this frame belongs to, main frame and nested frames alike.
