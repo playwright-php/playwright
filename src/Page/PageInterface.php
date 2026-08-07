@@ -25,6 +25,7 @@ use Playwright\Locator\Options\GetByRoleOptions;
 use Playwright\Locator\Options\LocatorOptions;
 use Playwright\Network\ResponseInterface;
 use Playwright\Page\Options\ClickOptions;
+use Playwright\Page\Options\DragAndDropOptions;
 use Playwright\Page\Options\FrameQueryOptions;
 use Playwright\Page\Options\GotoOptions;
 use Playwright\Page\Options\NavigationHistoryOptions;
@@ -101,6 +102,11 @@ interface PageInterface
     public function click(string $selector, array|ClickOptions $options = []): self;
 
     /**
+     * @param array<string, mixed>|DragAndDropOptions $options
+     */
+    public function dragAndDrop(string $source, string $target, array|DragAndDropOptions $options = []): self;
+
+    /**
      * @param array<string, mixed>|ClickOptions $options
      */
     public function altClick(string $selector, array|ClickOptions $options = []): self;
@@ -136,6 +142,14 @@ interface PageInterface
     public function pdfContent(array|PdfOptions $options = []): string;
 
     public function content(): ?string;
+
+    /**
+     * Queues a script to run before any of the page's own scripts.
+     *
+     * It runs again on every navigation and in every frame the page creates, so
+     * it is the place to stub an API or seed state a page reads at startup.
+     */
+    public function addInitScript(string $script): self;
 
     public function evaluate(string $expression, mixed $arg = null): mixed;
 
@@ -194,6 +208,11 @@ interface PageInterface
     public function setDefaultNavigationTimeout(int $timeout): self;
 
     public function setDefaultTimeout(int $timeout): self;
+
+    /**
+     * @param array<string, string> $headers
+     */
+    public function setExtraHTTPHeaders(array $headers): self;
 
     /**
      * @param array<string, mixed>|WaitForLoadStateOptions $options

@@ -67,6 +67,47 @@ class PageTest extends TestCase
     }
 
     #[Test]
+    public function itPerformsDragAndDrop(): void
+    {
+        $this->page->setContent(<<<'HTML'
+            <div id="source" draggable="true">Source</div>
+            <div id="target">Target</div>
+            <script>
+                const target = document.querySelector('#target');
+                target.addEventListener('dragover', event => event.preventDefault());
+                target.addEventListener('drop', event => target.dataset.dropped = 'true');
+            </script>
+            HTML);
+
+        $this->page->dragAndDrop('#source', '#target');
+
+        $this->assertSame('true', $this->page->locator('#target')->getAttribute('data-dropped'));
+    }
+
+    #[Test]
+    public function itAddsInitScriptBeforeNavigation(): void
+    {
+        $this->page->addInitScript('window.pageInit = "ready";');
+        $this->page->goto('data:text/html,<title>Init script</title>');
+
+        $this->assertSame('ready', $this->page->evaluate('window.pageInit'));
+    }
+
+    #[Test]
+    public function itSendsExtraHttpHeaders(): void
+    {
+        $requestHeaders = [];
+        $this->page->events()->onRequest(static function ($request) use (&$requestHeaders): void {
+            $requestHeaders = array_change_key_case($request->headers(), CASE_LOWER);
+        });
+        $this->page->setExtraHTTPHeaders(['X-Page-Test' => 'present']);
+
+        $this->page->goto($this->routeUrl('/page2.html'));
+
+        $this->assertSame('present', $requestHeaders['x-page-test'] ?? null);
+    }
+
+    #[Test]
     public function itCanNavigateBackAndForward(): void
     {
         $this->page->click('a');

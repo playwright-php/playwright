@@ -28,6 +28,7 @@ use Playwright\Input\MouseInterface;
 use Playwright\Locator\Locator;
 use Playwright\Locator\Options\GetByRoleOptions;
 use Playwright\Locator\Options\LocatorOptions;
+use Playwright\Page\Options\DragAndDropOptions;
 use Playwright\Page\Page;
 use Playwright\Page\PageEventHandlerInterface;
 use Playwright\Regex;
@@ -519,6 +520,22 @@ class PageTest extends TestCase
         $this->assertSame($this->page, $result);
     }
 
+    public function testAddInitScriptSendsCommandAndReturnsSelf(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'script' => 'window.pageInit = true;',
+                'action' => 'page.addInitScript',
+                'pageId' => 'page-id',
+            ])
+            ->willReturn([]);
+
+        $result = $this->page->addInitScript('window.pageInit = true;');
+
+        $this->assertSame($this->page, $result);
+    }
+
     public function testSetDefaultNavigationTimeoutSendsCommandAndReturnsSelf(): void
     {
         $this->transport->expects($this->once())
@@ -532,6 +549,50 @@ class PageTest extends TestCase
 
         $result = $this->page->setDefaultNavigationTimeout(10000);
         $this->assertSame($this->page, $result);
+    }
+
+    public function testDragAndDropSendsCommandAndReturnsSelf(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'source' => '#source',
+                'target' => '#target',
+                'options' => [
+                    'force' => true,
+                    'strict' => true,
+                ],
+                'action' => 'page.dragAndDrop',
+                'pageId' => 'page-id',
+            ])
+            ->willReturn([]);
+
+        $result = $this->page->dragAndDrop('#source', '#target', new DragAndDropOptions(force: true, strict: true));
+
+        $this->assertSame($this->page, $result);
+    }
+
+    public function testSetExtraHTTPHeadersSendsCommandAndReturnsSelf(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'headers' => ['X-Test' => 'page'],
+                'action' => 'page.setExtraHTTPHeaders',
+                'pageId' => 'page-id',
+            ])
+            ->willReturn([]);
+
+        $result = $this->page->setExtraHTTPHeaders(['X-Test' => 'page']);
+
+        $this->assertSame($this->page, $result);
+    }
+
+    public function testSetExtraHTTPHeadersRejectsNonStringEntries(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        $this->page->setExtraHTTPHeaders(['X-Test' => 1]);
     }
 
     public function testUnrouteSendsPageCommand(): void
