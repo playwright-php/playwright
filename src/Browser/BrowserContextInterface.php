@@ -85,6 +85,14 @@ interface BrowserContextInterface
     public function pages(): array;
 
     /**
+     * The browser this context belongs to, or null for a persistent context.
+     *
+     * Contexts obtained from Browser::context() or Browser::newContext() always
+     * carry their browser.
+     */
+    public function browser(): ?BrowserInterface;
+
+    /**
      * Get storage state as array (legacy method).
      *
      * @return array<string, mixed>

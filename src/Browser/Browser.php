@@ -36,8 +36,9 @@ final class Browser implements BrowserInterface
         private readonly string $defaultContextId,
         private readonly string $version,
         private readonly PlaywrightConfig $config,
+        private readonly BrowserType $browserType = BrowserType::CHROMIUM,
     ) {
-        $this->defaultContext = new BrowserContext($this->transport, $this->defaultContextId, $this->config);
+        $this->defaultContext = new BrowserContext($this->transport, $this->defaultContextId, $this->config, $this);
         $this->contexts[] = $this->defaultContext;
     }
 
@@ -61,7 +62,7 @@ final class Browser implements BrowserInterface
             throw new ProtocolErrorException('Invalid contextId returned from transport', 0);
         }
 
-        $context = new BrowserContext($this->transport, $response['contextId'], $this->config);
+        $context = new BrowserContext($this->transport, $response['contextId'], $this->config, $this);
         $this->contexts[] = $context;
 
         return $context;
@@ -85,6 +86,11 @@ final class Browser implements BrowserInterface
     public function contexts(): array
     {
         return $this->contexts;
+    }
+
+    public function browserType(): BrowserType
+    {
+        return $this->browserType;
     }
 
     public function isConnected(): bool

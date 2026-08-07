@@ -135,7 +135,8 @@ final class BrowserBuilder
             $response['browserId'],
             $response['defaultContextId'],
             $response['version'],
-            $this->config
+            $this->config,
+            $this->toBrowserType()
         );
     }
 
@@ -181,7 +182,8 @@ final class BrowserBuilder
             $response['browserId'],
             $response['defaultContextId'],
             $response['version'],
-            $this->config
+            $this->config,
+            $this->toBrowserType()
         );
     }
 
@@ -227,7 +229,13 @@ final class BrowserBuilder
             $response['browserId'],
             $response['defaultContextId'],
             $response['version'],
-            $this->config
+            $this->config,
+            $this->toBrowserType()
         );
+    }
+
+    private function toBrowserType(): BrowserType
+    {
+        return BrowserType::tryFrom($this->browserType) ?? BrowserType::CHROMIUM;
     }
 }

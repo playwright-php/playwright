@@ -63,6 +63,7 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
         private readonly TransportInterface $transport,
         private readonly string $contextId,
         private readonly PlaywrightConfig $config,
+        private readonly ?BrowserInterface $browser = null,
     ) {
         if (method_exists($this->transport, 'addEventDispatcher')) {
             $this->transport->addEventDispatcher($this->contextId, $this);
@@ -198,6 +199,11 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
         $this->pages[$response['pageId']] = $page;
 
         return $page;
+    }
+
+    public function browser(): ?BrowserInterface
+    {
+        return $this->browser;
     }
 
     public function clipboardText(): string
