@@ -45,4 +45,20 @@ interface BrowserInterface
     public function isConnected(): bool;
 
     public function version(): string;
+
+    /**
+     * Exposes this browser so other Playwright clients can connect to it and drive it.
+     *
+     * Binding twice without an intervening unbind() is an error.
+     *
+     * @param array{host?: string, port?: int, workspaceDir?: string, metadata?: array<string, mixed>} $options
+     *
+     * @return string the endpoint to connect to: a local socket path, or a ws:// URL when host or port is given
+     */
+    public function bind(string $title, array $options = []): string;
+
+    /**
+     * Tears down the server started by bind(); does nothing when the browser is not bound.
+     */
+    public function unbind(): void;
 }

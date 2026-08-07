@@ -22,6 +22,13 @@ const evaluateHandleOnTarget = async (target, { expression, arg }) => {
 
 class ContextHandler extends BaseHandler {
   async handle(command, method) {
+    // Closing a context drops it from the registry, and closing its browser drops it
+    // too, so an id we no longer know about belongs to a context that is closed.
+    if (method === 'isClosed') {
+      const known = this.contexts.get(command.contextId)?.context;
+      return this.wrapResult({ value: known ? known.isClosed() : true });
+    }
+
     const context = this.validateResource(this.contexts, command.contextId, 'Context')?.context;
     if (!context._initScriptPromise) context._initScriptPromise = Promise.resolve();
 

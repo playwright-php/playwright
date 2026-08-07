@@ -72,6 +72,11 @@ interface BrowserContextInterface
     public function close(): void;
 
     /**
+     * Whether the context is closed, including when its browser was closed instead.
+     */
+    public function isClosed(): bool;
+
+    /**
      * @param array<string>|null $urls
      *
      * @return array<array{name: string, value: string, domain: string, path: string, expires: int, httpOnly: bool, secure: bool, sameSite: 'Strict'|'Lax'|'None'}>

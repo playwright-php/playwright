@@ -105,6 +105,8 @@ class PlaywrightServer extends BaseHandler {
       connect: () => this.connect(command),
       connectOverCDP: () => this.connectOverCDP(command),
       newContext: () => this.newContext(command),
+      bind: () => this.bindBrowser(command),
+      unbind: () => this.unbindBrowser(command),
       close: () => this.closeBrowser(command),
       exit: () => this.exit(),
       launchServer: () => this.launchServer(command)
@@ -275,6 +277,17 @@ class PlaywrightServer extends BaseHandler {
     this.contexts.set(contextId, { context, browserId: command.browserId, id: contextId });
     this.registerContextPopups(context, contextId);
     return { contextId };
+  }
+
+  async bindBrowser(command) {
+    const browser = this.validateResource(this.browsers, command.browserId, 'Browser');
+    const { endpoint } = await browser.bind(command.title, command.options || {});
+    return { endpoint };
+  }
+
+  async unbindBrowser(command) {
+    const browser = this.validateResource(this.browsers, command.browserId, 'Browser');
+    await browser.unbind();
   }
 
   async closeBrowser(command) {

@@ -21,6 +21,7 @@ use Playwright\Browser\BrowserContext;
 use Playwright\Browser\StorageState;
 use Playwright\Configuration\PlaywrightConfig;
 use Playwright\Credentials\CredentialsInterface;
+use Playwright\Exception\ProtocolErrorException;
 use Playwright\Network\NetworkThrottling;
 use Playwright\Page\PageInterface;
 use Playwright\Tracing\TracingInterface;
@@ -109,6 +110,41 @@ final class BrowserContextTest extends TestCase
             ]);
 
         $this->context->close();
+    }
+
+    public function testIsClosed(): void
+    {
+        $this->mockTransport
+            ->expects($this->once())
+            ->method('send')
+            ->with([
+                'action' => 'context.isClosed',
+                'contextId' => 'context_1',
+            ])
+            ->willReturn(['value' => true]);
+
+        $this->assertTrue($this->context->isClosed());
+    }
+
+    public function testIsClosedReturnsFalseForAnOpenContext(): void
+    {
+        $this->mockTransport
+            ->method('send')
+            ->willReturn(['value' => false]);
+
+        $this->assertFalse($this->context->isClosed());
+    }
+
+    public function testIsClosedThrowsOnANonBooleanResponse(): void
+    {
+        $this->mockTransport
+            ->method('send')
+            ->willReturn(['success' => true]);
+
+        $this->expectException(ProtocolErrorException::class);
+        $this->expectExceptionMessage('Invalid isClosed response');
+
+        $this->context->isClosed();
     }
 
     public function testAddCookies(): void
