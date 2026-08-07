@@ -133,8 +133,9 @@ class PlaywrightServer extends BaseHandler {
   }
 
   async handleResponse(command, method) {
-    if (method !== 'body') throw new Error(`Unknown response action: ${method}`);
+    if (method !== 'body' && method !== 'httpVersion') throw new Error(`Unknown response action: ${method}`);
     const res = this.validateResource(this.responses, command.responseId, 'Response');
+    if (method === 'httpVersion') return { httpVersion: await res.httpVersion() };
     const buf = await res.body();
     return { binary: Buffer.from(buf).toString('base64') };
   }
@@ -200,7 +201,13 @@ class PlaywrightServer extends BaseHandler {
       const buffer = req.postDataBuffer ? req.postDataBuffer() : null;
       if (buffer) postDataBuffer = buffer.toString('base64');
     } catch {}
-    return { url: req.url(), method: req.method(), headers: req.headers(), postData: postData ?? null, postDataBuffer, resourceType: req.resourceType ? req.resourceType() : 'document' };
+    // existingResponse() is synchronous and does not wait, so it is safe to read here
+    let existingResponse = null;
+    try {
+      const received = req.existingResponse ? req.existingResponse() : null;
+      if (received) existingResponse = this.serializeResponse(received);
+    } catch {}
+    return { url: req.url(), method: req.method(), headers: req.headers(), postData: postData ?? null, postDataBuffer, resourceType: req.resourceType ? req.resourceType() : 'document', response: existingResponse };
   }
 
   serializeResponse(response) {

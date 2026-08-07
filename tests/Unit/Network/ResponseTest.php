@@ -381,6 +381,41 @@ final class ResponseTest extends TestCase
         $this->assertNull($response->serverAddr());
     }
 
+    public function testHttpVersion(): void
+    {
+        $response = $this->createResponse();
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(function (array $payload): bool {
+                return 'response.httpVersion' === $payload['action']
+                    && 'page123' === $payload['pageId']
+                    && 'response123' === $payload['responseId'];
+            }))
+            ->willReturn(['httpVersion' => 'HTTP/1.1']);
+
+        $this->assertSame('HTTP/1.1', $response->httpVersion());
+    }
+
+    public function testHttpVersionReturnsNullWhenBridgeReportsNothing(): void
+    {
+        $response = $this->createResponse();
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->willReturn([]);
+
+        $this->assertNull($response->httpVersion());
+    }
+
+    public function testHttpVersionReturnsNullWithoutResponseId(): void
+    {
+        $response = new Response($this->transport, 'page123', ['url' => 'https://example.com']);
+        $this->transport->expects($this->never())->method('send');
+
+        $this->assertNull($response->httpVersion());
+    }
+
     private function createResponse(array $data = []): Response
     {
         return new Response(

@@ -343,6 +343,42 @@ final class RequestTest extends TestCase
         $this->assertSame(-1.0, $timing['responseEnd']);
     }
 
+    public function testExistingResponseReturnsNullWhenNoResponseArrived(): void
+    {
+        $request = new Request($this->requestData, $this->createMock(TransportInterface::class), null, 'page123');
+
+        $this->assertNull($request->existingResponse());
+    }
+
+    public function testExistingResponseReturnsNullWithoutTransport(): void
+    {
+        $request = $this->createRequest(['response' => ['url' => 'https://example.com', 'status' => 200]]);
+
+        $this->assertNull($request->existingResponse());
+    }
+
+    public function testExistingResponseReturnsTheReceivedResponse(): void
+    {
+        $request = new Request(
+            array_merge($this->requestData, ['response' => [
+                'url' => 'https://example.com/api/data',
+                'status' => 201,
+                'statusText' => 'Created',
+                'responseId' => 'response123',
+            ]]),
+            $this->createMock(TransportInterface::class),
+            null,
+            'page123',
+        );
+
+        $response = $request->existingResponse();
+
+        $this->assertNotNull($response);
+        $this->assertSame('https://example.com/api/data', $response->url());
+        $this->assertSame(201, $response->status());
+        $this->assertSame('Created', $response->statusText());
+    }
+
     private function createRequest(array $data = []): Request
     {
         return new Request(array_merge($this->requestData, $data));

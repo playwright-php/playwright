@@ -27,6 +27,7 @@ final class Request implements RequestInterface
         private readonly array $data,
         private readonly ?TransportInterface $transport = null,
         private readonly ?string $requestId = null,
+        private readonly ?string $pageId = null,
     ) {
     }
 
@@ -277,6 +278,24 @@ final class Request implements RequestInterface
     public function response(): ?ResponseInterface
     {
         return null;
+    }
+
+    public function existingResponse(): ?ResponseInterface
+    {
+        $responseData = $this->data['response'] ?? null;
+
+        if (!is_array($responseData) || null === $this->transport) {
+            return null;
+        }
+
+        $typedData = [];
+        foreach ($responseData as $key => $value) {
+            if (is_string($key)) {
+                $typedData[$key] = $value;
+            }
+        }
+
+        return new Response($this->transport, $this->pageId ?? '', $typedData);
     }
 
     public function serviceWorker(): mixed

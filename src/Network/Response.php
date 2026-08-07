@@ -86,6 +86,26 @@ final class Response implements ResponseInterface
         return $stringHeaders;
     }
 
+    public function httpVersion(): ?string
+    {
+        $responseId = $this->data['responseId'] ?? null;
+        if (!is_string($responseId)) {
+            return null;
+        }
+
+        $response = $this->transport->send([
+            'action' => 'response.httpVersion',
+            'pageId' => $this->pageId,
+            'responseId' => $responseId,
+        ]);
+
+        if (isset($response['httpVersion']) && is_string($response['httpVersion'])) {
+            return $response['httpVersion'];
+        }
+
+        return null;
+    }
+
     public function body(): string
     {
         if (null === $this->body) {
