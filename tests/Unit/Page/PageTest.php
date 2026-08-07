@@ -39,6 +39,7 @@ use Playwright\Page\Options\WaitForRequestOptions;
 use Playwright\Page\Page;
 use Playwright\Page\PageEventHandlerInterface;
 use Playwright\Regex;
+use Playwright\Screencast\ScreencastInterface;
 use Playwright\Transport\TransportInterface;
 use Playwright\WebStorage\WebStorageInterface;
 
@@ -93,6 +94,12 @@ class PageTest extends TestCase
     public function testLocalAndSessionStorageAreDistinctInstances(): void
     {
         $this->assertNotSame($this->page->localStorage, $this->page->sessionStorage);
+    }
+
+    public function testGetScreencast(): void
+    {
+        $this->assertInstanceOf(ScreencastInterface::class, $this->page->screencast());
+        $this->assertSame($this->page->screencast, $this->page->screencast());
     }
 
     public function testGetEvents(): void

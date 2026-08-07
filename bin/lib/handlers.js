@@ -458,6 +458,27 @@ class PageHandler extends BaseHandler {
     return this.wrapResult(result);
   }
 
+  async handleScreencast(command, method) {
+    const page = this.validateResource(this.pages, command.pageId, 'Page');
+
+    // start, showOverlay and showActions resolve with a Disposable. It has no
+    // serialisable form, and stop, hideOverlays and hideActions already undo
+    // each of them, so it is dropped rather than shipped to PHP.
+    const registry = CommandRegistry.create({
+      start: async () => { await page.screencast.start(command.options || {}); },
+      stop: () => page.screencast.stop(),
+      showOverlay: async () => { await page.screencast.showOverlay(command.html, command.options || {}); },
+      showOverlays: () => page.screencast.showOverlays(),
+      hideOverlays: () => page.screencast.hideOverlays(),
+      showActions: async () => { await page.screencast.showActions(command.options || {}); },
+      hideActions: () => page.screencast.hideActions(),
+      showChapter: () => page.screencast.showChapter(command.title, command.options || {})
+    });
+
+    const result = await ErrorHandler.safeExecute(() => this.executeWithRegistry(registry, method), { method, pageId: command.pageId });
+    return this.wrapResult(result);
+  }
+
   async handleDialog(command) {
     const dialog = this.dialogs.get(command.dialogId);
     if (dialog) {

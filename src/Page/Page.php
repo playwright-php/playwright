@@ -70,6 +70,8 @@ use Playwright\Page\Options\WaitForResponseOptions;
 use Playwright\Page\Options\WaitForSelectorOptions;
 use Playwright\Page\Options\WaitForUrlOptions;
 use Playwright\Regex;
+use Playwright\Screencast\Screencast;
+use Playwright\Screencast\ScreencastInterface;
 use Playwright\Screenshot\ScreenshotHelper;
 use Playwright\Transport\TransportInterface;
 use Playwright\WebStorage\WebStorage;
@@ -89,6 +91,8 @@ final class Page implements PageInterface, EventDispatcherInterface
     public readonly WebStorageInterface $localStorage;
 
     public readonly WebStorageInterface $sessionStorage;
+
+    public readonly ScreencastInterface $screencast;
 
     private PageEventHandlerInterface $eventHandler;
 
@@ -113,6 +117,7 @@ final class Page implements PageInterface, EventDispatcherInterface
         $this->touchscreen = new Touchscreen($this->transport, $this->pageId);
         $this->localStorage = new WebStorage($this->transport, $this->pageId, 'localStorage');
         $this->sessionStorage = new WebStorage($this->transport, $this->pageId, 'sessionStorage');
+        $this->screencast = new Screencast($this->transport, $this->pageId);
         $this->eventHandler = new PageEventHandler();
 
         $this->clock = $this->context->clock();
@@ -213,6 +218,11 @@ final class Page implements PageInterface, EventDispatcherInterface
     public function sessionStorage(): WebStorageInterface
     {
         return $this->sessionStorage;
+    }
+
+    public function screencast(): ScreencastInterface
+    {
+        return $this->screencast;
     }
 
     public function events(): PageEventHandlerInterface
