@@ -495,6 +495,43 @@ final class Page implements PageInterface, EventDispatcherInterface
         return is_string($content) ? $content : null;
     }
 
+    /**
+     * @param array{filter?: 'all'|'since-navigation'} $options
+     *
+     * @return array<ConsoleMessage>
+     */
+    public function consoleMessages(array $options = []): array
+    {
+        $response = $this->sendCommand('consoleMessages', ['options' => $options]);
+        $messages = $response['messages'] ?? [];
+        if (!is_array($messages)) {
+            throw new ProtocolErrorException('Invalid consoleMessages response from transport', 0);
+        }
+
+        $result = [];
+        foreach ($messages as $message) {
+            if (is_array($message)) {
+                $result[] = $this->createConsoleMessage($this->validateConsoleMessageData($message));
+            }
+        }
+
+        return $result;
+    }
+
+    public function clearConsoleMessages(): self
+    {
+        $this->sendCommand('clearConsoleMessages');
+
+        return $this;
+    }
+
+    public function clearPageErrors(): self
+    {
+        $this->sendCommand('clearPageErrors');
+
+        return $this;
+    }
+
     public function addInitScript(string $script): self
     {
         $this->sendCommand('addInitScript', ['script' => $script]);
@@ -1119,6 +1156,26 @@ final class Page implements PageInterface, EventDispatcherInterface
     private function createConsoleMessage(array $params): ConsoleMessage
     {
         return new ConsoleMessage($params, $this);
+    }
+
+    /**
+     * Helper method to validate transport data for ConsoleMessage creation.
+     *
+     * @param array<mixed, mixed> $data
+     *
+     * @return array<string, mixed>
+     */
+    private function validateConsoleMessageData(array $data): array
+    {
+        $result = [];
+        foreach ($data as $key => $value) {
+            if (!is_string($key)) {
+                throw new ProtocolErrorException('Invalid console message data from transport: non-string key', 0);
+            }
+            $result[$key] = $value;
+        }
+
+        return $result;
     }
 
     private static function normalizeForPage(string $expression): string

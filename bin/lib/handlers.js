@@ -238,6 +238,9 @@ class PageHandler extends BaseHandler {
       evaluate: () => this.evaluate(page, command),
       addInitScript: () => page.addInitScript(command.script),
       waitForResponse: () => this.waitForResponse(page, command),
+      consoleMessages: () => this.consoleMessages(page, command),
+      clearConsoleMessages: () => page.clearConsoleMessages(),
+      clearPageErrors: () => page.clearPageErrors(),
       content: async () => ({ content: await page.content() }),
       setContent: () => page.setContent(command.html, command.options),
       querySelector: () => this.querySelector(page, command),
@@ -331,6 +334,14 @@ class PageHandler extends BaseHandler {
       jsAction ? page.evaluate(jsAction) : Promise.resolve(),
     ]);
     return { response: this.serializeResponse(response) };
+  }
+
+  async consoleMessages(page, command) {
+    // An empty PHP options bag arrives as [], whose .filter is Array#filter.
+    // Forwarding that reaches Playwright as a function and fails validation.
+    const filter = command.options?.filter;
+    const messages = await page.consoleMessages(typeof filter === 'string' ? { filter } : {});
+    return { messages: messages.map(message => this.serializeConsoleMessage(message)) };
   }
 
   async querySelector(page, command) {

@@ -17,6 +17,7 @@ namespace Playwright\Tests\Integration\Page;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Playwright\Console\ConsoleMessage;
 use Playwright\Network\ResponseInterface;
 use Playwright\Page\Page;
 use Playwright\Testing\PlaywrightTestCaseTrait;
@@ -196,6 +197,42 @@ class PageTest extends TestCase
         $this->assertInstanceOf(ResponseInterface::class, $response);
         $this->assertStringContainsString('/page2.html', $response->url());
         $this->assertEquals(200, $response->status());
+    }
+
+    #[Test]
+    public function itListsStoredConsoleMessages(): void
+    {
+        $this->page->evaluate("console.log('stored message from PHP')");
+
+        $messages = $this->page->consoleMessages();
+        $texts = array_map(static fn (ConsoleMessage $message): string => $message->text(), $messages);
+        $index = array_search('stored message from PHP', $texts, true);
+
+        $this->assertIsInt($index, 'The logged message should be part of the recorded history');
+        $this->assertSame('log', $messages[$index]->type());
+        $this->assertSame($this->page, $messages[$index]->page());
+    }
+
+    #[Test]
+    public function itClearsStoredConsoleMessages(): void
+    {
+        $this->page->evaluate("console.log('about to be dropped')");
+        $this->assertNotEmpty($this->page->consoleMessages());
+
+        $result = $this->page->clearConsoleMessages();
+
+        $this->assertSame($this->page, $result);
+        $this->assertSame([], $this->page->consoleMessages());
+    }
+
+    #[Test]
+    public function itClearsStoredPageErrors(): void
+    {
+        $this->page->evaluate('() => { setTimeout(() => { throw new Error("boom"); }, 0); }');
+
+        $result = $this->page->clearPageErrors();
+
+        $this->assertSame($this->page, $result);
     }
 
     #[Test]

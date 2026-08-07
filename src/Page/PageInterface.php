@@ -16,6 +16,7 @@ namespace Playwright\Page;
 
 use Playwright\API\APIRequestContextInterface;
 use Playwright\Browser\BrowserContextInterface;
+use Playwright\Console\ConsoleMessage;
 use Playwright\Frame\FrameInterface;
 use Playwright\Frame\FrameLocatorInterface;
 use Playwright\Input\KeyboardInterface;
@@ -142,6 +143,29 @@ interface PageInterface
     public function pdfContent(array|PdfOptions $options = []): string;
 
     public function content(): ?string;
+
+    /**
+     * Console messages already recorded for this page, oldest first.
+     *
+     * Unlike the console event, this reads history, so messages logged before
+     * any listener existed are still returned. The default filter keeps only
+     * what was logged since the last navigation.
+     *
+     * @param array{filter?: 'all'|'since-navigation'} $options
+     *
+     * @return array<ConsoleMessage>
+     */
+    public function consoleMessages(array $options = []): array;
+
+    /**
+     * Discards the recorded console history without touching event listeners.
+     */
+    public function clearConsoleMessages(): self;
+
+    /**
+     * Discards the uncaught page errors recorded so far.
+     */
+    public function clearPageErrors(): self;
 
     /**
      * Queues a script to run before any of the page's own scripts.

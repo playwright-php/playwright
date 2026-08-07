@@ -21,6 +21,8 @@ use PHPUnit\Framework\TestCase;
 use Playwright\API\APIRequestContextInterface;
 use Playwright\Browser\BrowserContextInterface;
 use Playwright\Configuration\PlaywrightConfig;
+use Playwright\Console\ConsoleMessage;
+use Playwright\Exception\ProtocolErrorException;
 use Playwright\Exception\RuntimeException;
 use Playwright\Exception\TimeoutException;
 use Playwright\Input\KeyboardInterface;
@@ -886,6 +888,83 @@ class PageTest extends TestCase
 
         $this->assertSame($api, $first);
         $this->assertSame($first, $second, 'Page::request should return cached instance');
+    }
+
+    public function testConsoleMessagesSendsFilterAndHydratesSnapshots(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'options' => ['filter' => 'all'],
+                'action' => 'page.consoleMessages',
+                'pageId' => 'page-id',
+            ])
+            ->willReturn(['messages' => [
+                [
+                    'type' => 'warning',
+                    'text' => 'Be careful',
+                    'args' => [],
+                    'location' => ['url' => 'https://example.test/app.js'],
+                    'timestamp' => 123.4,
+                ],
+                'not-a-message',
+            ]]);
+
+        $messages = $this->page->consoleMessages(['filter' => 'all']);
+
+        $this->assertCount(1, $messages);
+        $this->assertInstanceOf(ConsoleMessage::class, $messages[0]);
+        $this->assertSame('warning', $messages[0]->type());
+        $this->assertSame('Be careful', $messages[0]->text());
+        $this->assertSame($this->page, $messages[0]->page());
+    }
+
+    public function testConsoleMessagesRejectsANonListResponse(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->willReturn(['messages' => 'nope']);
+
+        $this->expectException(ProtocolErrorException::class);
+
+        $this->page->consoleMessages();
+    }
+
+    public function testConsoleMessagesRejectsNonStringKeys(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->willReturn(['messages' => [[0 => 'log']]]);
+
+        $this->expectException(ProtocolErrorException::class);
+
+        $this->page->consoleMessages();
+    }
+
+    public function testClearConsoleMessagesSendsCommandAndReturnsSelf(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'action' => 'page.clearConsoleMessages',
+                'pageId' => 'page-id',
+            ])
+            ->willReturn([]);
+
+        $this->assertSame($this->page, $this->page->clearConsoleMessages());
+    }
+
+    public function testClearPageErrorsSendsCommandAndReturnsSelf(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'action' => 'page.clearPageErrors',
+                'pageId' => 'page-id',
+            ])
+            ->willReturn([]);
+
+        $this->assertSame($this->page, $this->page->clearPageErrors());
     }
 
     private function createPage(string $pageId = 'page-1'): Page
