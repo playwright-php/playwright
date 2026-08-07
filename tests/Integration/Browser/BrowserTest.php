@@ -100,4 +100,15 @@ class BrowserTest extends TestCase
 
         $context->close();
     }
+
+    #[Test]
+    public function itReportsItsContextsAsClosedOnceTheBrowserIsClosed(): void
+    {
+        $context = $this->browser->newContext();
+        $this->assertFalse($context->isClosed());
+
+        $this->browser->close();
+
+        $this->assertTrue($context->isClosed());
+    }
 }

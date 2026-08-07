@@ -241,6 +241,21 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
         ]);
     }
 
+    public function isClosed(): bool
+    {
+        $response = $this->transport->send([
+            'action' => 'context.isClosed',
+            'contextId' => $this->contextId,
+        ]);
+
+        $value = $response['value'] ?? null;
+        if (!is_bool($value)) {
+            throw new ProtocolErrorException('Invalid isClosed response', 0);
+        }
+
+        return $value;
+    }
+
     private function saveAutoTrace(): void
     {
         $dir = $this->config->traceDir ?? getcwd().'/traces';
