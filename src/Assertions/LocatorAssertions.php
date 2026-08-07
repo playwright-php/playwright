@@ -15,11 +15,74 @@ declare(strict_types=1);
 namespace Playwright\Assertions;
 
 use Playwright\Assertions\Failure\AssertionException;
+use Playwright\Assertions\Internal\AriaSnapshot;
 use Playwright\Assertions\Internal\Waiter;
 use Playwright\Locator\LocatorInterface;
 
 final class LocatorAssertions implements LocatorAssertionsInterface
 {
+    /**
+     * Resolves one accessible text of the element and compares it with the
+     * expectation. `payload.kind` picks which text is resolved.
+     */
+    private const ACCESSIBLE_TEXT_JS = <<<'JS'
+        (element, payload) => {
+            const normalize = (value) => String(value ?? '').replace(/\s+/g, ' ').trim();
+            const root = element.getRootNode();
+            const scope = typeof root.getElementById === 'function' ? root : document;
+            const attribute = (name) => normalize(element.getAttribute(name));
+            const fromIdList = (list) => normalize(
+                list
+                    .split(' ')
+                    .map(id => scope.getElementById(id))
+                    .filter(target => target !== null)
+                    .map(target => target.textContent)
+                    .join(' ')
+            );
+
+            const name = () => {
+                const label = attribute('aria-label');
+                if (label !== '') return label;
+
+                const labelledBy = fromIdList(attribute('aria-labelledby'));
+                if (labelledBy !== '') return labelledBy;
+
+                const labels = element.labels;
+                if (labels && labels.length > 0) {
+                    return normalize(Array.from(labels, target => target.textContent).join(' '));
+                }
+
+                return normalize(element.textContent);
+            };
+
+            const description = () => {
+                const described = attribute('aria-description');
+                if (described !== '') return described;
+
+                const describedBy = fromIdList(attribute('aria-describedby'));
+                if (describedBy !== '') return describedBy;
+
+                return attribute('title');
+            };
+
+            const errorMessage = () => {
+                const flag = attribute('aria-invalid').toLowerCase();
+                const flagged = flag !== '' && flag !== 'false';
+                const failsConstraints = !!element.validity && !element.validity.valid;
+                if (!flagged && !failsConstraints) return '';
+
+                return fromIdList(attribute('aria-errormessage'));
+            };
+
+            const resolved = {name, description, errorMessage}[payload.kind]();
+            const expected = normalize(payload.expected);
+
+            return payload.ignoreCase
+                ? resolved.toLowerCase() === expected.toLowerCase()
+                : resolved === expected;
+        }
+        JS;
+
     private bool $negated = false;
 
     public function __construct(private LocatorInterface $locator)
@@ -337,6 +400,67 @@ final class LocatorAssertions implements LocatorAssertionsInterface
             $options,
             sprintf('Expected locator to contain class "%s".', $expected),
             sprintf('Expected locator not to contain class "%s".', $expected),
+        );
+    }
+
+    public function toHaveAccessibleName(string $expected, ?AssertionOptions $options = null): self
+    {
+        return $this->assertAccessibleText(
+            'name',
+            $expected,
+            $options,
+            sprintf('Expected locator to have accessible name "%s".', $expected),
+            sprintf('Expected locator not to have accessible name "%s".', $expected),
+        );
+    }
+
+    public function toHaveAccessibleDescription(string $expected, ?AssertionOptions $options = null): self
+    {
+        return $this->assertAccessibleText(
+            'description',
+            $expected,
+            $options,
+            sprintf('Expected locator to have accessible description "%s".', $expected),
+            sprintf('Expected locator not to have accessible description "%s".', $expected),
+        );
+    }
+
+    public function toHaveAccessibleErrorMessage(string $expected, ?AssertionOptions $options = null): self
+    {
+        return $this->assertAccessibleText(
+            'errorMessage',
+            $expected,
+            $options,
+            sprintf('Expected locator to have accessible error message "%s".', $expected),
+            sprintf('Expected locator not to have accessible error message "%s".', $expected),
+        );
+    }
+
+    public function toMatchAriaSnapshot(string $expected, ?AssertionOptions $options = null): self
+    {
+        $normalized = AriaSnapshot::normalize($expected);
+
+        return $this->assertState(
+            fn (): bool => AriaSnapshot::normalize($this->locator->ariaSnapshot()) === $normalized,
+            $options,
+            'Expected locator to match the ARIA snapshot.',
+            'Expected locator not to match the ARIA snapshot.',
+        );
+    }
+
+    private function assertAccessibleText(string $kind, string $expected, ?AssertionOptions $options, string $expectedMessage, string $negatedMessage): self
+    {
+        $payload = [
+            'kind' => $kind,
+            'expected' => $expected,
+            'ignoreCase' => true === $options?->ignoreCase,
+        ];
+
+        return $this->assertState(
+            fn (): bool => true === $this->locator->evaluate(self::ACCESSIBLE_TEXT_JS, $payload),
+            $options,
+            $expectedMessage,
+            $negatedMessage,
         );
     }
 

@@ -45,6 +45,21 @@ final class LocatorAssertionsTest extends TestCase
                 <button id="native-role" class="primary active">Native role</button>
                 <div id="explicit-role" role="tab">Explicit role</div>
                 <div id="off-screen" style="position: absolute; left: -9999px; width: 100px; height: 100px">Off screen</div>
+                <button id="aria-label-name" aria-label="Close dialog">X</button>
+                <span id="labelled-by-source">Given name</span>
+                <input id="labelled-by-name" aria-labelledby="labelled-by-source">
+                <label for="labelled-name">Family name</label>
+                <input id="labelled-name">
+                <button id="text-name">  Save   changes  </button>
+                <span id="described-by-source">Use your work address</span>
+                <input id="described-by" aria-describedby="described-by-source">
+                <input id="described-attribute" aria-description="Inline description">
+                <input id="described-title" title="Tooltip description">
+                <span id="error-source">Value is required</span>
+                <input id="flagged-invalid" aria-invalid="true" aria-errormessage="error-source">
+                <input id="constraint-invalid" required aria-errormessage="error-source">
+                <input id="not-invalid" aria-errormessage="error-source">
+                <ul id="snapshot"><li>One</li><li>Two</li></ul>
                 <script>document.querySelector('#property').state = {ready: true, values: [1, 2]};</script>
             HTML,
         ]);
@@ -89,6 +104,68 @@ final class LocatorAssertionsTest extends TestCase
         Expect::locator($this->page->locator('#viewport'))->toBeInViewport();
         Expect::locator($this->page->locator('#off-screen'))
             ->not()->toBeInViewport(new AssertionOptions(timeoutMs: 0));
+
+        $this->assertTrue(true);
+    }
+
+    #[Test]
+    public function itResolvesTheAccessibleNameFromEachSourceInOrder(): void
+    {
+        Expect::locator($this->page->locator('#aria-label-name'))->toHaveAccessibleName('Close dialog');
+        Expect::locator($this->page->locator('#labelled-by-name'))->toHaveAccessibleName('Given name');
+        Expect::locator($this->page->locator('#labelled-name'))->toHaveAccessibleName('Family name');
+        Expect::locator($this->page->locator('#text-name'))->toHaveAccessibleName('Save changes');
+
+        $this->assertTrue(true);
+    }
+
+    #[Test]
+    public function itComparesTheAccessibleNameCaseInsensitivelyOnDemand(): void
+    {
+        Expect::locator($this->page->locator('#text-name'))
+            ->toHaveAccessibleName('SAVE CHANGES', new AssertionOptions(ignoreCase: true));
+        Expect::locator($this->page->locator('#text-name'))
+            ->not()->toHaveAccessibleName('SAVE CHANGES', new AssertionOptions(timeoutMs: 0));
+
+        $this->assertTrue(true);
+    }
+
+    #[Test]
+    public function itResolvesTheAccessibleDescriptionFromEachSourceInOrder(): void
+    {
+        Expect::locator($this->page->locator('#described-attribute'))->toHaveAccessibleDescription('Inline description');
+        Expect::locator($this->page->locator('#described-by'))->toHaveAccessibleDescription('Use your work address');
+        Expect::locator($this->page->locator('#described-title'))->toHaveAccessibleDescription('Tooltip description');
+        Expect::locator($this->page->locator('#aria-label-name'))->toHaveAccessibleDescription('');
+
+        $this->assertTrue(true);
+    }
+
+    #[Test]
+    public function itReadsTheAccessibleErrorMessageOnlyFromAnInvalidElement(): void
+    {
+        Expect::locator($this->page->locator('#flagged-invalid'))->toHaveAccessibleErrorMessage('Value is required');
+        Expect::locator($this->page->locator('#constraint-invalid'))->toHaveAccessibleErrorMessage('Value is required');
+        Expect::locator($this->page->locator('#not-invalid'))->toHaveAccessibleErrorMessage('');
+        Expect::locator($this->page->locator('#not-invalid'))
+            ->not()->toHaveAccessibleErrorMessage('Value is required', new AssertionOptions(timeoutMs: 0));
+
+        $this->assertTrue(true);
+    }
+
+    #[Test]
+    public function itMatchesTheAriaSnapshotOfASubtree(): void
+    {
+        Expect::locator($this->page->locator('#snapshot'))->toMatchAriaSnapshot(<<<'YAML'
+            - list:
+              - listitem: One
+              - listitem: Two
+            YAML);
+
+        Expect::locator($this->page->locator('#snapshot'))->not()->toMatchAriaSnapshot(<<<'YAML'
+            - list:
+              - listitem: One
+            YAML, new AssertionOptions(timeoutMs: 0));
 
         $this->assertTrue(true);
     }

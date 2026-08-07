@@ -22,6 +22,17 @@ interface PageAssertionsInterface
     /** @return $this */
     public function toHaveURL(string|\Stringable $expected, ?AssertionOptions $options = null): self;
 
+    /**
+     * Asserts the ARIA snapshot of the page body equals the expectation.
+     *
+     * Compares the YAML as text, ignoring blank lines, trailing whitespace and
+     * the indentation shared by every line. The expectation describes the whole
+     * body subtree, not a subset of it.
+     *
+     * @return $this
+     */
+    public function toMatchAriaSnapshot(string $expected, ?AssertionOptions $options = null): self;
+
     /** @return $this */
     public function not(): self;
 }

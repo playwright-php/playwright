@@ -141,6 +141,123 @@ final class LocatorAssertionsTest extends TestCase
         (new LocatorAssertions($this->createMock(LocatorInterface::class)))->toContainClass('   ');
     }
 
+    public function testToHaveAccessibleNameSendsTheExpectationToTheBrowser(): void
+    {
+        $locator = $this->createMock(LocatorInterface::class);
+        $locator->expects($this->once())
+            ->method('evaluate')
+            ->with($this->isType('string'), ['kind' => 'name', 'expected' => 'Full name', 'ignoreCase' => false])
+            ->willReturn(true);
+
+        $this->assertInstanceOf(LocatorAssertions::class, (new LocatorAssertions($locator))->toHaveAccessibleName('Full name'));
+    }
+
+    public function testToHaveAccessibleNameForwardsTheIgnoreCaseOption(): void
+    {
+        $locator = $this->createMock(LocatorInterface::class);
+        $locator->expects($this->once())
+            ->method('evaluate')
+            ->with($this->isType('string'), ['kind' => 'name', 'expected' => 'FULL NAME', 'ignoreCase' => true])
+            ->willReturn(true);
+
+        $this->assertInstanceOf(
+            LocatorAssertions::class,
+            (new LocatorAssertions($locator))->toHaveAccessibleName('FULL NAME', new AssertionOptions(ignoreCase: true))
+        );
+    }
+
+    public function testToHaveAccessibleNameFailsWithADescriptiveMessage(): void
+    {
+        $locator = $this->createMock(LocatorInterface::class);
+        $locator->method('evaluate')->willReturn(false);
+
+        $this->expectException(AssertionException::class);
+        $this->expectExceptionMessage('Expected locator to have accessible name "Full name".');
+
+        (new LocatorAssertions($locator))->toHaveAccessibleName('Full name', new AssertionOptions(timeoutMs: 0));
+    }
+
+    public function testToHaveAccessibleDescriptionSelectsTheDescriptionResolver(): void
+    {
+        $locator = $this->createMock(LocatorInterface::class);
+        $locator->expects($this->once())
+            ->method('evaluate')
+            ->with($this->isType('string'), ['kind' => 'description', 'expected' => 'Hint', 'ignoreCase' => false])
+            ->willReturn(true);
+
+        $this->assertInstanceOf(LocatorAssertions::class, (new LocatorAssertions($locator))->toHaveAccessibleDescription('Hint'));
+    }
+
+    public function testToHaveAccessibleDescriptionFailsWithADescriptiveMessage(): void
+    {
+        $locator = $this->createMock(LocatorInterface::class);
+        $locator->method('evaluate')->willReturn(false);
+
+        $this->expectException(AssertionException::class);
+        $this->expectExceptionMessage('Expected locator to have accessible description "Hint".');
+
+        (new LocatorAssertions($locator))->toHaveAccessibleDescription('Hint', new AssertionOptions(timeoutMs: 0));
+    }
+
+    public function testToHaveAccessibleErrorMessageSelectsTheErrorMessageResolver(): void
+    {
+        $locator = $this->createMock(LocatorInterface::class);
+        $locator->expects($this->once())
+            ->method('evaluate')
+            ->with($this->isType('string'), ['kind' => 'errorMessage', 'expected' => 'Required', 'ignoreCase' => false])
+            ->willReturn(true);
+
+        $this->assertInstanceOf(LocatorAssertions::class, (new LocatorAssertions($locator))->toHaveAccessibleErrorMessage('Required'));
+    }
+
+    public function testToHaveAccessibleErrorMessageIsNegatable(): void
+    {
+        $locator = $this->createMock(LocatorInterface::class);
+        $locator->expects($this->once())->method('evaluate')->willReturn(false);
+
+        $this->assertInstanceOf(
+            LocatorAssertions::class,
+            (new LocatorAssertions($locator))->not()->toHaveAccessibleErrorMessage('Required', new AssertionOptions(timeoutMs: 0))
+        );
+    }
+
+    public function testToMatchAriaSnapshotIgnoresIndentationAndBlankLines(): void
+    {
+        $locator = $this->createMock(LocatorInterface::class);
+        $locator->expects($this->once())->method('ariaSnapshot')->willReturn("- list:\n  - listitem: One\n");
+
+        $expected = <<<'YAML'
+
+                - list:
+                  - listitem: One
+
+            YAML;
+
+        $this->assertInstanceOf(LocatorAssertions::class, (new LocatorAssertions($locator))->toMatchAriaSnapshot($expected));
+    }
+
+    public function testToMatchAriaSnapshotFailsOnADifferentTree(): void
+    {
+        $locator = $this->createMock(LocatorInterface::class);
+        $locator->method('ariaSnapshot')->willReturn('- list:');
+
+        $this->expectException(AssertionException::class);
+        $this->expectExceptionMessage('Expected locator to match the ARIA snapshot.');
+
+        (new LocatorAssertions($locator))->toMatchAriaSnapshot('- heading "One"', new AssertionOptions(timeoutMs: 0));
+    }
+
+    public function testToMatchAriaSnapshotIsNegatable(): void
+    {
+        $locator = $this->createMock(LocatorInterface::class);
+        $locator->expects($this->once())->method('ariaSnapshot')->willReturn('- list:');
+
+        $this->assertInstanceOf(
+            LocatorAssertions::class,
+            (new LocatorAssertions($locator))->not()->toMatchAriaSnapshot('- heading "One"', new AssertionOptions(timeoutMs: 0))
+        );
+    }
+
     public function testToBeInViewportDefaultsToAnyVisiblePart(): void
     {
         $locator = $this->createMock(LocatorInterface::class);
