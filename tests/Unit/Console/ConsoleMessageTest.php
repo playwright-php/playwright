@@ -17,6 +17,7 @@ namespace Playwright\Tests\Unit\Console;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Playwright\Console\ConsoleMessage;
+use Playwright\Page\PageInterface;
 
 #[CoversClass(ConsoleMessage::class)]
 class ConsoleMessageTest extends TestCase
@@ -87,6 +88,44 @@ class ConsoleMessageTest extends TestCase
         $this->assertSame($location, $message->location());
     }
 
+    public function testPage(): void
+    {
+        $page = $this->createMock(PageInterface::class);
+        $message = new ConsoleMessage([
+            'type' => 'log',
+            'text' => 'Hello, world!',
+            'args' => [],
+            'location' => [],
+        ], $page);
+
+        $this->assertSame($page, $message->page());
+    }
+
+    public function testPageIsNullWithoutAnOriginatingPage(): void
+    {
+        $message = new ConsoleMessage([
+            'type' => 'log',
+            'text' => 'Hello, world!',
+            'args' => [],
+            'location' => [],
+        ]);
+
+        $this->assertNull($message->page());
+    }
+
+    public function testTimestamp(): void
+    {
+        $message = new ConsoleMessage([
+            'type' => 'log',
+            'text' => 'Hello, world!',
+            'args' => [],
+            'location' => [],
+            'timestamp' => 1_754_485_600_123,
+        ]);
+
+        $this->assertSame(1_754_485_600_123, $message->timestamp());
+    }
+
     public function testInvalidType(): void
     {
         $this->expectException(\RuntimeException::class);
@@ -142,5 +181,30 @@ class ConsoleMessageTest extends TestCase
         ]);
 
         $message->args();
+    }
+
+    public function testTimestampIsNullWhenTheBridgeReportsNone(): void
+    {
+        $message = new ConsoleMessage([
+            'type' => 'log',
+            'text' => 'Hello, world!',
+            'args' => [],
+            'location' => [],
+        ]);
+
+        $this->assertNull($message->timestamp());
+    }
+
+    public function testTimestampIsNullWhenTheBridgeReportsSomethingElse(): void
+    {
+        $message = new ConsoleMessage([
+            'type' => 'log',
+            'text' => 'Hello, world!',
+            'args' => [],
+            'location' => [],
+            'timestamp' => 'not a timestamp',
+        ]);
+
+        $this->assertNull($message->timestamp());
     }
 }

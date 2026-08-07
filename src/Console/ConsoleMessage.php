@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace Playwright\Console;
 
 use Playwright\Exception\ProtocolErrorException;
+use Playwright\Page\PageInterface;
 
 final class ConsoleMessage
 {
@@ -26,8 +27,10 @@ final class ConsoleMessage
     /**
      * @param array<string, mixed> $data
      */
-    public function __construct(array $data)
-    {
+    public function __construct(
+        array $data,
+        private readonly ?PageInterface $page = null,
+    ) {
         $this->data = $data;
     }
 
@@ -83,5 +86,23 @@ final class ConsoleMessage
         }
 
         return $result;
+    }
+
+    /**
+     * The page that emitted the message, or null for a message built without one.
+     */
+    public function page(): ?PageInterface
+    {
+        return $this->page;
+    }
+
+    /**
+     * When the message was emitted.
+     */
+    public function timestamp(): int|float|null
+    {
+        $timestamp = $this->data['timestamp'] ?? null;
+
+        return is_int($timestamp) || is_float($timestamp) ? $timestamp : null;
     }
 }
