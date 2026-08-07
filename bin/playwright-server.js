@@ -91,6 +91,8 @@ class PlaywrightServer extends BaseHandler {
       tracingStartChunk: () => this.contextHandler.handleTracing(command, 'startChunk'),
       tracingStop: () => this.contextHandler.handleTracing(command, 'stop'),
       tracingStopChunk: () => this.contextHandler.handleTracing(command, 'stopChunk'),
+      tracingStartHar: () => this.contextHandler.handleTracing(command, 'startHar'),
+      tracingStopHar: () => this.contextHandler.handleTracing(command, 'stopHar'),
       tracingGroup: () => this.contextHandler.handleTracing(command, 'group'),
       tracingGroupEnd: () => this.contextHandler.handleTracing(command, 'groupEnd')
     });

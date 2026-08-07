@@ -14,6 +14,8 @@ declare(strict_types=1);
 
 namespace Playwright\API;
 
+use Playwright\Tracing\TracingInterface;
+
 /**
  * This context can be used to trigger API endpoints, configure micro-services,
  * prepare environment or the service to your e2e test.
@@ -61,6 +63,12 @@ interface APIRequestContextInterface
      * @return array<array<string, mixed>>
      */
     public function storageState(?string $path = null): array;
+
+    /**
+     * Tracing controls for this context. A context obtained from a browser context traces into that
+     * same browser context.
+     */
+    public function tracing(): TracingInterface;
 
     public function dispose(): void;
 }

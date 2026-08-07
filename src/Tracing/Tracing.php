@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace Playwright\Tracing;
 
 use Playwright\Tracing\Options\StartChunkOptions;
+use Playwright\Tracing\Options\StartHarOptions;
 use Playwright\Tracing\Options\StartOptions;
 use Playwright\Tracing\Options\StopChunkOptions;
 use Playwright\Tracing\Options\StopOptions;
@@ -65,6 +66,25 @@ final class Tracing implements TracingInterface
             'action' => 'tracingStopChunk',
             'contextId' => $this->contextId,
             'options' => $options->toArray(),
+        ]);
+    }
+
+    public function startHar(string $path, array|StartHarOptions $options = []): void
+    {
+        $options = StartHarOptions::from($options);
+        $this->transport->send([
+            'action' => 'tracingStartHar',
+            'contextId' => $this->contextId,
+            'path' => $path,
+            'options' => $options->toArray(),
+        ]);
+    }
+
+    public function stopHar(): void
+    {
+        $this->transport->send([
+            'action' => 'tracingStopHar',
+            'contextId' => $this->contextId,
         ]);
     }
 

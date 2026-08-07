@@ -88,6 +88,49 @@ final class TracingTest extends TestCase
         $this->tracing->group('my step', 'tests/MyTest.php');
     }
 
+    public function testStartHarSendsPathAndOptions(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'action' => 'tracingStartHar',
+                'contextId' => 'context_1',
+                'path' => '/tmp/network.har',
+                'options' => ['mode' => 'minimal', 'urlFilter' => '**/api/**'],
+            ])
+            ->willReturn([]);
+
+        $this->tracing->startHar('/tmp/network.har', ['mode' => 'minimal', 'urlFilter' => '**/api/**']);
+    }
+
+    public function testStartHarSendsEmptyOptionsByDefault(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'action' => 'tracingStartHar',
+                'contextId' => 'context_1',
+                'path' => '/tmp/network.har',
+                'options' => [],
+            ])
+            ->willReturn([]);
+
+        $this->tracing->startHar('/tmp/network.har');
+    }
+
+    public function testStopHarSendsAction(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'action' => 'tracingStopHar',
+                'contextId' => 'context_1',
+            ])
+            ->willReturn([]);
+
+        $this->tracing->stopHar();
+    }
+
     public function testGroupEndSendsAction(): void
     {
         $this->transport->expects($this->once())
