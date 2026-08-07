@@ -43,11 +43,13 @@ use Playwright\Page\Options\WaitForSelectorOptions;
 use Playwright\Page\Options\WaitForUrlOptions;
 use Playwright\Regex;
 
-/**
- * @method $this pause() Opens Playwright Inspector and pauses script execution
- */
 interface PageInterface
 {
+    /**
+     * Opens Playwright Inspector and pauses script execution.
+     */
+    public function pause(): self;
+
     /**
      * @param array<string, mixed>|LocatorOptions $options
      */

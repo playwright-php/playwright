@@ -14,11 +14,13 @@ declare(strict_types=1);
 
 namespace Playwright\Input;
 
-/**
- * @method void insertText(string $text) Inserts the text as-is: only an input event fires, no keydown/keyup
- */
 interface KeyboardInterface
 {
+    /**
+     * Inserts the text as-is: only an input event fires, no keydown/keyup.
+     */
+    public function insertText(string $text): void;
+
     public function down(string $key): void;
 
     /**

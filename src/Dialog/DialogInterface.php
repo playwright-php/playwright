@@ -18,11 +18,14 @@ use Playwright\Page\PageInterface;
 
 /**
  * @author Simon André <smn.andre@gmail.com>
- *
- * @method PageInterface page() The page that opened the dialog
  */
 interface DialogInterface
 {
+    /**
+     * The page that opened the dialog.
+     */
+    public function page(): PageInterface;
+
     public function type(): string;
 
     public function message(): string;

@@ -17,7 +17,6 @@ namespace Playwright\Page;
 use Playwright\API\APIRequestContextInterface;
 use Playwright\Browser\BrowserContextInterface;
 use Playwright\Clock\ClockInterface;
-use Playwright\Clock\NullClock;
 use Playwright\Configuration\PlaywrightConfig;
 use Playwright\Console\ConsoleMessage;
 use Playwright\Cookie;
@@ -99,13 +98,7 @@ final class Page implements PageInterface, EventDispatcherInterface
         $this->mouse = new Mouse($this->transport, $this->pageId);
         $this->eventHandler = new PageEventHandler();
 
-        if (\method_exists($this->context, 'clock')) {
-            /** @var ClockInterface $ctxClock */
-            $ctxClock = $this->context->clock();
-            $this->clock = $ctxClock;
-        } else {
-            $this->clock = new NullClock();
-        }
+        $this->clock = $this->context->clock();
 
         if (method_exists($this->transport, 'addEventDispatcher')) {
             $this->transport->addEventDispatcher($this->pageId, $this);
