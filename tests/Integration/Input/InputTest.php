@@ -74,6 +74,16 @@ class InputTest extends TestCase
     }
 
     #[Test]
+    public function itInsertsTextWithoutKeyEvents(): void
+    {
+        $this->page->locator('#input-text')->click();
+        $this->page->keyboard()->insertText('Inserted');
+        usleep(100000);
+
+        $this->assertEquals('Inserted', $this->page->locator('#input-text')->inputValue());
+    }
+
+    #[Test]
     public function itPressesKeysWithKeyboard(): void
     {
         $this->page->locator('#input-text')->click();

@@ -140,4 +140,35 @@ final class LocatorAssertionsTest extends TestCase
 
         (new LocatorAssertions($this->createMock(LocatorInterface::class)))->toContainClass('   ');
     }
+
+    public function testToBeInViewportDefaultsToAnyVisiblePart(): void
+    {
+        $locator = $this->createMock(LocatorInterface::class);
+        $locator->expects($this->once())
+            ->method('evaluate')
+            ->with($this->isType('string'), 0.0)
+            ->willReturn(true);
+
+        $assertions = new LocatorAssertions($locator);
+
+        $this->assertSame($assertions, $assertions->toBeInViewport());
+    }
+
+    public function testToBeInViewportRejectsARatioAboveOne(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Viewport ratio must be between 0 and 1.');
+
+        (new LocatorAssertions($this->createMock(LocatorInterface::class)))
+            ->toBeInViewport(new AssertionOptions(ratio: 1.5));
+    }
+
+    public function testToBeInViewportRejectsANegativeRatio(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Viewport ratio must be between 0 and 1.');
+
+        (new LocatorAssertions($this->createMock(LocatorInterface::class)))
+            ->toBeInViewport(new AssertionOptions(ratio: -0.1));
+    }
 }

@@ -64,4 +64,31 @@ final class ResponseBodyTest extends TestCase
         $this->assertSame('bar', $json['foo'] ?? null);
         $this->assertSame(3, $json['n'] ?? null);
     }
+
+    #[Test]
+    public function itReadsASingleHeaderValue(): void
+    {
+        $this->installRouteServer($this->page, [
+            '/hello.txt' => 'hello world',
+        ]);
+
+        $response = $this->page->goto($this->routeUrl('/hello.txt'));
+
+        $this->assertNotNull($response);
+        $this->assertNotNull($response->headerValue('content-type'));
+        $this->assertStringContainsString('text/plain', (string) $response->headerValue('content-type'));
+    }
+
+    #[Test]
+    public function itReturnsNullForAnAbsentHeader(): void
+    {
+        $this->installRouteServer($this->page, [
+            '/hello.txt' => 'hello world',
+        ]);
+
+        $response = $this->page->goto($this->routeUrl('/hello.txt'));
+
+        $this->assertNotNull($response);
+        $this->assertNull($response->headerValue('x-does-not-exist'));
+    }
 }

@@ -17,6 +17,7 @@ namespace Playwright\Tests\Unit\Locator;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Playwright\Exception\PlaywrightException;
+use Playwright\Exception\ProtocolErrorException;
 use Playwright\Exception\TimeoutException;
 use Playwright\Frame\FrameLocatorInterface;
 use Playwright\Locator\Locator;
@@ -1012,6 +1013,45 @@ final class LocatorTest extends TestCase
         $this->expectExceptionMessage('File not found: nope.txt');
 
         (new Locator($transport, 'page1', '#f'))->setInputFiles('nope.txt');
+    }
+
+    public function testAriaSnapshotRejectsANonStringPayload(): void
+    {
+        $this->transport->method('send')->willReturn(['value' => ['not', 'a', 'string']]);
+
+        $this->expectException(ProtocolErrorException::class);
+        $this->expectExceptionMessage('Invalid ariaSnapshot response');
+
+        $this->locator->ariaSnapshot();
+    }
+
+    public function testBoundingBoxIsNullForAnElementWithoutABox(): void
+    {
+        $this->transport->method('send')->willReturn(['value' => null]);
+
+        $this->assertNull($this->locator->boundingBox());
+    }
+
+    public function testBoundingBoxRejectsAnIncompletePayload(): void
+    {
+        $this->transport->method('send')->willReturn(['value' => ['x' => 1.0, 'y' => 2.0]]);
+
+        $this->expectException(ProtocolErrorException::class);
+        $this->expectExceptionMessage('Invalid boundingBox response');
+
+        $this->locator->boundingBox();
+    }
+
+    public function testBoundingBoxRejectsNonNumericCoordinates(): void
+    {
+        $this->transport->method('send')->willReturn([
+            'value' => ['x' => 'left', 'y' => 2.0, 'width' => 3.0, 'height' => 4.0],
+        ]);
+
+        $this->expectException(ProtocolErrorException::class);
+        $this->expectExceptionMessage('Invalid boundingBox response');
+
+        $this->locator->boundingBox();
     }
 
     /**
