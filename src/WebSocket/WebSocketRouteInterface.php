@@ -50,6 +50,13 @@ interface WebSocketRouteInterface
     public function send(string $message): void;
 
     /**
+     * Subprotocols the page asked for in the WebSocket constructor; empty when it asked for none.
+     *
+     * @return array<string>
+     */
+    public function protocols(): array;
+
+    /**
      * Returns the URL of the WebSocket created in the page.
      */
     public function url(): string;

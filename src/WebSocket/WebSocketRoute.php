@@ -30,10 +30,14 @@ final class WebSocketRoute implements WebSocketRouteInterface, EventDispatcherIn
      */
     private $messageHandler;
 
+    /**
+     * @param array<string> $protocols
+     */
     public function __construct(
         private readonly TransportInterface $transport,
         private readonly string $routeId,
         private readonly string $socketUrl,
+        private readonly array $protocols = [],
     ) {
         if (\method_exists($this->transport, 'addEventDispatcher')) {
             $this->transport->addEventDispatcher($this->routeId, $this);
@@ -43,6 +47,14 @@ final class WebSocketRoute implements WebSocketRouteInterface, EventDispatcherIn
     public function url(): string
     {
         return $this->socketUrl;
+    }
+
+    /**
+     * @return array<string>
+     */
+    public function protocols(): array
+    {
+        return $this->protocols;
     }
 
     /**
@@ -72,7 +84,7 @@ final class WebSocketRoute implements WebSocketRouteInterface, EventDispatcherIn
         $url = $response['url'] ?? $this->socketUrl;
 
         if (\is_string($serverRouteId) && \is_string($url)) {
-            return new self($this->transport, $serverRouteId, $url);
+            return new self($this->transport, $serverRouteId, $url, $this->protocols);
         }
 
         return $this;

@@ -106,4 +106,32 @@ final class WebSocketRouteTest extends TestCase
         $this->assertNotSame($route, $serverRoute);
         $this->assertSame('wss://server/ws', $serverRoute->url());
     }
+
+    public function testProtocolsAreEmptyWhenPageRequestedNone(): void
+    {
+        $transport = new MockTransport();
+        $transport->connect();
+
+        $route = new WebSocketRoute($transport, 'route_1', 'wss://example/ws');
+
+        $this->assertSame([], $route->protocols());
+    }
+
+    public function testProtocolsFollowTheServerSideRoute(): void
+    {
+        $transport = new MockTransport();
+        $transport->connect();
+        $transport->queueResponse(function (array $message): array {
+            if ('websocketRoute.connectToServer' === ($message['action'] ?? null)) {
+                return ['serverRouteId' => 'route_server', 'url' => 'wss://server/ws'];
+            }
+
+            return [];
+        });
+
+        $route = new WebSocketRoute($transport, 'route_1', 'wss://example/ws', ['chat.v2', 'chat.v1']);
+
+        $this->assertSame(['chat.v2', 'chat.v1'], $route->protocols());
+        $this->assertSame(['chat.v2', 'chat.v1'], $route->connectToServer()->protocols());
+    }
 }
