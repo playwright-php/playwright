@@ -102,4 +102,32 @@ final class Browser implements BrowserInterface
     {
         return $this->version;
     }
+
+    /**
+     * @param array{host?: string, port?: int, workspaceDir?: string, metadata?: array<string, mixed>} $options
+     */
+    public function bind(string $title, array $options = []): string
+    {
+        $response = $this->transport->send([
+            'action' => 'bind',
+            'browserId' => $this->browserId,
+            'title' => $title,
+            'options' => $options,
+        ]);
+
+        $endpoint = $response['endpoint'] ?? null;
+        if (!is_string($endpoint)) {
+            throw new ProtocolErrorException('Invalid endpoint returned from transport', 0);
+        }
+
+        return $endpoint;
+    }
+
+    public function unbind(): void
+    {
+        $this->transport->send([
+            'action' => 'unbind',
+            'browserId' => $this->browserId,
+        ]);
+    }
 }

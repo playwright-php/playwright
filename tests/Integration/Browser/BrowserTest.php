@@ -102,12 +102,47 @@ class BrowserTest extends TestCase
     }
 
     #[Test]
+    public function itBindsTheBrowserToALocalSocket(): void
+    {
+        $endpoint = $this->browser->bind('playwright-php-socket');
+
+        try {
+            $this->assertNotEmpty($endpoint);
+        } finally {
+            $this->browser->unbind();
+        }
+    }
+
+    #[Test]
+    public function itBindsTheBrowserToAWebSocketWhenAPortIsGiven(): void
+    {
+        $endpoint = $this->browser->bind('playwright-php-ws', ['host' => '127.0.0.1', 'port' => 0]);
+
+        try {
+            $this->assertStringStartsWith('ws://127.0.0.1:', $endpoint);
+        } finally {
+            $this->browser->unbind();
+        }
+    }
+
+    #[Test]
+    public function itUnbindsABrowserThatWasNeverBound(): void
+    {
+        $this->browser->unbind();
+
+        $this->assertTrue($this->browser->isConnected());
+    }
+
+    #[Test]
     public function itReportsItsContextsAsClosedOnceTheBrowserIsClosed(): void
     {
-        $context = $this->browser->newContext();
+        // A browser of its own: closing the shared one would force every later test to relaunch it.
+        $browser = $this->playwright->chromium()->launch();
+        $context = $browser->newContext();
+
         $this->assertFalse($context->isClosed());
 
-        $this->browser->close();
+        $browser->close();
 
         $this->assertTrue($context->isClosed());
     }

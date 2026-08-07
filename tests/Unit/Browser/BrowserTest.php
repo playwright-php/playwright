@@ -19,6 +19,7 @@ use PHPUnit\Framework\TestCase;
 use Playwright\Browser\Browser;
 use Playwright\Browser\BrowserType;
 use Playwright\Configuration\PlaywrightConfig;
+use Playwright\Exception\ProtocolErrorException;
 use Playwright\Transport\TransportInterface;
 
 #[CoversClass(Browser::class)]
@@ -36,6 +37,55 @@ final class BrowserTest extends TestCase
         $browser = new Browser($this->transport(), 'b', 'ctx_default', '1.0', new PlaywrightConfig());
 
         $this->assertSame(BrowserType::CHROMIUM, $browser->browserType());
+    }
+
+    public function testBindSendsTheTitleAndReturnsTheEndpoint(): void
+    {
+        $transport = $this->createMock(TransportInterface::class);
+        $transport
+            ->expects($this->once())
+            ->method('send')
+            ->with([
+                'action' => 'bind',
+                'browserId' => 'b',
+                'title' => 'my-browser',
+                'options' => ['port' => 0],
+            ])
+            ->willReturn(['endpoint' => 'ws://127.0.0.1:4242/abc']);
+
+        $browser = new Browser($transport, 'b', 'ctx_default', '1.0', new PlaywrightConfig());
+
+        $this->assertSame('ws://127.0.0.1:4242/abc', $browser->bind('my-browser', ['port' => 0]));
+    }
+
+    public function testBindThrowsWhenNoEndpointComesBack(): void
+    {
+        $transport = $this->createMock(TransportInterface::class);
+        $transport->method('send')->willReturn(['success' => true]);
+
+        $browser = new Browser($transport, 'b', 'ctx_default', '1.0', new PlaywrightConfig());
+
+        $this->expectException(ProtocolErrorException::class);
+        $this->expectExceptionMessage('Invalid endpoint returned from transport');
+
+        $browser->bind('my-browser');
+    }
+
+    public function testUnbindSendsTheBrowserId(): void
+    {
+        $transport = $this->createMock(TransportInterface::class);
+        $transport
+            ->expects($this->once())
+            ->method('send')
+            ->with([
+                'action' => 'unbind',
+                'browserId' => 'b',
+            ])
+            ->willReturn([]);
+
+        $browser = new Browser($transport, 'b', 'ctx_default', '1.0', new PlaywrightConfig());
+
+        $browser->unbind();
     }
 
     private function browser(BrowserType $type): Browser
