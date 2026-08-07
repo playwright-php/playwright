@@ -16,20 +16,42 @@ namespace Playwright\Tests\Unit\Locator;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Playwright\Exception\PlaywrightException;
+use Playwright\Exception\TimeoutException;
 use Playwright\Frame\FrameLocatorInterface;
 use Playwright\Locator\Locator;
 use Playwright\Transport\TransportInterface;
 
 #[CoversClass(Locator::class)]
-final class LocatorMethodsTest extends TestCase
+final class LocatorTest extends TestCase
 {
     private TransportInterface $transport;
     private Locator $locator;
+
+    /**
+     * Only set by tests that call createTmpDir(); '' means there is nothing to clean up.
+     */
+    private string $originalCwd = '';
+    private string $tmpDir = '';
 
     protected function setUp(): void
     {
         $this->transport = $this->createMock(TransportInterface::class);
         $this->locator = new Locator($this->transport, 'page1', '.element');
+    }
+
+    protected function tearDown(): void
+    {
+        if ('' === $this->tmpDir) {
+            return;
+        }
+
+        chdir($this->originalCwd);
+
+        foreach (glob($this->tmpDir.'/*') ?: [] as $file) {
+            unlink($file);
+        }
+        rmdir($this->tmpDir);
     }
 
     public function testToString(): void
@@ -474,5 +496,375 @@ final class LocatorMethodsTest extends TestCase
         $result = $this->locator->getByLabel('Email');
         $this->assertInstanceOf(Locator::class, $result);
         $this->assertSame('Locator(selector=".element >> label:text-is("Email") >> nth=0")', (string) $result);
+    }
+
+    public function testClickWaitsForActionable(): void
+    {
+        $callCount = 0;
+        $this->transport
+            ->expects($this->exactly(3))
+            ->method('send')
+            ->willReturnCallback(function ($payload) use (&$callCount) {
+                ++$callCount;
+
+                if (1 === $callCount) {
+                    $this->assertEquals('locator.isVisible', $payload['action']);
+
+                    return ['value' => true];
+                }
+
+                if (2 === $callCount) {
+                    $this->assertEquals('locator.isEnabled', $payload['action']);
+
+                    return ['value' => true];
+                }
+
+                if (3 === $callCount) {
+                    $this->assertEquals('locator.click', $payload['action']);
+
+                    return [];
+                }
+
+                return [];
+            });
+
+        $locator = new Locator($this->transport, 'page1', '.button');
+
+        $locator->click();
+    }
+
+    public function testWaitForVisibleSucceeds(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(function ($payload) {
+                return 'locator.isVisible' === $payload['action'];
+            }))
+            ->willReturn(['value' => true]);
+
+        $locator = new Locator($this->transport, 'page1', '.element');
+
+        $locator->waitForVisible();
+    }
+
+    public function testWaitForVisibleTimeout(): void
+    {
+        $this->transport
+            ->expects($this->atLeastOnce())
+            ->method('send')
+            ->with($this->callback(function ($payload) {
+                return 'locator.isVisible' === $payload['action'];
+            }))
+            ->willReturn(['value' => false]);
+
+        $locator = new Locator($this->transport, 'page1', '.element');
+
+        $this->expectException(TimeoutException::class);
+        $this->expectExceptionMessage('Element not visible (timeout: 1000ms)');
+
+        $locator->waitForVisible(['timeout' => 1000]);
+    }
+
+    public function testWaitForTextContains(): void
+    {
+        $callCount = 0;
+        $this->transport
+            ->expects($this->exactly(2))
+            ->method('send')
+            ->willReturnCallback(function ($payload) use (&$callCount) {
+                ++$callCount;
+
+                if ('locator.textContent' === $payload['action']) {
+                    return ['value' => 1 === $callCount ? 'Loading...' : 'Success: Data loaded'];
+                }
+
+                return [];
+            });
+
+        $locator = new Locator($this->transport, 'page1', '.status');
+
+        $locator->waitForText('Success');
+    }
+
+    public function testWaitForHidden(): void
+    {
+        $callCount = 0;
+        $this->transport
+            ->expects($this->exactly(2))
+            ->method('send')
+            ->willReturnCallback(function ($payload) use (&$callCount) {
+                ++$callCount;
+
+                if ('locator.isHidden' === $payload['action']) {
+                    return ['value' => 2 === $callCount];
+                }
+
+                return [];
+            });
+
+        $locator = new Locator($this->transport, 'page1', '.modal');
+
+        $locator->waitForHidden();
+    }
+
+    public function testFillWaitsForActionable(): void
+    {
+        $callCount = 0;
+        $this->transport
+            ->expects($this->exactly(3))
+            ->method('send')
+            ->willReturnCallback(function ($payload) use (&$callCount) {
+                ++$callCount;
+
+                if ($callCount <= 2) {
+                    if ('locator.isVisible' === $payload['action']) {
+                        return ['value' => true];
+                    }
+                    if ('locator.isEnabled' === $payload['action']) {
+                        return ['value' => true];
+                    }
+                }
+
+                if (3 === $callCount) {
+                    $this->assertEquals('locator.fill', $payload['action']);
+                    $this->assertEquals('test value', $payload['value']);
+
+                    return [];
+                }
+
+                return [];
+            });
+
+        $locator = new Locator($this->transport, 'page1', 'input[type="text"]');
+
+        $locator->fill('test value');
+    }
+
+    public function testWaitForAttached(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(function ($payload) {
+                return 'locator.isAttached' === $payload['action'];
+            }))
+            ->willReturn(['value' => true]);
+
+        $locator = new Locator($this->transport, 'page1', '.dynamic-element');
+
+        $locator->waitForAttached();
+    }
+
+    public function testWaitForDetached(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(function ($payload) {
+                return 'locator.isAttached' === $payload['action'];
+            }))
+            ->willReturn(['value' => false]);
+
+        $locator = new Locator($this->transport, 'page1', '.removed-element');
+
+        $locator->waitForDetached();
+    }
+
+    public function testFilterWithHasText(): void
+    {
+        $this->useItemsLocator();
+
+        $filtered = $this->locator->filter(['hasText' => 'foo']);
+
+        $this->assertInstanceOf(Locator::class, $filtered);
+        $this->assertSame('Locator(selector=".items:has-text("foo")")', (string) $filtered);
+    }
+
+    public function testFilterWithHas(): void
+    {
+        $this->useItemsLocator();
+
+        $inner = new Locator($this->transport, 'page1', '.inner');
+        $filtered = $this->locator->filter(['has' => $inner]);
+
+        $this->assertInstanceOf(Locator::class, $filtered);
+        $this->assertSame('Locator(selector=".items:has(.inner)")', (string) $filtered);
+    }
+
+    public function testFilterWithHasNotText(): void
+    {
+        $this->useItemsLocator();
+
+        $filtered = $this->locator->filter(['hasNotText' => 'bar']);
+
+        $this->assertInstanceOf(Locator::class, $filtered);
+        $this->assertSame('Locator(selector=".items:not(:has-text("bar"))")', (string) $filtered);
+    }
+
+    public function testFilterWithHasNot(): void
+    {
+        $this->useItemsLocator();
+
+        $inner = new Locator($this->transport, 'page1', '.inner');
+        $filtered = $this->locator->filter(['hasNot' => $inner]);
+
+        $this->assertInstanceOf(Locator::class, $filtered);
+        $this->assertSame('Locator(selector=".items:not(:has(.inner))")', (string) $filtered);
+    }
+
+    public function testAnd(): void
+    {
+        $this->useItemsLocator();
+
+        $other = new Locator($this->transport, 'page1', '.active');
+        $combined = $this->locator->and($other);
+
+        $this->assertInstanceOf(Locator::class, $combined);
+        $this->assertSame('Locator(selector=".items >> .active")', (string) $combined);
+    }
+
+    public function testOr(): void
+    {
+        $this->useItemsLocator();
+
+        $other = new Locator($this->transport, 'page1', '.backup');
+        $combined = $this->locator->or($other);
+
+        $this->assertInstanceOf(Locator::class, $combined);
+        $this->assertSame('Locator(selector=".items, .backup")', (string) $combined);
+    }
+
+    public function testDescribe(): void
+    {
+        $this->useItemsLocator();
+
+        $described = $this->locator->describe('My custom locator');
+
+        $this->assertInstanceOf(Locator::class, $described);
+        $this->assertSame($this->locator, $described);
+    }
+
+    public function testContentFrame(): void
+    {
+        $this->useItemsLocator();
+
+        $frameLocator = $this->locator->contentFrame();
+
+        $this->assertInstanceOf(FrameLocatorInterface::class, $frameLocator);
+    }
+
+    public function testFilterWithEmptyOptions(): void
+    {
+        $this->useItemsLocator();
+
+        $filtered = $this->locator->filter([]);
+
+        $this->assertInstanceOf(Locator::class, $filtered);
+        $this->assertSame('Locator(selector=".items")', (string) $filtered);
+    }
+
+    public function testFilterWithBothOptions(): void
+    {
+        $this->useItemsLocator();
+
+        $inner = new Locator($this->transport, 'page1', '.inner');
+        $filtered = $this->locator->filter([
+            'hasText' => 'foo',
+            'has' => $inner,
+        ]);
+
+        $this->assertInstanceOf(Locator::class, $filtered);
+        $this->assertStringContainsString(':has-text("foo")', (string) $filtered);
+        $this->assertStringContainsString(':has(.inner)', (string) $filtered);
+    }
+
+    public function testNormalizesReturnBodyToFunctionWithElement(): void
+    {
+        $transport = $this->createMock(TransportInterface::class);
+
+        $transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(function ($payload) {
+                return 'locator.evaluate' === $payload['action']
+                    && '(el, arg) => { return el.textContent; }' === $payload['expression'];
+            }))
+            ->willReturn(['value' => 'hello']);
+
+        $locator = new Locator($transport, 'page1', '.title');
+        $result = $locator->evaluate('return el.textContent;');
+        $this->assertSame('hello', $result);
+    }
+
+    public function testLeavesPlainExpressionUntouched(): void
+    {
+        $transport = $this->createMock(TransportInterface::class);
+
+        $transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(function ($payload) {
+                return 'locator.evaluate' === $payload['action']
+                    && 'element.textContent' === $payload['expression'];
+            }))
+            ->willReturn(['value' => 'ok']);
+
+        $locator = new Locator($transport, 'page1', '.title');
+        $result = $locator->evaluate('element.textContent');
+        $this->assertSame('ok', $result);
+    }
+
+    public function testRelativePathIsResolvedBeforeItReachesTheTransport(): void
+    {
+        $this->createTmpDir();
+
+        file_put_contents($this->tmpDir.'/upload.txt', 'hello');
+        chdir($this->tmpDir);
+
+        $sent = null;
+        $transport = $this->createMock(TransportInterface::class);
+        $transport->method('send')->willReturnCallback(function (array $payload) use (&$sent): array {
+            $sent = $payload;
+
+            return [];
+        });
+
+        (new Locator($transport, 'page1', '#f'))->setInputFiles('upload.txt');
+
+        $this->assertSame([$this->tmpDir.'/upload.txt'], $sent['files']);
+    }
+
+    public function testMissingFileIsRejectedBeforeAnythingIsSent(): void
+    {
+        $this->createTmpDir();
+
+        $transport = $this->createMock(TransportInterface::class);
+        $transport->expects($this->never())->method('send');
+
+        $this->expectException(PlaywrightException::class);
+        $this->expectExceptionMessage('File not found: nope.txt');
+
+        (new Locator($transport, 'page1', '#f'))->setInputFiles('nope.txt');
+    }
+
+    /**
+     * Rebinds $this->locator to the '.items' selector used by the filter and
+     * combinator tests, which need a different base selector than setUp().
+     */
+    private function useItemsLocator(): void
+    {
+        $this->locator = new Locator($this->transport, 'page1', '.items');
+    }
+
+    /**
+     * Creates an empty working directory removed by tearDown().
+     */
+    private function createTmpDir(): void
+    {
+        $this->originalCwd = (string) getcwd();
+        $this->tmpDir = sys_get_temp_dir().'/pw-input-files-'.bin2hex(random_bytes(6));
+        mkdir($this->tmpDir);
+        $this->tmpDir = (string) realpath($this->tmpDir);
     }
 }
