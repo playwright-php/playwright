@@ -237,6 +237,8 @@ class PageHandler extends BaseHandler {
       goto: () => this.goto(page, command),
       evaluate: () => this.evaluate(page, command),
       addInitScript: () => page.addInitScript(command.script),
+      emulateMedia: () => page.emulateMedia(command.options || {}),
+      requestGC: () => page.requestGC(),
       waitForResponse: () => this.waitForResponse(page, command),
       waitForRequest: () => this.waitForRequest(page, command),
       requests: () => this.getRequests(page),

@@ -221,6 +221,35 @@ class PageTest extends TestCase
     }
 
     #[Test]
+    public function itEmulatesMediaFeatures(): void
+    {
+        $this->page->emulateMedia([
+            'media' => 'print',
+            'colorScheme' => 'dark',
+            'reducedMotion' => 'reduce',
+        ]);
+
+        $this->assertTrue($this->page->evaluate("matchMedia('print').matches"));
+        $this->assertTrue($this->page->evaluate("matchMedia('(prefers-color-scheme: dark)').matches"));
+        $this->assertTrue($this->page->evaluate("matchMedia('(prefers-reduced-motion: reduce)').matches"));
+
+        $this->page->emulateMedia(['media' => 'no-override', 'colorScheme' => 'no-override']);
+
+        $this->assertFalse($this->page->evaluate("matchMedia('print').matches"));
+    }
+
+    #[Test]
+    public function itRequestsGarbageCollection(): void
+    {
+        $this->page->evaluate('() => { globalThis.__collected = new WeakRef({ payload: new Array(1024).fill(0) }); }');
+
+        $result = $this->page->requestGC();
+
+        $this->assertSame($this->page, $result);
+        $this->assertNull($this->page->evaluate('() => globalThis.__collected.deref() ?? null'));
+    }
+
+    #[Test]
     public function itListsStoredConsoleMessages(): void
     {
         $this->page->evaluate("console.log('stored message from PHP')");

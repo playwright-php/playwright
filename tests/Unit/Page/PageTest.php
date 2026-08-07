@@ -31,6 +31,7 @@ use Playwright\Locator\Locator;
 use Playwright\Locator\Options\GetByRoleOptions;
 use Playwright\Locator\Options\LocatorOptions;
 use Playwright\Page\Options\DragAndDropOptions;
+use Playwright\Page\Options\EmulateMediaOptions;
 use Playwright\Page\Options\WaitForRequestOptions;
 use Playwright\Page\Page;
 use Playwright\Page\PageEventHandlerInterface;
@@ -1052,6 +1053,47 @@ class PageTest extends TestCase
         $request = $this->page->waitForRequest('**/*.css', new WaitForRequestOptions(20.0));
 
         $this->assertSame('stylesheet', $request->resourceType());
+    }
+
+    public function testEmulateMediaSendsOptionsAndReturnsSelf(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'options' => ['colorScheme' => 'dark', 'media' => 'print'],
+                'action' => 'page.emulateMedia',
+                'pageId' => 'page-id',
+            ])
+            ->willReturn([]);
+
+        $this->assertSame($this->page, $this->page->emulateMedia(['media' => 'print', 'colorScheme' => 'dark']));
+    }
+
+    public function testEmulateMediaAcceptsAnOptionsObject(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'options' => ['reducedMotion' => 'reduce'],
+                'action' => 'page.emulateMedia',
+                'pageId' => 'page-id',
+            ])
+            ->willReturn([]);
+
+        $this->page->emulateMedia(new EmulateMediaOptions(reducedMotion: 'reduce'));
+    }
+
+    public function testRequestGCSendsCommandAndReturnsSelf(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'action' => 'page.requestGC',
+                'pageId' => 'page-id',
+            ])
+            ->willReturn([]);
+
+        $this->assertSame($this->page, $this->page->requestGC());
     }
 
     private function createPage(string $pageId = 'page-1'): Page

@@ -28,6 +28,7 @@ use Playwright\Network\RequestInterface;
 use Playwright\Network\ResponseInterface;
 use Playwright\Page\Options\ClickOptions;
 use Playwright\Page\Options\DragAndDropOptions;
+use Playwright\Page\Options\EmulateMediaOptions;
 use Playwright\Page\Options\FrameQueryOptions;
 use Playwright\Page\Options\GotoOptions;
 use Playwright\Page\Options\NavigationHistoryOptions;
@@ -178,6 +179,22 @@ interface PageInterface
     public function addInitScript(string $script): self;
 
     public function evaluate(string $expression, mixed $arg = null): mixed;
+
+    /**
+     * Overrides the CSS media type and media features the page reports.
+     *
+     * An omitted feature keeps whatever override is in place; pass
+     * 'no-override' to give it back to the browser default.
+     *
+     * @param array<string, mixed>|EmulateMediaOptions $options
+     */
+    public function emulateMedia(array|EmulateMediaOptions $options = []): self;
+
+    /**
+     * Asks the browser to collect garbage, so a WeakRef held by the page can be
+     * observed as cleared. Collection is best effort, never guaranteed.
+     */
+    public function requestGC(): self;
 
     /**
      * @param array<string, mixed>|WaitForSelectorOptions $options

@@ -47,6 +47,7 @@ use Playwright\Network\ResponseInterface;
 use Playwright\Network\Route;
 use Playwright\Page\Options\ClickOptions;
 use Playwright\Page\Options\DragAndDropOptions;
+use Playwright\Page\Options\EmulateMediaOptions;
 use Playwright\Page\Options\FrameQueryOptions;
 use Playwright\Page\Options\GotoOptions;
 use Playwright\Page\Options\NavigationHistoryOptions;
@@ -546,6 +547,24 @@ final class Page implements PageInterface, EventDispatcherInterface
         $response = $this->sendCommand('evaluate', ['expression' => $normalized, 'arg' => $arg]);
 
         return $response['result'] ?? null;
+    }
+
+    /**
+     * @param array<string, mixed>|EmulateMediaOptions $options
+     */
+    public function emulateMedia(array|EmulateMediaOptions $options = []): self
+    {
+        $options = EmulateMediaOptions::from($options)->toArray();
+        $this->sendCommand('emulateMedia', ['options' => $options]);
+
+        return $this;
+    }
+
+    public function requestGC(): self
+    {
+        $this->sendCommand('requestGC');
+
+        return $this;
     }
 
     /**
