@@ -16,27 +16,27 @@ namespace Playwright\Tests\Unit\Locator\Options;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Playwright\Locator\Options\ScrollIntoViewIfNeededOptions;
+use Playwright\Locator\Options\AriaSnapshotOptions;
 
-#[CoversClass(ScrollIntoViewIfNeededOptions::class)]
-final class ScrollIntoViewIfNeededOptionsTest extends TestCase
+#[CoversClass(AriaSnapshotOptions::class)]
+final class AriaSnapshotOptionsTest extends TestCase
 {
     public function testItBuildsFromAnArray(): void
     {
-        $options = ScrollIntoViewIfNeededOptions::from(['timeout' => 500.0]);
+        $options = AriaSnapshotOptions::from(['timeout' => 500.0]);
 
         $this->assertSame(['timeout' => 500.0], $options->toArray());
     }
 
     public function testItOmitsNullOptions(): void
     {
-        $this->assertSame([], (new ScrollIntoViewIfNeededOptions())->toArray());
+        $this->assertSame([], (new AriaSnapshotOptions())->toArray());
     }
 
     public function testItReturnsAnInstanceUnchanged(): void
     {
-        $options = new ScrollIntoViewIfNeededOptions(timeout: 500.0);
+        $options = new AriaSnapshotOptions(timeout: 500.0);
 
-        $this->assertSame($options, ScrollIntoViewIfNeededOptions::from($options));
+        $this->assertSame($options, AriaSnapshotOptions::from($options));
     }
 }

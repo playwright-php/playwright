@@ -16,27 +16,27 @@ namespace Playwright\Tests\Unit\Locator\Options;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Playwright\Locator\Options\ScrollIntoViewIfNeededOptions;
+use Playwright\Locator\Options\SetCheckedOptions;
 
-#[CoversClass(ScrollIntoViewIfNeededOptions::class)]
-final class ScrollIntoViewIfNeededOptionsTest extends TestCase
+#[CoversClass(SetCheckedOptions::class)]
+final class SetCheckedOptionsTest extends TestCase
 {
     public function testItBuildsFromAnArray(): void
     {
-        $options = ScrollIntoViewIfNeededOptions::from(['timeout' => 500.0]);
+        $options = SetCheckedOptions::from(['force' => true, 'timeout' => 500.0]);
 
-        $this->assertSame(['timeout' => 500.0], $options->toArray());
+        $this->assertSame(['force' => true, 'timeout' => 500.0], $options->toArray());
     }
 
     public function testItOmitsNullOptions(): void
     {
-        $this->assertSame([], (new ScrollIntoViewIfNeededOptions())->toArray());
+        $this->assertSame([], (new SetCheckedOptions())->toArray());
     }
 
     public function testItReturnsAnInstanceUnchanged(): void
     {
-        $options = new ScrollIntoViewIfNeededOptions(timeout: 500.0);
+        $options = new SetCheckedOptions(force: true);
 
-        $this->assertSame($options, ScrollIntoViewIfNeededOptions::from($options));
+        $this->assertSame($options, SetCheckedOptions::from($options));
     }
 }

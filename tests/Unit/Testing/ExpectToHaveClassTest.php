@@ -87,6 +87,15 @@ final class ExpectToHaveClassTest extends TestCase
         (new Expect($locator))->withTimeout(0)->toHaveClass('primary');
     }
 
+    public function testANegatedAssertionFailsOnTheExactList(): void
+    {
+        $this->expectException(\Throwable::class);
+        $this->expectExceptionMessage('Expected class list not to be');
+
+        (new Expect($this->locatorWithClass('primary active')))
+            ->not()->withTimeout(0)->toHaveClass('primary active');
+    }
+
     private function locatorWithClass(string $class): LocatorInterface
     {
         $locator = $this->createMock(LocatorInterface::class);

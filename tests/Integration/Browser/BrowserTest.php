@@ -19,6 +19,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Playwright\Browser\Browser;
 use Playwright\Browser\BrowserContextInterface;
+use Playwright\Browser\BrowserType;
 use Playwright\Page\PageInterface;
 use Playwright\Testing\PlaywrightTestCaseTrait;
 
@@ -81,5 +82,22 @@ class BrowserTest extends TestCase
         $page = $this->browser->newPage();
         $this->assertInstanceOf(PageInterface::class, $page);
         $page->close();
+    }
+
+    #[Test]
+    public function itReportsTheEngineItWasLaunchedWith(): void
+    {
+        $this->assertSame(BrowserType::CHROMIUM, $this->browser->browserType());
+    }
+
+    #[Test]
+    public function itsContextsPointBackToIt(): void
+    {
+        $context = $this->browser->newContext();
+
+        $this->assertSame($this->browser, $context->browser());
+        $this->assertSame($this->browser, $this->browser->context()->browser());
+
+        $context->close();
     }
 }
