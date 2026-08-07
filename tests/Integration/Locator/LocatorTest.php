@@ -194,6 +194,23 @@ class LocatorTest extends TestCase
     }
 
     #[Test]
+    public function itWaitsForAFunctionAgainstTheMatchedElement(): void
+    {
+        $this->page->setContent(
+            '<div id="status">loading</div>'
+            .'<script>setTimeout(() => document.querySelector("#status").textContent = "ready", 50)</script>'
+        );
+
+        $locator = $this->page->locator('#status');
+
+        $this->assertSame($locator, $locator->waitForFunction(
+            '(element) => element.textContent === "ready"',
+            null,
+            ['timeout' => 2000.0],
+        ));
+    }
+
+    #[Test]
     public function itExposesThePageItResolvesAgainst(): void
     {
         $this->assertSame($this->page, $this->page->locator('#button-1')->page());

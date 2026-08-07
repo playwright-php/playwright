@@ -41,6 +41,7 @@ use Playwright\Locator\Options\TapOptions;
 use Playwright\Locator\Options\TextContentOptions;
 use Playwright\Locator\Options\TypeOptions;
 use Playwright\Locator\Options\UncheckOptions;
+use Playwright\Locator\Options\WaitForFunctionOptions;
 use Playwright\Locator\Options\WaitForOptions;
 use Playwright\Page\PageInterface;
 
@@ -254,6 +255,14 @@ interface LocatorInterface
      * handle once done with it, otherwise it pins its target until the page closes.
      */
     public function evaluateHandle(string $expression, mixed $arg = null): JSHandleInterface;
+
+    /**
+     * Re-runs the expression, with the matched element as its first argument,
+     * until it returns a truthy value.
+     *
+     * @param array<string, mixed>|WaitForFunctionOptions $options
+     */
+    public function waitForFunction(string $pageFunction, mixed $arg = null, array|WaitForFunctionOptions $options = []): self;
 
     /**
      * The page this locator resolves against.

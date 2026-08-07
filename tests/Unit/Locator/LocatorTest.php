@@ -1018,7 +1018,6 @@ final class LocatorTest extends TestCase
         (new Locator($transport, 'page1', '#f'))->setInputFiles('nope.txt');
     }
 
-<<<<<<< HEAD
     public function testAriaSnapshotRejectsANonStringPayload(): void
     {
         $this->transport->method('send')->willReturn(['value' => ['not', 'a', 'string']]);
@@ -1056,7 +1055,8 @@ final class LocatorTest extends TestCase
         $this->expectExceptionMessage('Invalid boundingBox response');
 
         $this->locator->boundingBox();
-=======
+    }
+
     public function testEvaluateHandleReturnsAJavaScriptHandle(): void
     {
         $this->transport
@@ -1083,7 +1083,25 @@ final class LocatorTest extends TestCase
         $this->expectExceptionMessage('Invalid locator.evaluateHandle response');
 
         $this->locator->evaluateHandle('(el) => el');
->>>>>>> 75e0bba (Add handle evaluation APIs)
+    }
+
+    public function testWaitForFunctionSendsTheNormalizedExpressionAndTimeout(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static function (array $payload): bool {
+                return 'locator.waitForFunction' === $payload['action']
+                    && '(el, arg) => { return el.value === arg; }' === $payload['pageFunction']
+                    && 'ready' === $payload['arg']
+                    && ['timeout' => 250.0] === $payload['options'];
+            }))
+            ->willReturn(['success' => true]);
+
+        $this->assertSame(
+            $this->locator,
+            $this->locator->waitForFunction('return el.value === arg;', 'ready', ['timeout' => 250.0])
+        );
     }
 
     public function testPageReturnsTheOriginatingPage(): void

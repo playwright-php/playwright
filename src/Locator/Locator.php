@@ -47,6 +47,7 @@ use Playwright\Locator\Options\TapOptions;
 use Playwright\Locator\Options\TextContentOptions;
 use Playwright\Locator\Options\TypeOptions;
 use Playwright\Locator\Options\UncheckOptions;
+use Playwright\Locator\Options\WaitForFunctionOptions;
 use Playwright\Locator\Options\WaitForOptions;
 use Playwright\Page\PageInterface;
 use Playwright\Transport\TransportInterface;
@@ -667,6 +668,20 @@ final class Locator implements \Stringable, LocatorInterface
         }
 
         return new JSHandle($this->transport, $handleId);
+    }
+
+    /**
+     * @param array<string, mixed>|WaitForFunctionOptions $options
+     */
+    public function waitForFunction(string $pageFunction, mixed $arg = null, array|WaitForFunctionOptions $options = []): self
+    {
+        $this->sendCommand('locator.waitForFunction', [
+            'pageFunction' => self::normalizeForLocator($pageFunction),
+            'arg' => $arg,
+            'options' => WaitForFunctionOptions::from($options)->toArray(),
+        ]);
+
+        return $this;
     }
 
     public function page(): PageInterface

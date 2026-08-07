@@ -614,6 +614,7 @@ class LocatorHandler extends BaseHandler {
       screenshot: () => PromiseUtils.wrapBinary(locator.screenshot(command.options)),
       evaluate: () => this.evaluateLocator(locator, command),
       evaluateHandle: () => this.evaluateHandle(locator, command),
+      waitForFunction: () => this.waitForFunction(locator, command),
       dragAndDrop: () => this.handleDragAndDrop(page, command)
     });
 
@@ -681,6 +682,13 @@ class LocatorHandler extends BaseHandler {
       expression: command.expression,
       arg: command.arg,
     }));
+  }
+
+  async waitForFunction(locator, command) {
+    // Forwarded as a string: Playwright evaluates it in the page. Turning it
+    // into a function here would run it in this Node process instead.
+    await locator.waitForFunction(command.pageFunction, command.arg, command.options);
+    return { success: true };
   }
 
   async handleDragAndDrop(page, command) {
