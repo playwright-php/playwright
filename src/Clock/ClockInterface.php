@@ -15,50 +15,75 @@ declare(strict_types=1);
 namespace Playwright\Clock;
 
 /**
+ * Controls time in a browser context.
+ *
+ * Use it to install fake timers or to set and advance time deterministically.
+ * Browser contexts expose the clock associated with their own page state.
+ *
  * @see https://playwright.dev/docs/clock
  * @see https://playwright.dev/docs/api/class-clock
  */
 interface ClockInterface
 {
     /**
-     * Advance the clock by jumping forward in time. Only fires due timers at most once.
+     * Jumps the clock forward.
+     *
+     * Runs timers that become due, but fires each callback at most once.
+     * Accepts milliseconds or a duration string such as '01:00:00'.
      *
      * @param int|string $ticks Number of milliseconds or string like '01:00:00'
      */
     public function fastForward(int|string $ticks): void;
 
     /**
-     * Install fake implementations for time-related functions.
+     * Installs the fake clock.
+     *
+     * Replaces time-related functions in this browser context with controlled implementations.
+     * The optional time becomes the initial value used by the fake clock.
      *
      * @param array{time?: int|string|\DateTimeInterface} $options
      */
     public function install(array $options = []): void;
 
     /**
-     * Advance the clock by jumping forward in time and pause the time.
-     * Only fires due timers at most once.
+     * Advances time and pauses it.
+     *
+     * Runs timers that become due, but fires each callback at most once.
+     * The time can be a timestamp, a duration string, or a DateTimeInterface.
      */
     public function pauseAt(int|string|\DateTimeInterface $time): void;
 
     /**
-     * Resumes timers. Once called, time resumes flowing, timers are fired as usual.
+     * Resumes clock progression.
+     *
+     * Time starts flowing from its current value after a previous pause.
+     * Timers then run according to their normal schedule.
      */
     public function resume(): void;
 
     /**
-     * Advance the clock, firing all the time-related callbacks.
+     * Runs the clock for a duration.
+     *
+     * Executes time-related callbacks that become due during the elapsed period.
+     * Accepts milliseconds or a duration string such as '01:00:00'.
      *
      * @param int|string $ticks Number of milliseconds or string like '01:00:00'
      */
     public function runFor(int|string $ticks): void;
 
     /**
-     * Makes Date.now and new Date() return fixed fake time at all times, keeps all timers running.
+     * Fixes the reported date.
+     *
+     * Makes Date.now() and new Date() return the supplied fake time.
+     * Timers continue running while date reads remain fixed.
      */
     public function setFixedTime(int|string|\DateTimeInterface $time): void;
 
     /**
-     * Sets system time, but does not trigger any timers.
+     * Sets the system time.
+     *
+     * Changes the fake clock's current time without running due timers.
+     * Use it when time must move without executing scheduled callbacks.
      */
     public function setSystemTime(int|string|\DateTimeInterface $time): void;
 }

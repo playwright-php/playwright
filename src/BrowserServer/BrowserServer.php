@@ -16,6 +16,12 @@ namespace Playwright\BrowserServer;
 
 use Playwright\Transport\TransportInterface;
 
+/**
+ * Represents a remotely launched browser server.
+ *
+ * The server exposes a WebSocket endpoint for connecting Playwright clients.
+ * Close or kill it when no client should use its browser process anymore.
+ */
 final class BrowserServer implements BrowserServerInterface
 {
     public function __construct(

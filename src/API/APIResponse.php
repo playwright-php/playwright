@@ -16,6 +16,12 @@ namespace Playwright\API;
 
 use Playwright\Exception\PlaywrightException;
 
+/**
+ * Represents an HTTP API response.
+ *
+ * Response data remains available after the request context has completed.
+ * Header and body accessors normalize the values returned by the Playwright server.
+ */
 final class APIResponse implements APIResponseInterface
 {
     /**

@@ -16,6 +16,12 @@ namespace Playwright\Input;
 
 use Playwright\Exception\InvalidArgumentException;
 
+/**
+ * Lists supported keyboard modifiers.
+ *
+ * Values match the key names accepted by Playwright input operations.
+ * fromString() also accepts common platform aliases such as cmd and ctrl.
+ */
 enum ModifierKey: string
 {
     case Alt = 'Alt';

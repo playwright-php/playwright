@@ -15,11 +15,19 @@ declare(strict_types=1);
 namespace Playwright\API;
 
 /**
- * Factory for creating API request contexts.
+ * Creates API request contexts.
+ *
+ * Contexts send HTTP requests without creating a browser page.
+ * Each context owns its cookies and request configuration.
  */
 interface APIRequestInterface
 {
     /**
+     * Creates an API request context.
+     *
+     * Options define defaults such as baseURL, headers, and storage state.
+     * Dispose the returned context after the required requests complete.
+     *
      * @param array<string, mixed> $options
      */
     public function newContext(array $options = []): APIRequestContextInterface;

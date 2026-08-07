@@ -14,6 +14,12 @@ declare(strict_types=1);
 
 namespace Playwright\Clock;
 
+/**
+ * Provides a no-op clock.
+ *
+ * Clock operations are accepted without sending protocol commands to a browser.
+ * Use it where the clock contract is required but no browser context exists.
+ */
 final class NullClock implements ClockInterface
 {
     public function fastForward(int|string $ticks): void

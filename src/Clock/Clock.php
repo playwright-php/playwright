@@ -16,6 +16,12 @@ namespace Playwright\Clock;
 
 use Playwright\Transport\TransportInterface;
 
+/**
+ * Controls time in a browser context.
+ *
+ * Clock operations are sent to the Playwright server for one browser context.
+ * Browser contexts create it for their public clock() method.
+ */
 final class Clock implements ClockInterface
 {
     public function __construct(

@@ -16,6 +16,12 @@ namespace Playwright\Input;
 
 use Playwright\Transport\TransportInterface;
 
+/**
+ * Sends touch input to a page.
+ *
+ * The current implementation dispatches single-point tap gestures.
+ * Coordinates are relative to the page viewport.
+ */
 final class Touchscreen implements TouchscreenInterface
 {
     public function __construct(

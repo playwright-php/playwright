@@ -19,6 +19,12 @@ use Playwright\Tracing\Tracing;
 use Playwright\Tracing\TracingInterface;
 use Playwright\Transport\TransportInterface;
 
+/**
+ * Executes HTTP requests through Playwright.
+ *
+ * The context keeps request defaults and optional shared browser storage state.
+ * Dispose it after use to release the server-side request context.
+ */
 final class APIRequestContext implements APIRequestContextInterface
 {
     public function __construct(
