@@ -23,6 +23,7 @@ readonly class AssertionOptions
         public ?bool $strict = null,
         public ?bool $ignoreCase = null,
         public ?bool $useInnerText = null,
+        public ?float $ratio = null,
     ) {
     }
 }

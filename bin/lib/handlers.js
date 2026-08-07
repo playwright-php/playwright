@@ -536,6 +536,7 @@ class LocatorHandler extends BaseHandler {
       isAttached: async () => this.createValueResult((await locator.count()) > 0),
       isHidden: () => PromiseUtils.wrapValue(locator.isHidden()),
       isDisabled: () => PromiseUtils.wrapValue(locator.isDisabled()),
+      isEditable: () => PromiseUtils.wrapValue(locator.isEditable()),
       isVisible: () => PromiseUtils.wrapValue(locator.isVisible()),
       isEnabled: () => PromiseUtils.wrapValue(locator.isEnabled()),
       isChecked: () => PromiseUtils.wrapValue(locator.isChecked()),
