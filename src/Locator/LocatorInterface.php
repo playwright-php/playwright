@@ -24,6 +24,8 @@ use Playwright\Locator\Options\ClickOptions;
 use Playwright\Locator\Options\DblClickOptions;
 use Playwright\Locator\Options\DispatchEventOptions;
 use Playwright\Locator\Options\DragToOptions;
+use Playwright\Locator\Options\DropOptions;
+use Playwright\Locator\Options\DropPayload;
 use Playwright\Locator\Options\FillOptions;
 use Playwright\Locator\Options\FilterOptions;
 use Playwright\Locator\Options\GetAttributeOptions;
@@ -95,6 +97,17 @@ interface LocatorInterface
      * @param array<string, mixed>|DragToOptions $options
      */
     public function dragTo(LocatorInterface $target, array|DragToOptions $options = []): void;
+
+    /**
+     * Drop files or clipboard-like data onto this element, as an external application would.
+     *
+     * The target must accept the drop by calling preventDefault() in its dragover
+     * handler, otherwise the drop is rejected and this method throws.
+     *
+     * @param array<string, mixed>|DropPayload $payload
+     * @param array<string, mixed>|DropOptions $options
+     */
+    public function drop(array|DropPayload $payload, array|DropOptions $options = []): void;
 
     /**
      * @param array<string, mixed>|DblClickOptions $options
@@ -289,6 +302,11 @@ interface LocatorInterface
     public function highlight(): void;
 
     /**
+     * Removes the highlight painted by highlight().
+     */
+    public function hideHighlight(): void;
+
+    /**
      * @param array<string, mixed>|SelectTextOptions $options
      */
     public function selectText(array|SelectTextOptions $options = []): void;
@@ -317,6 +335,14 @@ interface LocatorInterface
     public function or(LocatorInterface $locator): self;
 
     public function describe(string $description): self;
+
+    /**
+     * Resolves the current match into a locator built from test ids and aria roles.
+     *
+     * Turns an implementation-detail selector into a user-facing one, so it needs a
+     * live match and hits the browser.
+     */
+    public function normalize(): self;
 
     public function contentFrame(): FrameLocatorInterface;
 }

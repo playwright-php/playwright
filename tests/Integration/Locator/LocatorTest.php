@@ -17,7 +17,10 @@ namespace Playwright\Tests\Integration\Locator;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Playwright\Exception\PlaywrightException;
 use Playwright\Locator\Locator;
+use Playwright\Locator\Options\DropOptions;
+use Playwright\Locator\Options\DropPayload;
 use Playwright\Testing\PlaywrightTestCaseTrait;
 use Playwright\Tests\Support\RouteServerTestTrait;
 
@@ -508,6 +511,114 @@ class LocatorTest extends TestCase
         $locator->uncheck(new \Playwright\Locator\Options\UncheckOptions(force: true));
 
         $this->assertFalse($locator->isChecked());
+    }
+
+    #[Test]
+    public function itHidesTheHighlightItPainted(): void
+    {
+        $this->page->setContent('<input id="field" value="content">');
+        $field = $this->page->locator('#field');
+
+        $field->highlight();
+        $field->hideHighlight();
+
+        // The overlay lives in a closed shadow root, so the page cannot observe it;
+        // what this checks is that the command round-trips and leaves the page usable.
+        $field->fill('typed');
+        $this->assertSame('typed', $field->inputValue());
+    }
+
+    #[Test]
+    public function itNormalizesASelectorToAUserFacingOne(): void
+    {
+        $this->page->setContent('<div class="wrapper"><button class="x1y2">Save</button></div>');
+
+        $normalized = $this->page->locator('.wrapper .x1y2')->normalize();
+
+        $this->assertStringContainsString('internal:role=button', $normalized->getSelector());
+        $this->assertSame('Save', $normalized->textContent());
+    }
+
+    #[Test]
+    public function itDropsClipboardData(): void
+    {
+        $this->installDropZone();
+
+        $this->page->locator('#dropzone')->drop(['data' => [
+            'text/plain' => 'hello world',
+            'text/uri-list' => 'https://example.com',
+        ]]);
+
+        $this->assertSame('hello world', $this->page->locator('#text')->textContent());
+        $this->assertSame('https://example.com', $this->page->locator('#uri')->textContent());
+    }
+
+    #[Test]
+    public function itDropsAnInMemoryFile(): void
+    {
+        $this->installDropZone();
+
+        $this->page->locator('#dropzone')->drop(new DropPayload(files: [
+            ['name' => 'note.txt', 'mimeType' => 'text/plain', 'buffer' => 'inline bytes'],
+        ]));
+
+        $this->assertSame('note.txt:text/plain:12', $this->page->locator('#files')->textContent());
+    }
+
+    #[Test]
+    public function itDropsAFileFromDiskAtAGivenPosition(): void
+    {
+        $this->installDropZone();
+
+        $path = sys_get_temp_dir().'/pw-php-drop-'.bin2hex(random_bytes(6)).'.txt';
+        file_put_contents($path, 'on disk');
+
+        try {
+            $this->page->locator('#dropzone')->drop(
+                ['files' => $path],
+                new DropOptions(position: ['x' => 10.0, 'y' => 10.0]),
+            );
+
+            $this->assertSame(basename($path).':text/plain:7', $this->page->locator('#files')->textContent());
+        } finally {
+            @unlink($path);
+        }
+    }
+
+    #[Test]
+    public function itFailsWhenTheTargetRejectsTheDrop(): void
+    {
+        $this->page->setContent('<div id="inert" style="width: 100px; height: 100px"></div>');
+
+        $this->expectException(PlaywrightException::class);
+        $this->expectExceptionMessage('did not call preventDefault()');
+
+        $this->page->locator('#inert')->drop(['data' => ['text/plain' => 'x']], ['timeout' => 2000.0]);
+    }
+
+    /**
+     * A drop zone that mirrors what it received into three outputs.
+     */
+    private function installDropZone(): void
+    {
+        $this->page->setContent(<<<'HTML'
+            <div id="dropzone" style="width: 200px; height: 200px; border: 1px solid"></div>
+            <output id="files"></output>
+            <output id="text"></output>
+            <output id="uri"></output>
+            <script>
+                const zone = document.querySelector('#dropzone');
+                zone.addEventListener('dragover', event => event.preventDefault());
+                zone.addEventListener('drop', event => {
+                    event.preventDefault();
+                    const transfer = event.dataTransfer;
+                    document.querySelector('#files').textContent =
+                        Array.from(transfer.files).map(file => `${file.name}:${file.type}:${file.size}`).join(',');
+                    document.querySelector('#text').textContent = transfer.getData('text/plain');
+                    document.querySelector('#uri').textContent = transfer.getData('text/uri-list');
+                });
+            </script>
+        HTML);
     }
 
     private static function findFreePort(): int

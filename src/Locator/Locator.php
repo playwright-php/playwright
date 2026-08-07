@@ -30,6 +30,8 @@ use Playwright\Locator\Options\ClickOptions;
 use Playwright\Locator\Options\DblClickOptions;
 use Playwright\Locator\Options\DispatchEventOptions;
 use Playwright\Locator\Options\DragToOptions;
+use Playwright\Locator\Options\DropOptions;
+use Playwright\Locator\Options\DropPayload;
 use Playwright\Locator\Options\FillOptions;
 use Playwright\Locator\Options\FilterOptions;
 use Playwright\Locator\Options\GetAttributeOptions;
@@ -585,6 +587,21 @@ final class Locator implements \Stringable, LocatorInterface
     }
 
     /**
+     * @param array<string, mixed>|DropPayload $payload
+     * @param array<string, mixed>|DropOptions $options
+     */
+    public function drop(array|DropPayload $payload, array|DropOptions $options = []): void
+    {
+        $payload = DropPayload::from($payload);
+        $options = DropOptions::from($options);
+
+        $this->sendCommand('locator.drop', [
+            'payload' => $payload->toArray(),
+            'options' => $options->toArray(),
+        ]);
+    }
+
+    /**
      * @param array<string, mixed>|TextContentOptions $options
      */
     public function textContent(array|TextContentOptions $options = []): ?string
@@ -706,6 +723,11 @@ final class Locator implements \Stringable, LocatorInterface
     public function highlight(): void
     {
         $this->sendCommand('locator.highlight');
+    }
+
+    public function hideHighlight(): void
+    {
+        $this->sendCommand('locator.hideHighlight');
     }
 
     /**
@@ -963,6 +985,17 @@ final class Locator implements \Stringable, LocatorInterface
     public function describe(string $description): self
     {
         return $this;
+    }
+
+    public function normalize(): self
+    {
+        $response = $this->sendCommand('locator.normalize');
+        $value = $response['value'] ?? null;
+        if (!is_string($value)) {
+            throw new ProtocolErrorException('Invalid normalize response', 0);
+        }
+
+        return new self($this->transport, $this->pageId, $value, $this->frameSelector, $this->logger);
     }
 
     public function contentFrame(): FrameLocatorInterface

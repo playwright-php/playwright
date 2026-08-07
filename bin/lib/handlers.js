@@ -646,6 +646,9 @@ class LocatorHandler extends BaseHandler {
       dispatchEvent: () => locator.dispatchEvent(command.type, command.eventInit, command.options),
       evaluateAll: () => this.evaluateAll(locator, command),
       highlight: () => locator.highlight(),
+      hideHighlight: () => locator.hideHighlight(),
+      drop: () => locator.drop(this.decodeDropPayload(command.payload), command.options),
+      normalize: () => this.normalize(locator),
       selectText: () => locator.selectText(command.options),
       setChecked: () => locator.setChecked(command.checked, command.options),
       tap: () => locator.tap(command.options),
@@ -679,6 +682,26 @@ class LocatorHandler extends BaseHandler {
       return frameLocator.locator(command.selector);
     }
     return page.locator(command.selector);
+  }
+
+  // File buffers arrive base64 encoded because the PHP transport is JSON.
+  decodeDropPayload(payload) {
+    const source = payload || {};
+    const decoded = {};
+    if (source.data) decoded.data = source.data;
+    if (source.files) {
+      decoded.files = source.files.map(file => typeof file === 'string'
+        ? file
+        : { name: file.name, mimeType: file.mimeType, buffer: Buffer.from(file.buffer, 'base64') });
+    }
+    return decoded;
+  }
+
+  // The resolved selector is the only part of the normalized locator PHP can use,
+  // and Playwright exposes it nowhere else.
+  async normalize(locator) {
+    const normalized = await locator.normalize();
+    return this.createValueResult(normalized._selector);
   }
 
   async evaluateLocator(locator, command) {
