@@ -34,9 +34,9 @@ final class JSHandle implements JSHandleInterface
             'handleId' => $this->handleId,
         ]);
 
-        $element = $response['element'] ?? null;
+        $handleId = $response['handleId'] ?? null;
 
-        return \is_object($element) ? $element : null;
+        return \is_string($handleId) ? new self($this->transport, $handleId) : null;
     }
 
     public function dispose(): void

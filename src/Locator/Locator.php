@@ -16,9 +16,12 @@ namespace Playwright\Locator;
 
 use Playwright\Exception\PlaywrightException;
 use Playwright\Exception\ProtocolErrorException;
+use Playwright\Exception\RuntimeException;
 use Playwright\Exception\TimeoutException;
 use Playwright\Frame\FrameLocator;
 use Playwright\Frame\FrameLocatorInterface;
+use Playwright\JSHandle\JSHandle;
+use Playwright\JSHandle\JSHandleInterface;
 use Playwright\Locator\Options\AriaSnapshotOptions;
 use Playwright\Locator\Options\BoundingBoxOptions;
 use Playwright\Locator\Options\CheckOptions;
@@ -44,7 +47,9 @@ use Playwright\Locator\Options\TapOptions;
 use Playwright\Locator\Options\TextContentOptions;
 use Playwright\Locator\Options\TypeOptions;
 use Playwright\Locator\Options\UncheckOptions;
+use Playwright\Locator\Options\WaitForFunctionOptions;
 use Playwright\Locator\Options\WaitForOptions;
+use Playwright\Page\PageInterface;
 use Playwright\Transport\TransportInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -70,6 +75,7 @@ final class Locator implements \Stringable, LocatorInterface
         private readonly ?string $frameSelector = null,
         ?LoggerInterface $logger = null,
         array $options = [],
+        private readonly ?PageInterface $page = null,
     ) {
         $this->logger = $logger ?? new NullLogger();
         $this->options = $options;
@@ -346,7 +352,7 @@ final class Locator implements \Stringable, LocatorInterface
         $newSelectorChain = clone $this->selectorChain;
         $newSelectorChain->append($selector);
 
-        return new Locator($this->transport, $this->pageId, $newSelectorChain, $this->frameSelector);
+        return new Locator($this->transport, $this->pageId, $newSelectorChain, $this->frameSelector, $this->logger, [], $this->page);
     }
 
     /**
@@ -638,7 +644,7 @@ final class Locator implements \Stringable, LocatorInterface
     {
         $newSelector = $this->selectorChain." >> nth=$index";
 
-        return new Locator($this->transport, $this->pageId, $newSelector, $this->frameSelector);
+        return new Locator($this->transport, $this->pageId, $newSelector, $this->frameSelector, $this->logger, [], $this->page);
     }
 
     public function evaluate(string $expression, mixed $arg = null): mixed
@@ -647,6 +653,44 @@ final class Locator implements \Stringable, LocatorInterface
         $response = $this->sendCommand('locator.evaluate', ['expression' => $normalized, 'arg' => $arg]);
 
         return $response['value'] ?? null;
+    }
+
+    public function evaluateHandle(string $expression, mixed $arg = null): JSHandleInterface
+    {
+        $response = $this->sendCommand('locator.evaluateHandle', [
+            'expression' => self::normalizeForLocator($expression),
+            'arg' => $arg,
+        ]);
+
+        $handleId = $response['handleId'] ?? null;
+        if (!is_string($handleId)) {
+            throw new ProtocolErrorException('Invalid locator.evaluateHandle response', 0);
+        }
+
+        return new JSHandle($this->transport, $handleId);
+    }
+
+    /**
+     * @param array<string, mixed>|WaitForFunctionOptions $options
+     */
+    public function waitForFunction(string $pageFunction, mixed $arg = null, array|WaitForFunctionOptions $options = []): self
+    {
+        $this->sendCommand('locator.waitForFunction', [
+            'pageFunction' => self::normalizeForLocator($pageFunction),
+            'arg' => $arg,
+            'options' => WaitForFunctionOptions::from($options)->toArray(),
+        ]);
+
+        return $this;
+    }
+
+    public function page(): PageInterface
+    {
+        if (null === $this->page) {
+            throw new RuntimeException('This locator was not created from a page.');
+        }
+
+        return $this->page;
     }
 
     public function evaluateAll(string $expression, mixed $arg = null): mixed
@@ -698,7 +742,7 @@ final class Locator implements \Stringable, LocatorInterface
     {
         $newFrameSelector = $this->selectorChain.' >> '.$selector;
 
-        return new FrameLocator($this->transport, $this->pageId, $newFrameSelector);
+        return new FrameLocator($this->transport, $this->pageId, $newFrameSelector, $this->logger, $this->page);
     }
 
     /**
@@ -898,14 +942,14 @@ final class Locator implements \Stringable, LocatorInterface
             $chain->addFilter(\sprintf(':not(:has(%s))', $options->hasNot->getSelector()));
         }
 
-        return new self($this->transport, $this->pageId, $chain, $this->frameSelector, $this->logger);
+        return new self($this->transport, $this->pageId, $chain, $this->frameSelector, $this->logger, [], $this->page);
     }
 
     public function and(LocatorInterface $locator): self
     {
         $chain = $this->selectorChain->append($locator->getSelector());
 
-        return new self($this->transport, $this->pageId, $chain, $this->frameSelector, $this->logger);
+        return new self($this->transport, $this->pageId, $chain, $this->frameSelector, $this->logger, [], $this->page);
     }
 
     public function or(LocatorInterface $locator): self
@@ -913,7 +957,7 @@ final class Locator implements \Stringable, LocatorInterface
         $combined = \sprintf('%s, %s', $this->selectorChain->toString(), $locator->getSelector());
         $chain = new SelectorChain($combined);
 
-        return new self($this->transport, $this->pageId, $chain, $this->frameSelector, $this->logger);
+        return new self($this->transport, $this->pageId, $chain, $this->frameSelector, $this->logger, [], $this->page);
     }
 
     public function describe(string $description): self
@@ -923,6 +967,6 @@ final class Locator implements \Stringable, LocatorInterface
 
     public function contentFrame(): FrameLocatorInterface
     {
-        return new FrameLocator($this->transport, $this->pageId, $this->selectorChain->toString(), $this->logger);
+        return new FrameLocator($this->transport, $this->pageId, $this->selectorChain->toString(), $this->logger, $this->page);
     }
 }

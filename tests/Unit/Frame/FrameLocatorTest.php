@@ -21,6 +21,7 @@ use PHPUnit\Framework\TestCase;
 use Playwright\Frame\FrameLocator;
 use Playwright\Locator\Locator;
 use Playwright\Locator\LocatorInterface;
+use Playwright\Page\PageInterface;
 use Playwright\Transport\TransportInterface;
 use Psr\Log\LoggerInterface;
 
@@ -212,5 +213,17 @@ class FrameLocatorTest extends TestCase
         $locator = $this->frameLocator->getByLabel('Password');
         $this->assertInstanceOf(LocatorInterface::class, $locator);
         $this->assertSame('label:text-is("Password") >> nth=0', $locator->getSelector());
+    }
+
+    public function testDescendantsCarryThePageAlong(): void
+    {
+        $page = $this->createMock(PageInterface::class);
+        $frameLocator = new FrameLocator($this->transport, $this->pageId, $this->initialSelector, $this->logger, $page);
+
+        $this->assertSame($page, $frameLocator->locator('button')->page());
+        $this->assertSame($page, $frameLocator->getByRole('button')->page());
+        $this->assertSame($page, $frameLocator->owner()->page());
+        $this->assertSame($page, $frameLocator->nth(1)->locator('button')->page());
+        $this->assertSame($page, $frameLocator->frameLocator('#nested')->locator('button')->page());
     }
 }

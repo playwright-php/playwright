@@ -18,12 +18,15 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Playwright\Exception\ProtocolErrorException;
+use Playwright\Exception\RuntimeException;
 use Playwright\Frame\Frame;
 use Playwright\Frame\FrameInterface;
+use Playwright\JSHandle\JSHandleInterface;
 use Playwright\Locator\LocatorInterface;
 use Playwright\Network\ResponseInterface;
 use Playwright\Page\Options\GotoOptions;
 use Playwright\Page\Options\WaitForNavigationOptions;
+use Playwright\Page\PageInterface;
 use Playwright\Transport\TransportInterface;
 use Psr\Log\LoggerInterface;
 
@@ -449,6 +452,104 @@ class FrameTest extends TestCase
         $this->expectExceptionMessage('non-string key');
 
         $frame->goto('https://example.com');
+    }
+
+    public function testEvaluateHandleNormalizesTheExpressionAndReturnsAHandle(): void
+    {
+        $frame = new Frame($this->transport, $this->pageId, 'iframe#auth', $this->logger);
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'expression' => '(arg) => { return document.body; }',
+                'arg' => null,
+                'action' => 'frame.evaluateHandle',
+                'pageId' => $this->pageId,
+                'frameSelector' => 'iframe#auth',
+            ])
+            ->willReturn(['handleId' => 'handle-1']);
+
+        $this->assertInstanceOf(JSHandleInterface::class, $frame->evaluateHandle('return document.body;'));
+    }
+
+    public function testEvaluateHandleRejectsAResponseWithoutAHandleId(): void
+    {
+        $this->transport->method('send')->willReturn([]);
+        $frame = new Frame($this->transport, $this->pageId, 'iframe#auth', $this->logger);
+
+        $this->expectException(ProtocolErrorException::class);
+        $this->expectExceptionMessage('Invalid frame.evaluateHandle response');
+
+        $frame->evaluateHandle('() => document.body');
+    }
+
+    public function testFrameElementReturnsAHandleToTheEmbeddingElement(): void
+    {
+        $frame = new Frame($this->transport, $this->pageId, 'iframe#auth', $this->logger);
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'action' => 'frame.frameElement',
+                'pageId' => $this->pageId,
+                'frameSelector' => 'iframe#auth',
+            ])
+            ->willReturn(['handleId' => 'handle-2']);
+
+        $this->assertInstanceOf(JSHandleInterface::class, $frame->frameElement());
+    }
+
+    public function testFrameElementRejectsAResponseWithoutAHandleId(): void
+    {
+        $this->transport->method('send')->willReturn(['handleId' => null]);
+        $frame = new Frame($this->transport, $this->pageId, 'iframe#auth', $this->logger);
+
+        $this->expectException(ProtocolErrorException::class);
+        $this->expectExceptionMessage('Invalid frame.frameElement response');
+
+        $frame->frameElement();
+    }
+
+    public function testPageReturnsTheOwningPage(): void
+    {
+        $page = $this->createMock(PageInterface::class);
+        $frame = new Frame($this->transport, $this->pageId, 'iframe#auth', $this->logger, $page);
+
+        $this->assertSame($page, $frame->page());
+    }
+
+    public function testPageRejectsAFrameBuiltWithoutAPage(): void
+    {
+        $frame = new Frame($this->transport, $this->pageId, 'iframe#auth', $this->logger);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('This frame was not created from a page.');
+
+        $frame->page();
+    }
+
+    public function testDescendantsCarryTheFramePageAlong(): void
+    {
+        $page = $this->createMock(PageInterface::class);
+        $frame = new Frame($this->transport, $this->pageId, 'iframe#auth', $this->logger, $page);
+
+        $this->assertSame($page, $frame->locator('button')->page());
+        $this->assertSame($page, $frame->getByRole('button')->page());
+        $this->assertSame($page, $frame->owner()->page());
+        $this->assertSame($page, $frame->frameLocator('iframe#nested')->locator('button')->page());
+    }
+
+    public function testRelatedFramesCarryThePageAlong(): void
+    {
+        $page = $this->createMock(PageInterface::class);
+        $frame = new Frame($this->transport, $this->pageId, 'iframe#auth', $this->logger, $page);
+        $this->transport->method('send')->willReturnOnConsecutiveCalls(
+            ['selector' => ':root'],
+            ['frames' => [['selector' => 'iframe#auth >> iframe#child']]],
+        );
+
+        $parent = $frame->parentFrame();
+        $this->assertInstanceOf(FrameInterface::class, $parent);
+        $this->assertSame($page, $parent->page());
+        $this->assertSame($page, $frame->childFrames()[0]->page());
     }
 
     public function testEvaluateLeavesABareExpressionUntouched(): void

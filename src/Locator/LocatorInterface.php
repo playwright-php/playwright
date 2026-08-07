@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace Playwright\Locator;
 
 use Playwright\Frame\FrameLocatorInterface;
+use Playwright\JSHandle\JSHandleInterface;
 use Playwright\Locator\Options\AriaSnapshotOptions;
 use Playwright\Locator\Options\BoundingBoxOptions;
 use Playwright\Locator\Options\CheckOptions;
@@ -40,7 +41,9 @@ use Playwright\Locator\Options\TapOptions;
 use Playwright\Locator\Options\TextContentOptions;
 use Playwright\Locator\Options\TypeOptions;
 use Playwright\Locator\Options\UncheckOptions;
+use Playwright\Locator\Options\WaitForFunctionOptions;
 use Playwright\Locator\Options\WaitForOptions;
+use Playwright\Page\PageInterface;
 
 interface LocatorInterface
 {
@@ -243,6 +246,32 @@ interface LocatorInterface
     public function nth(int $index): self;
 
     public function evaluate(string $expression, mixed $arg = null): mixed;
+
+    /**
+     * Returns a handle to the result instead of a serialized copy, so a DOM node
+     * or a live object survives the round trip.
+     *
+     * Strict: the selector has to resolve to exactly one element. Dispose the
+     * handle once done with it, otherwise it pins its target until the page closes.
+     */
+    public function evaluateHandle(string $expression, mixed $arg = null): JSHandleInterface;
+
+    /**
+     * Re-runs the expression, with the matched element as its first argument,
+     * until it returns a truthy value.
+     *
+     * @param array<string, mixed>|WaitForFunctionOptions $options
+     */
+    public function waitForFunction(string $pageFunction, mixed $arg = null, array|WaitForFunctionOptions $options = []): self;
+
+    /**
+     * The page this locator resolves against.
+     *
+     * @throws \Playwright\Exception\RuntimeException if the locator was built
+     *                                                without a page, which only
+     *                                                happens when constructed by hand
+     */
+    public function page(): PageInterface;
 
     /**
      * Runs the expression once over every matching element, passing them as an array.

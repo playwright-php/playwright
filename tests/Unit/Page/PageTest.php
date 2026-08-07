@@ -25,9 +25,11 @@ use Playwright\Console\ConsoleMessage;
 use Playwright\Exception\ProtocolErrorException;
 use Playwright\Exception\RuntimeException;
 use Playwright\Exception\TimeoutException;
+use Playwright\Frame\FrameInterface;
 use Playwright\Input\KeyboardInterface;
 use Playwright\Input\MouseInterface;
 use Playwright\Input\TouchscreenInterface;
+use Playwright\JSHandle\JSHandleInterface;
 use Playwright\Locator\Locator;
 use Playwright\Locator\Options\GetByRoleOptions;
 use Playwright\Locator\Options\LocatorOptions;
@@ -1152,6 +1154,57 @@ class PageTest extends TestCase
             ->willReturn([]);
 
         $this->page->unrouteAll(['behavior' => 'wait']);
+    }
+
+    public function testEvaluateHandleNormalizesTheExpressionAndReturnsAHandle(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static function (array $payload): bool {
+                return 'page.evaluateHandle' === $payload['action']
+                    && '(arg) => { return document.body; }' === $payload['expression']
+                    && null === $payload['arg'];
+            }))
+            ->willReturn(['handleId' => 'handle-1']);
+
+        $this->assertInstanceOf(JSHandleInterface::class, $this->page->evaluateHandle('return document.body;'));
+    }
+
+    public function testEvaluateHandleRejectsAResponseWithoutAHandleId(): void
+    {
+        $this->transport->method('send')->willReturn([]);
+
+        $this->expectException(ProtocolErrorException::class);
+        $this->expectExceptionMessage('Invalid page.evaluateHandle response');
+
+        $this->page->evaluateHandle('() => document.body');
+    }
+
+    public function testLocatorRetainsItsOriginatingPage(): void
+    {
+        $this->assertSame($this->page, $this->page->locator('button.save')->page());
+        $this->assertSame($this->page, $this->page->getByRole('button')->page());
+        $this->assertSame($this->page, $this->page->frameLocator('iframe')->locator('button')->page());
+    }
+
+    public function testMainFrameRetainsItsOriginatingPage(): void
+    {
+        $this->assertSame($this->page, $this->page->mainFrame()->page());
+    }
+
+    public function testQueriedFramesRetainTheirOriginatingPage(): void
+    {
+        $this->transport->method('send')->willReturnOnConsecutiveCalls(
+            ['frames' => [['selector' => 'iframe#one']]],
+            ['selector' => 'iframe#one'],
+        );
+
+        $this->assertSame($this->page, $this->page->frames()[0]->page());
+
+        $frame = $this->page->frame(['name' => 'one']);
+        $this->assertInstanceOf(FrameInterface::class, $frame);
+        $this->assertSame($this->page, $frame->page());
     }
 
     private function createPage(string $pageId = 'page-1'): Page

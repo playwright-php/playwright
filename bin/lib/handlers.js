@@ -2,6 +2,24 @@ const { logger, ErrorHandler, CommandRegistry, BaseHandler, PromiseUtils, FrameU
 const { globalCoordinator } = require('./coordination');
 const { PopupCoordinator } = require('./popup-coordinator');
 
+// The two callbacks below never run in this Node process: Playwright ships
+// their source to the browser, so their eval() has page scope only, exactly
+// like the callbacks passed to page.evaluate() elsewhere in this file.
+//
+// They are needed because evaluateHandle() does not accept a function as a
+// string. Playwright evaluates a string pageFunction as a plain expression and
+// never calls it, so forwarding "() => value" would hand back a handle to the
+// function itself rather than to its result.
+const evaluateHandleInPage = async ({ expression, arg }) => {
+  const value = eval(`(${expression})`);
+  return typeof value === 'function' ? await value(arg) : await value;
+};
+
+const evaluateHandleOnTarget = async (target, { expression, arg }) => {
+  const value = eval(`(${expression})`);
+  return typeof value === 'function' ? await value(target, arg) : await value;
+};
+
 class ContextHandler extends BaseHandler {
   async handle(command, method) {
     const context = this.validateResource(this.contexts, command.contextId, 'Context')?.context;
@@ -403,10 +421,10 @@ class PageHandler extends BaseHandler {
   }
 
   async evaluateHandle(page, command) {
-    const handle = await page.evaluateHandle(command.expression, command.arg);
-    const handleId = this.generateId('element');
-    this.elementHandles.set(handleId, handle);
-    return { elementHandleId: handleId };
+    return this.storeHandle(await page.evaluateHandle(evaluateHandleInPage, {
+      expression: command.expression,
+      arg: command.arg,
+    }));
   }
 
   async handleDialog(command) {
@@ -595,6 +613,8 @@ class LocatorHandler extends BaseHandler {
       selectOption: () => PromiseUtils.wrapValues(locator.selectOption(command.values, command.options)),
       screenshot: () => PromiseUtils.wrapBinary(locator.screenshot(command.options)),
       evaluate: () => this.evaluateLocator(locator, command),
+      evaluateHandle: () => this.evaluateHandle(locator, command),
+      waitForFunction: () => this.waitForFunction(locator, command),
       dragAndDrop: () => this.handleDragAndDrop(page, command)
     });
 
@@ -655,6 +675,20 @@ class LocatorHandler extends BaseHandler {
       logger.error('Locator evaluateAll failed', { selector: command.selector, error: error.message });
       throw error;
     }
+  }
+
+  async evaluateHandle(locator, command) {
+    return this.storeHandle(await locator.evaluateHandle(evaluateHandleOnTarget, {
+      expression: command.expression,
+      arg: command.arg,
+    }));
+  }
+
+  async waitForFunction(locator, command) {
+    // Forwarded as a string: Playwright evaluates it in the page. Turning it
+    // into a function here would run it in this Node process instead.
+    await locator.waitForFunction(command.pageFunction, command.arg, command.options);
+    return { success: true };
   }
 
   async handleDragAndDrop(page, command) {
@@ -738,6 +772,8 @@ class FrameHandler extends BaseHandler {
       addStyleTag: async () => { await (await nativeFrame()).addStyleTag(command.options); return { success: true }; },
       name: () => evalInFrame(() => window.name || '').then(v => this.createValueResult(v ?? '')),
       evaluate: () => FrameUtils.evaluateInFrame(page, frameLocator, isMainFrame, command.expression, command.arg).then(result => ({ result })),
+      evaluateHandle: () => this.evaluateHandle(nativeFrame, command),
+      frameElement: () => this.frameElement(nativeFrame),
       title: () => evalInFrame(() => document.title).then(v => this.createValueResult(v ?? '')),
       url: () => evalInFrame(() => document.location.href).then(v => this.createValueResult(v ?? '')),
       isDetached: () => this.checkDetached(isMainFrame, frameLocator),
@@ -754,6 +790,19 @@ class FrameHandler extends BaseHandler {
     // into a function here would run it in this Node process instead.
     await (await nativeFrame()).waitForFunction(command.pageFunction, command.arg, command.options);
     return { success: true };
+  }
+
+  async evaluateHandle(nativeFrame, command) {
+    const frame = await nativeFrame();
+    return this.storeHandle(await frame.evaluateHandle(evaluateHandleInPage, {
+      expression: command.expression,
+      arg: command.arg,
+    }));
+  }
+
+  async frameElement(nativeFrame) {
+    const frame = await nativeFrame();
+    return this.storeHandle(await frame.frameElement());
   }
 
   async checkDetached(isMainFrame, frameLocator) {
@@ -800,6 +849,43 @@ class FrameHandler extends BaseHandler {
   }
 }
 
+class JSHandleHandler extends BaseHandler {
+  async handle(command, method) {
+    const handle = this.validateResource(this.elementHandles, command.handleId, 'JSHandle');
+
+    const registry = CommandRegistry.create({
+      asElement: () => this.asElement(handle),
+      dispose: () => this.dispose(handle, command.handleId),
+      evaluate: async () => ({ result: await handle.evaluate(evaluateHandleOnTarget, { expression: command.expression, arg: command.arg }) }),
+      evaluateHandle: async () => this.storeHandle(await handle.evaluateHandle(evaluateHandleOnTarget, { expression: command.expression, arg: command.arg })),
+      getProperties: () => this.getProperties(handle),
+      getProperty: async () => this.storeHandle(await handle.getProperty(command.propertyName)),
+      jsonValue: () => PromiseUtils.wrapValue(handle.jsonValue())
+    });
+
+    return await this.executeWithRegistry(registry, method);
+  }
+
+  async dispose(handle, handleId) {
+    await handle.dispose();
+    this.elementHandles.delete(handleId);
+    return { success: true };
+  }
+
+  asElement(handle) {
+    const element = handle.asElement();
+    return element ? this.storeHandle(element) : { handleId: null };
+  }
+
+  async getProperties(handle) {
+    const properties = {};
+    for (const [name, value] of (await handle.getProperties()).entries()) {
+      properties[name] = this.storeHandle(value).handleId;
+    }
+    return { properties };
+  }
+}
+
 class SelectorsHandler extends BaseHandler {
   async handle(command, method) {
     const { playwright } = require('playwright');
@@ -822,4 +908,4 @@ class SelectorsHandler extends BaseHandler {
   }
 }
 
-module.exports = { ContextHandler, PageHandler, LocatorHandler, InteractionHandler, FrameHandler, SelectorsHandler };
+module.exports = { ContextHandler, PageHandler, LocatorHandler, InteractionHandler, FrameHandler, JSHandleHandler, SelectorsHandler };

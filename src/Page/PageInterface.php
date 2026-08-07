@@ -22,6 +22,7 @@ use Playwright\Frame\FrameLocatorInterface;
 use Playwright\Input\KeyboardInterface;
 use Playwright\Input\MouseInterface;
 use Playwright\Input\TouchscreenInterface;
+use Playwright\JSHandle\JSHandleInterface;
 use Playwright\Locator\LocatorInterface;
 use Playwright\Locator\Options\GetByRoleOptions;
 use Playwright\Locator\Options\LocatorOptions;
@@ -55,6 +56,15 @@ interface PageInterface
      * Opens Playwright Inspector and pauses script execution.
      */
     public function pause(): self;
+
+    /**
+     * Returns a handle to the result instead of a serialized copy, so a DOM node
+     * or a live object survives the round trip.
+     *
+     * Dispose the handle once done with it, otherwise it pins its target until
+     * the page closes.
+     */
+    public function evaluateHandle(string $expression, mixed $arg = null): JSHandleInterface;
 
     /**
      * @param array<string, mixed>|LocatorOptions $options

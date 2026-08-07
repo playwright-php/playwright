@@ -184,6 +184,11 @@ class BaseHandler {
   }
   wrapResult(value) { return value === undefined || value === null ? { success: true } : value; }
   createValueResult(value) { return { value }; }
+  storeHandle(handle) {
+    const handleId = this.generateId('element');
+    this.elementHandles.set(handleId, handle);
+    return { handleId };
+  }
   async executeWithRegistry(registry, method, ...args) { return await registry.execute(method, ...args); }
   async followNavigationRedirects(pageId, page, action) {
     let nextAction = action;

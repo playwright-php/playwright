@@ -18,8 +18,10 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Playwright\Exception\PlaywrightException;
 use Playwright\Exception\ProtocolErrorException;
+use Playwright\Exception\RuntimeException;
 use Playwright\Exception\TimeoutException;
 use Playwright\Frame\FrameLocatorInterface;
+use Playwright\JSHandle\JSHandleInterface;
 use Playwright\Locator\Locator;
 use Playwright\Locator\Options\AriaSnapshotOptions;
 use Playwright\Locator\Options\BoundingBoxOptions;
@@ -27,6 +29,7 @@ use Playwright\Locator\Options\DispatchEventOptions;
 use Playwright\Locator\Options\SelectTextOptions;
 use Playwright\Locator\Options\SetCheckedOptions;
 use Playwright\Locator\Options\TapOptions;
+use Playwright\Page\PageInterface;
 use Playwright\Transport\TransportInterface;
 
 #[CoversClass(Locator::class)]
@@ -1052,6 +1055,84 @@ final class LocatorTest extends TestCase
         $this->expectExceptionMessage('Invalid boundingBox response');
 
         $this->locator->boundingBox();
+    }
+
+    public function testEvaluateHandleReturnsAJavaScriptHandle(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static function (array $payload): bool {
+                return 'locator.evaluateHandle' === $payload['action']
+                    && '(el, arg) => { return el.dataset; }' === $payload['expression']
+                    && ['key' => 'value'] === $payload['arg'];
+            }))
+            ->willReturn(['handleId' => 'handle-1']);
+
+        $this->assertInstanceOf(
+            JSHandleInterface::class,
+            $this->locator->evaluateHandle('return el.dataset;', ['key' => 'value'])
+        );
+    }
+
+    public function testEvaluateHandleRejectsAResponseWithoutAHandleId(): void
+    {
+        $this->transport->method('send')->willReturn([]);
+
+        $this->expectException(ProtocolErrorException::class);
+        $this->expectExceptionMessage('Invalid locator.evaluateHandle response');
+
+        $this->locator->evaluateHandle('(el) => el');
+    }
+
+    public function testWaitForFunctionSendsTheNormalizedExpressionAndTimeout(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static function (array $payload): bool {
+                return 'locator.waitForFunction' === $payload['action']
+                    && '(el, arg) => { return el.value === arg; }' === $payload['pageFunction']
+                    && 'ready' === $payload['arg']
+                    && ['timeout' => 250.0] === $payload['options'];
+            }))
+            ->willReturn(['success' => true]);
+
+        $this->assertSame(
+            $this->locator,
+            $this->locator->waitForFunction('return el.value === arg;', 'ready', ['timeout' => 250.0])
+        );
+    }
+
+    public function testPageReturnsTheOriginatingPage(): void
+    {
+        $page = $this->createMock(PageInterface::class);
+        $locator = new Locator($this->transport, 'page1', '.element', null, null, [], $page);
+
+        $this->assertSame($page, $locator->page());
+    }
+
+    public function testPageRejectsALocatorBuiltWithoutAPage(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('This locator was not created from a page.');
+
+        $this->locator->page();
+    }
+
+    public function testDerivedLocatorsCarryThePageAlong(): void
+    {
+        $page = $this->createMock(PageInterface::class);
+        $locator = new Locator($this->transport, 'page1', '.items', null, null, [], $page);
+        $other = new Locator($this->transport, 'page1', '.other');
+
+        $this->assertSame($page, $locator->locator('.child')->page());
+        $this->assertSame($page, $locator->nth(2)->page());
+        $this->assertSame($page, $locator->filter(['hasText' => 'Save'])->page());
+        $this->assertSame($page, $locator->and($other)->page());
+        $this->assertSame($page, $locator->or($other)->page());
+        $this->assertSame($page, $locator->frameLocator('iframe')->locator('.inner')->page());
+        $this->assertSame($page, $locator->contentFrame()->locator('.inner')->page());
     }
 
     /**
