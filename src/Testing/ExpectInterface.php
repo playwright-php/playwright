@@ -41,6 +41,12 @@ interface ExpectInterface
     public function toHaveId(string $id): void;
 
     /**
+     * Asserts the element's class attribute matches the expected list exactly.
+     *
+     * Order matters and extra classes fail the assertion. Use an array or a
+     * space-separated string interchangeably; surrounding and repeated
+     * whitespace is ignored on both sides.
+     *
      * @param string|string[] $class
      */
     public function toHaveClass(string|array $class): void;

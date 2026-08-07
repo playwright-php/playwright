@@ -9,6 +9,9 @@
 - `PageInterface::pause()`
 - `ResponseInterface::headerValue()`
 
+### Fixed
+- `expect()->toHaveClass()` matches the class attribute exactly
+
 ## [1.3.1] - 2026-08-04
 
 ### Fixed
