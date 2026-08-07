@@ -30,4 +30,11 @@ interface WebErrorInterface
      * The page that produced this unhandled exception, if any.
      */
     public function page(): ?PageInterface;
+
+    /**
+     * Where the error was thrown, with zero-based line and column; null when the source position is unknown.
+     *
+     * @return array{url: string, line: int, column: int}|null
+     */
+    public function location(): ?array;
 }
