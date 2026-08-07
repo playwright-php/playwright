@@ -16,16 +16,20 @@ namespace Playwright\Page;
 
 use Playwright\API\APIRequestContextInterface;
 use Playwright\Browser\BrowserContextInterface;
+use Playwright\Console\ConsoleMessage;
 use Playwright\Frame\FrameInterface;
 use Playwright\Frame\FrameLocatorInterface;
 use Playwright\Input\KeyboardInterface;
 use Playwright\Input\MouseInterface;
+use Playwright\Input\TouchscreenInterface;
 use Playwright\Locator\LocatorInterface;
 use Playwright\Locator\Options\GetByRoleOptions;
 use Playwright\Locator\Options\LocatorOptions;
+use Playwright\Network\RequestInterface;
 use Playwright\Network\ResponseInterface;
 use Playwright\Page\Options\ClickOptions;
 use Playwright\Page\Options\DragAndDropOptions;
+use Playwright\Page\Options\EmulateMediaOptions;
 use Playwright\Page\Options\FrameQueryOptions;
 use Playwright\Page\Options\GotoOptions;
 use Playwright\Page\Options\NavigationHistoryOptions;
@@ -39,6 +43,7 @@ use Playwright\Page\Options\TypeOptions;
 use Playwright\Page\Options\WaitForFunctionOptions;
 use Playwright\Page\Options\WaitForLoadStateOptions;
 use Playwright\Page\Options\WaitForPopupOptions;
+use Playwright\Page\Options\WaitForRequestOptions;
 use Playwright\Page\Options\WaitForResponseOptions;
 use Playwright\Page\Options\WaitForSelectorOptions;
 use Playwright\Page\Options\WaitForUrlOptions;
@@ -144,6 +149,29 @@ interface PageInterface
     public function content(): ?string;
 
     /**
+     * Console messages already recorded for this page, oldest first.
+     *
+     * Unlike the console event, this reads history, so messages logged before
+     * any listener existed are still returned. The default filter keeps only
+     * what was logged since the last navigation.
+     *
+     * @param array{filter?: 'all'|'since-navigation'} $options
+     *
+     * @return array<ConsoleMessage>
+     */
+    public function consoleMessages(array $options = []): array;
+
+    /**
+     * Discards the recorded console history without touching event listeners.
+     */
+    public function clearConsoleMessages(): self;
+
+    /**
+     * Discards the uncaught page errors recorded so far.
+     */
+    public function clearPageErrors(): self;
+
+    /**
      * Queues a script to run before any of the page's own scripts.
      *
      * It runs again on every navigation and in every frame the page creates, so
@@ -152,6 +180,22 @@ interface PageInterface
     public function addInitScript(string $script): self;
 
     public function evaluate(string $expression, mixed $arg = null): mixed;
+
+    /**
+     * Overrides the CSS media type and media features the page reports.
+     *
+     * An omitted feature keeps whatever override is in place; pass
+     * 'no-override' to give it back to the browser default.
+     *
+     * @param array<string, mixed>|EmulateMediaOptions $options
+     */
+    public function emulateMedia(array|EmulateMediaOptions $options = []): self;
+
+    /**
+     * Asks the browser to collect garbage, so a WeakRef held by the page can be
+     * observed as cleared. Collection is best effort, never guaranteed.
+     */
+    public function requestGC(): self;
 
     /**
      * @param array<string, mixed>|WaitForSelectorOptions $options
@@ -246,11 +290,27 @@ interface PageInterface
 
     public function mouse(): MouseInterface;
 
+    /**
+     * Touch input for this page. The owning context must have been created with
+     * hasTouch enabled, otherwise the browser ignores the events.
+     */
+    public function touchscreen(): TouchscreenInterface;
+
     public function events(): PageEventHandlerInterface;
 
     public function route(string $url, callable $handler): void;
 
     public function unroute(string $url, ?callable $handler = null): void;
+
+    /**
+     * Removes every route registered on this page in one call.
+     *
+     * 'behavior' decides what happens to handlers still running: wait for them,
+     * wait but swallow their errors, or return without waiting.
+     *
+     * @param array{behavior?: 'default'|'wait'|'ignoreErrors'} $options
+     */
+    public function unrouteAll(array $options = []): void;
 
     public function handleDialog(string $dialogId, bool $accept, ?string $promptText = null): void;
 
@@ -268,6 +328,32 @@ interface PageInterface
      * @param array<string, mixed>|WaitForResponseOptions $options
      */
     public function waitForResponse($url, array|WaitForResponseOptions $options = []): ResponseInterface;
+
+    /**
+     * Waits for a request whose URL matches the given Playwright glob.
+     *
+     * PHP cannot act while this call blocks, so the trigger travels with it: an
+     * 'action' entry in $options holds a JavaScript expression the bridge
+     * evaluates once the listener is armed.
+     *
+     * @param array<string, mixed>|WaitForRequestOptions $options
+     */
+    public function waitForRequest(string $url, array|WaitForRequestOptions $options = []): RequestInterface;
+
+    /**
+     * The page that opened this one, or null when nothing did.
+     */
+    public function opener(): ?PageInterface;
+
+    /**
+     * Network requests recorded for this page, oldest first.
+     *
+     * These are snapshots taken by the bridge, not live handles: members that
+     * need the Node object, such as response(), return null on them.
+     *
+     * @return array<RequestInterface>
+     */
+    public function requests(): array;
 
     /**
      * Set files to an input element with type="file".

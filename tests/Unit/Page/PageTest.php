@@ -21,14 +21,19 @@ use PHPUnit\Framework\TestCase;
 use Playwright\API\APIRequestContextInterface;
 use Playwright\Browser\BrowserContextInterface;
 use Playwright\Configuration\PlaywrightConfig;
+use Playwright\Console\ConsoleMessage;
+use Playwright\Exception\ProtocolErrorException;
 use Playwright\Exception\RuntimeException;
 use Playwright\Exception\TimeoutException;
 use Playwright\Input\KeyboardInterface;
 use Playwright\Input\MouseInterface;
+use Playwright\Input\TouchscreenInterface;
 use Playwright\Locator\Locator;
 use Playwright\Locator\Options\GetByRoleOptions;
 use Playwright\Locator\Options\LocatorOptions;
 use Playwright\Page\Options\DragAndDropOptions;
+use Playwright\Page\Options\EmulateMediaOptions;
+use Playwright\Page\Options\WaitForRequestOptions;
 use Playwright\Page\Page;
 use Playwright\Page\PageEventHandlerInterface;
 use Playwright\Regex;
@@ -61,6 +66,13 @@ class PageTest extends TestCase
         $mouse = $this->page->mouse();
 
         $this->assertInstanceOf(MouseInterface::class, $mouse);
+    }
+
+    public function testGetTouchscreen(): void
+    {
+        $touchscreen = $this->page->touchscreen();
+
+        $this->assertInstanceOf(TouchscreenInterface::class, $touchscreen);
     }
 
     public function testGetEvents(): void
@@ -886,6 +898,260 @@ class PageTest extends TestCase
 
         $this->assertSame($api, $first);
         $this->assertSame($first, $second, 'Page::request should return cached instance');
+    }
+
+    public function testConsoleMessagesSendsFilterAndHydratesSnapshots(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'options' => ['filter' => 'all'],
+                'action' => 'page.consoleMessages',
+                'pageId' => 'page-id',
+            ])
+            ->willReturn(['messages' => [
+                [
+                    'type' => 'warning',
+                    'text' => 'Be careful',
+                    'args' => [],
+                    'location' => ['url' => 'https://example.test/app.js'],
+                    'timestamp' => 123.4,
+                ],
+                'not-a-message',
+            ]]);
+
+        $messages = $this->page->consoleMessages(['filter' => 'all']);
+
+        $this->assertCount(1, $messages);
+        $this->assertInstanceOf(ConsoleMessage::class, $messages[0]);
+        $this->assertSame('warning', $messages[0]->type());
+        $this->assertSame('Be careful', $messages[0]->text());
+        $this->assertSame($this->page, $messages[0]->page());
+    }
+
+    public function testConsoleMessagesRejectsANonListResponse(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->willReturn(['messages' => 'nope']);
+
+        $this->expectException(ProtocolErrorException::class);
+
+        $this->page->consoleMessages();
+    }
+
+    public function testConsoleMessagesRejectsNonStringKeys(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->willReturn(['messages' => [[0 => 'log']]]);
+
+        $this->expectException(ProtocolErrorException::class);
+
+        $this->page->consoleMessages();
+    }
+
+    public function testClearConsoleMessagesSendsCommandAndReturnsSelf(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'action' => 'page.clearConsoleMessages',
+                'pageId' => 'page-id',
+            ])
+            ->willReturn([]);
+
+        $this->assertSame($this->page, $this->page->clearConsoleMessages());
+    }
+
+    public function testClearPageErrorsSendsCommandAndReturnsSelf(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'action' => 'page.clearPageErrors',
+                'pageId' => 'page-id',
+            ])
+            ->willReturn([]);
+
+        $this->assertSame($this->page, $this->page->clearPageErrors());
+    }
+
+    public function testRequestsHydratesRequestSnapshots(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'action' => 'page.requests',
+                'pageId' => 'page-id',
+            ])
+            ->willReturn(['requests' => [
+                [
+                    'url' => 'https://example.test/resource.js',
+                    'method' => 'GET',
+                    'headers' => [],
+                    'postData' => null,
+                    'resourceType' => 'script',
+                ],
+                'not-a-request',
+            ]]);
+
+        $requests = $this->page->requests();
+
+        $this->assertCount(1, $requests);
+        $this->assertSame('https://example.test/resource.js', $requests[0]->url());
+        $this->assertSame('script', $requests[0]->resourceType());
+    }
+
+    public function testRequestsRejectsANonListResponse(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->willReturn(['requests' => 'nope']);
+
+        $this->expectException(ProtocolErrorException::class);
+
+        $this->page->requests();
+    }
+
+    public function testWaitForRequestSendsTheGlobAndJavaScriptAction(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'url' => '**/page2.html',
+                'options' => ['timeout' => 500.0],
+                'jsAction' => "document.querySelector('a').click()",
+                'action' => 'page.waitForRequest',
+                'pageId' => 'page-id',
+            ])
+            ->willReturn(['request' => [
+                'url' => 'https://example.test/page2.html',
+                'method' => 'GET',
+                'headers' => [],
+                'resourceType' => 'document',
+            ]]);
+
+        $request = $this->page->waitForRequest('**/page2.html', [
+            'timeout' => 500.0,
+            'action' => "document.querySelector('a').click()",
+        ]);
+
+        $this->assertSame('https://example.test/page2.html', $request->url());
+    }
+
+    public function testWaitForRequestAcceptsAnOptionsObject(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'url' => '**/*.css',
+                'options' => ['timeout' => 20.0],
+                'jsAction' => null,
+                'action' => 'page.waitForRequest',
+                'pageId' => 'page-id',
+            ])
+            ->willReturn(['request' => [
+                'url' => 'https://example.test/asset.css',
+                'method' => 'GET',
+                'headers' => [],
+                'resourceType' => 'stylesheet',
+            ]]);
+
+        $request = $this->page->waitForRequest('**/*.css', new WaitForRequestOptions(20.0));
+
+        $this->assertSame('stylesheet', $request->resourceType());
+    }
+
+    public function testEmulateMediaSendsOptionsAndReturnsSelf(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'options' => ['colorScheme' => 'dark', 'media' => 'print'],
+                'action' => 'page.emulateMedia',
+                'pageId' => 'page-id',
+            ])
+            ->willReturn([]);
+
+        $this->assertSame($this->page, $this->page->emulateMedia(['media' => 'print', 'colorScheme' => 'dark']));
+    }
+
+    public function testEmulateMediaAcceptsAnOptionsObject(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'options' => ['reducedMotion' => 'reduce'],
+                'action' => 'page.emulateMedia',
+                'pageId' => 'page-id',
+            ])
+            ->willReturn([]);
+
+        $this->page->emulateMedia(new EmulateMediaOptions(reducedMotion: 'reduce'));
+    }
+
+    public function testRequestGCSendsCommandAndReturnsSelf(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'action' => 'page.requestGC',
+                'pageId' => 'page-id',
+            ])
+            ->willReturn([]);
+
+        $this->assertSame($this->page, $this->page->requestGC());
+    }
+
+    public function testOpenerHydratesAPageFromTheTransportId(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'action' => 'page.opener',
+                'pageId' => 'page-id',
+            ])
+            ->willReturn(['pageId' => 'page-opener']);
+
+        $opener = $this->page->opener();
+
+        $this->assertInstanceOf(Page::class, $opener);
+        $this->assertSame('page-opener', $opener->getPageIdForTransport());
+    }
+
+    public function testOpenerReturnsNullWithoutAnOpenerPage(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->willReturn(['pageId' => null]);
+
+        $this->assertNull($this->page->opener());
+    }
+
+    public function testOpenerRejectsANonStringPageId(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->willReturn(['pageId' => 42]);
+
+        $this->expectException(ProtocolErrorException::class);
+
+        $this->page->opener();
+    }
+
+    public function testUnrouteAllSendsItsBehavior(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'options' => ['behavior' => 'wait'],
+                'action' => 'page.unrouteAll',
+                'pageId' => 'page-id',
+            ])
+            ->willReturn([]);
+
+        $this->page->unrouteAll(['behavior' => 'wait']);
     }
 
     private function createPage(string $pageId = 'page-1'): Page

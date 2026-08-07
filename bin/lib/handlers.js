@@ -40,6 +40,7 @@ class ContextHandler extends BaseHandler {
       setDefaultNavigationTimeout: () => context.setDefaultNavigationTimeout(command.timeout),
       route: () => RouteUtils.setupRoute(context, command.contextId, command.url, this.generateId, this.routes, this.extractRequestData, this.sendFramedResponse),
       unroute: () => context.unroute(command.url),
+      unrouteAll: () => this.unrouteAll(context, command.contextId, command.options),
       cookies: async () => ({ cookies: await context.cookies(command.urls) }),
       storageState: async () => ({ storageState: await context.storageState(command.options) }),
       setStorageState: () => context.setStorageState(command.storageState),
@@ -108,6 +109,11 @@ class ContextHandler extends BaseHandler {
 
     const result = await ErrorHandler.safeExecute(() => this.executeWithRegistry(registry, method), { method, contextId: command.contextId });
     return this.wrapResult(result);
+  }
+
+  async unrouteAll(context, contextId, options) {
+    await context.unrouteAll(options || {});
+    RouteUtils.forgetRoutes(this.routes, contextId);
   }
 
   setThrottling(command) {
@@ -237,7 +243,15 @@ class PageHandler extends BaseHandler {
       goto: () => this.goto(page, command),
       evaluate: () => this.evaluate(page, command),
       addInitScript: () => page.addInitScript(command.script),
+      emulateMedia: () => page.emulateMedia(command.options || {}),
+      requestGC: () => page.requestGC(),
       waitForResponse: () => this.waitForResponse(page, command),
+      waitForRequest: () => this.waitForRequest(page, command),
+      requests: () => this.getRequests(page),
+      opener: () => this.getOpener(page, command),
+      consoleMessages: () => this.consoleMessages(page, command),
+      clearConsoleMessages: () => page.clearConsoleMessages(),
+      clearPageErrors: () => page.clearPageErrors(),
       content: async () => ({ content: await page.content() }),
       setContent: () => page.setContent(command.html, command.options),
       querySelector: () => this.querySelector(page, command),
@@ -260,6 +274,7 @@ class PageHandler extends BaseHandler {
       handleDialog: () => this.handleDialog(command),
       route: () => RouteUtils.setupRoute(page, command.pageId, command.url, this.generateId, this.routes, this.extractRequestData, this.sendFramedResponse, () => `route_${++this.routeCounter.value}`),
       unroute: () => page.unroute(command.url),
+      unrouteAll: () => this.unrouteAll(page, command.pageId, command.options),
       goBack: () => this.followNavigationRedirects(command.pageId, page, () => page.goBack(command.options)),
       goForward: () => this.followNavigationRedirects(command.pageId, page, () => page.goForward(command.options)),
       reload: () => this.followNavigationRedirects(command.pageId, page, () => page.reload(command.options)),
@@ -331,6 +346,52 @@ class PageHandler extends BaseHandler {
       jsAction ? page.evaluate(jsAction) : Promise.resolve(),
     ]);
     return { response: this.serializeResponse(response) };
+  }
+
+  async waitForRequest(page, command) {
+    const jsAction = command.jsAction;
+    const [request] = await Promise.all([
+      page.waitForRequest(command.url, command.options),
+      jsAction ? page.evaluate(jsAction) : Promise.resolve(),
+    ]);
+    return { request: this.extractRequestData(request) };
+  }
+
+  async getRequests(page) {
+    const requests = await page.requests();
+    return { requests: requests.map(request => this.extractRequestData(request)) };
+  }
+
+  async getOpener(page, command) {
+    const opener = await page.opener();
+    if (!opener) return { pageId: null };
+
+    for (const [pageId, candidate] of this.pages.entries()) {
+      if (candidate === opener) return { pageId };
+    }
+
+    // The opener predates this server's page map only when nothing ever
+    // surfaced it to PHP. Adopt it now rather than report "no opener".
+    const openerPageId = this.generateId('page');
+    this.pages.set(openerPageId, opener);
+    const contextId = this.pageContexts.get(command.pageId);
+    if (contextId) this.pageContexts.set(openerPageId, contextId);
+    if (this.setupPageEventListeners) this.setupPageEventListeners(opener, openerPageId);
+
+    return { pageId: openerPageId };
+  }
+
+  async consoleMessages(page, command) {
+    // An empty PHP options bag arrives as [], whose .filter is Array#filter.
+    // Forwarding that reaches Playwright as a function and fails validation.
+    const filter = command.options?.filter;
+    const messages = await page.consoleMessages(typeof filter === 'string' ? { filter } : {});
+    return { messages: messages.map(message => this.serializeConsoleMessage(message)) };
+  }
+
+  async unrouteAll(page, pageId, options) {
+    await page.unrouteAll(options || {});
+    RouteUtils.forgetRoutes(this.routes, pageId);
   }
 
   async querySelector(page, command) {

@@ -36,6 +36,8 @@ use Playwright\Input\KeyboardInterface;
 use Playwright\Input\ModifierKey;
 use Playwright\Input\Mouse;
 use Playwright\Input\MouseInterface;
+use Playwright\Input\Touchscreen;
+use Playwright\Input\TouchscreenInterface;
 use Playwright\Locator\Locator;
 use Playwright\Locator\LocatorInterface;
 use Playwright\Locator\Options\GetByRoleOptions;
@@ -47,6 +49,7 @@ use Playwright\Network\ResponseInterface;
 use Playwright\Network\Route;
 use Playwright\Page\Options\ClickOptions;
 use Playwright\Page\Options\DragAndDropOptions;
+use Playwright\Page\Options\EmulateMediaOptions;
 use Playwright\Page\Options\FrameQueryOptions;
 use Playwright\Page\Options\GotoOptions;
 use Playwright\Page\Options\NavigationHistoryOptions;
@@ -60,6 +63,7 @@ use Playwright\Page\Options\TypeOptions;
 use Playwright\Page\Options\WaitForFunctionOptions;
 use Playwright\Page\Options\WaitForLoadStateOptions;
 use Playwright\Page\Options\WaitForPopupOptions;
+use Playwright\Page\Options\WaitForRequestOptions;
 use Playwright\Page\Options\WaitForResponseOptions;
 use Playwright\Page\Options\WaitForSelectorOptions;
 use Playwright\Page\Options\WaitForUrlOptions;
@@ -76,6 +80,8 @@ final class Page implements PageInterface, EventDispatcherInterface
     public readonly KeyboardInterface $keyboard;
 
     public readonly MouseInterface $mouse;
+
+    public readonly TouchscreenInterface $touchscreen;
 
     private PageEventHandlerInterface $eventHandler;
 
@@ -97,6 +103,7 @@ final class Page implements PageInterface, EventDispatcherInterface
     ) {
         $this->keyboard = new Keyboard($this->transport, $this->pageId);
         $this->mouse = new Mouse($this->transport, $this->pageId);
+        $this->touchscreen = new Touchscreen($this->transport, $this->pageId);
         $this->eventHandler = new PageEventHandler();
 
         $this->clock = $this->context->clock();
@@ -182,6 +189,11 @@ final class Page implements PageInterface, EventDispatcherInterface
     public function mouse(): MouseInterface
     {
         return $this->mouse;
+    }
+
+    public function touchscreen(): TouchscreenInterface
+    {
+        return $this->touchscreen;
     }
 
     public function events(): PageEventHandlerInterface
@@ -495,6 +507,43 @@ final class Page implements PageInterface, EventDispatcherInterface
         return is_string($content) ? $content : null;
     }
 
+    /**
+     * @param array{filter?: 'all'|'since-navigation'} $options
+     *
+     * @return array<ConsoleMessage>
+     */
+    public function consoleMessages(array $options = []): array
+    {
+        $response = $this->sendCommand('consoleMessages', ['options' => $options]);
+        $messages = $response['messages'] ?? [];
+        if (!is_array($messages)) {
+            throw new ProtocolErrorException('Invalid consoleMessages response from transport', 0);
+        }
+
+        $result = [];
+        foreach ($messages as $message) {
+            if (is_array($message)) {
+                $result[] = $this->createConsoleMessage($this->validateConsoleMessageData($message));
+            }
+        }
+
+        return $result;
+    }
+
+    public function clearConsoleMessages(): self
+    {
+        $this->sendCommand('clearConsoleMessages');
+
+        return $this;
+    }
+
+    public function clearPageErrors(): self
+    {
+        $this->sendCommand('clearPageErrors');
+
+        return $this;
+    }
+
     public function addInitScript(string $script): self
     {
         $this->sendCommand('addInitScript', ['script' => $script]);
@@ -508,6 +557,24 @@ final class Page implements PageInterface, EventDispatcherInterface
         $response = $this->sendCommand('evaluate', ['expression' => $normalized, 'arg' => $arg]);
 
         return $response['result'] ?? null;
+    }
+
+    /**
+     * @param array<string, mixed>|EmulateMediaOptions $options
+     */
+    public function emulateMedia(array|EmulateMediaOptions $options = []): self
+    {
+        $options = EmulateMediaOptions::from($options)->toArray();
+        $this->sendCommand('emulateMedia', ['options' => $options]);
+
+        return $this;
+    }
+
+    public function requestGC(): self
+    {
+        $this->sendCommand('requestGC');
+
+        return $this;
     }
 
     /**
@@ -857,6 +924,41 @@ final class Page implements PageInterface, EventDispatcherInterface
         return $this;
     }
 
+    public function opener(): ?PageInterface
+    {
+        $response = $this->sendCommand('opener');
+        $pageId = $response['pageId'] ?? null;
+        if (null === $pageId) {
+            return null;
+        }
+        if (!is_string($pageId)) {
+            throw new ProtocolErrorException('Invalid opener response from transport', 0);
+        }
+
+        return new self($this->transport, $this->context, $pageId, $this->config, $this->logger);
+    }
+
+    /**
+     * @return array<Request>
+     */
+    public function requests(): array
+    {
+        $response = $this->sendCommand('requests');
+        $requests = $response['requests'] ?? [];
+        if (!is_array($requests)) {
+            throw new ProtocolErrorException('Invalid requests response from transport', 0);
+        }
+
+        $result = [];
+        foreach ($requests as $request) {
+            if (is_array($request)) {
+                $result[] = $this->createRequest($request);
+            }
+        }
+
+        return $result;
+    }
+
     /**
      * @param array<string, mixed>|WaitForLoadStateOptions $options
      */
@@ -910,6 +1012,27 @@ final class Page implements PageInterface, EventDispatcherInterface
         $response = $this->sendCommand('waitForResponse', ['url' => $url, 'options' => $options->toArray(), 'jsAction' => $action]);
 
         return $this->createResponse($this->pageId, $response['response']);
+    }
+
+    /**
+     * @param array<string, mixed>|WaitForRequestOptions $options
+     */
+    public function waitForRequest(string $url, array|WaitForRequestOptions $options = []): Request
+    {
+        $action = null;
+        if (is_array($options)) {
+            $action = $options['action'] ?? null;
+            unset($options['action']);
+        }
+
+        $options = WaitForRequestOptions::from($options);
+        $response = $this->sendCommand('waitForRequest', [
+            'url' => $url,
+            'options' => $options->toArray(),
+            'jsAction' => $action,
+        ]);
+
+        return $this->createRequest($response['request'] ?? null);
     }
 
     public function addScriptTag(array|ScriptTagOptions $options): self
@@ -983,6 +1106,14 @@ final class Page implements PageInterface, EventDispatcherInterface
     public function unroute(string $url, ?callable $handler = null): void
     {
         $this->sendCommand('unroute', ['url' => $url]);
+    }
+
+    /**
+     * @param array{behavior?: 'default'|'wait'|'ignoreErrors'} $options
+     */
+    public function unrouteAll(array $options = []): void
+    {
+        $this->sendCommand('unrouteAll', ['options' => $options]);
     }
 
     public function handleDialog(string $dialogId, bool $accept, ?string $promptText = null): void
@@ -1119,6 +1250,26 @@ final class Page implements PageInterface, EventDispatcherInterface
     private function createConsoleMessage(array $params): ConsoleMessage
     {
         return new ConsoleMessage($params, $this);
+    }
+
+    /**
+     * Helper method to validate transport data for ConsoleMessage creation.
+     *
+     * @param array<mixed, mixed> $data
+     *
+     * @return array<string, mixed>
+     */
+    private function validateConsoleMessageData(array $data): array
+    {
+        $result = [];
+        foreach ($data as $key => $value) {
+            if (!is_string($key)) {
+                throw new ProtocolErrorException('Invalid console message data from transport: non-string key', 0);
+            }
+            $result[$key] = $value;
+        }
+
+        return $result;
     }
 
     private static function normalizeForPage(string $expression): string

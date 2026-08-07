@@ -17,7 +17,11 @@ namespace Playwright\Tests\Integration\Page;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Playwright\Console\ConsoleMessage;
+use Playwright\Exception\PlaywrightException;
+use Playwright\Network\RequestInterface;
 use Playwright\Network\ResponseInterface;
+use Playwright\Network\RouteInterface;
 use Playwright\Page\Page;
 use Playwright\Testing\PlaywrightTestCaseTrait;
 use Playwright\Tests\Support\RouteServerTestTrait;
@@ -199,6 +203,141 @@ class PageTest extends TestCase
     }
 
     #[Test]
+    public function itWaitsForAGlobMatchedRequest(): void
+    {
+        $request = $this->page->waitForRequest('**/page2.html', ['action' => "document.querySelector('a').click()"]);
+
+        $this->assertInstanceOf(RequestInterface::class, $request);
+        $this->assertStringContainsString('/page2.html', $request->url());
+        $this->assertSame('GET', $request->method());
+    }
+
+    #[Test]
+    public function itListsRecentRequestSnapshots(): void
+    {
+        $requests = $this->page->requests();
+        $urls = array_map(static fn (RequestInterface $request): string => $request->url(), $requests);
+
+        $this->assertContains($this->routeUrl('/index.html'), $urls);
+        $this->assertContains($this->routeUrl('/script.js'), $urls);
+    }
+
+    #[Test]
+    public function itEmulatesMediaFeatures(): void
+    {
+        $this->page->emulateMedia([
+            'media' => 'print',
+            'colorScheme' => 'dark',
+            'reducedMotion' => 'reduce',
+        ]);
+
+        $this->assertTrue($this->page->evaluate("matchMedia('print').matches"));
+        $this->assertTrue($this->page->evaluate("matchMedia('(prefers-color-scheme: dark)').matches"));
+        $this->assertTrue($this->page->evaluate("matchMedia('(prefers-reduced-motion: reduce)').matches"));
+
+        $this->page->emulateMedia(['media' => 'no-override', 'colorScheme' => 'no-override']);
+
+        $this->assertFalse($this->page->evaluate("matchMedia('print').matches"));
+    }
+
+    #[Test]
+    public function itRequestsGarbageCollection(): void
+    {
+        $this->page->evaluate('() => { globalThis.__collected = new WeakRef({ payload: new Array(1024).fill(0) }); }');
+
+        $result = $this->page->requestGC();
+
+        $this->assertSame($this->page, $result);
+        $this->assertNull($this->page->evaluate('() => globalThis.__collected.deref() ?? null'));
+    }
+
+    #[Test]
+    public function itUsesTheTouchscreen(): void
+    {
+        $context = $this->browser->newContext(['hasTouch' => true, 'viewport' => ['width' => 200, 'height' => 200]]);
+        $page = $context->newPage();
+
+        try {
+            $page->setContent(<<<'HTML'
+                <button id="target" style="width: 80px; height: 80px">Tap</button>
+                <script>
+                    window.__tapped = false;
+                    document.querySelector('#target').addEventListener('touchstart', () => { window.__tapped = true; });
+                </script>
+                HTML);
+
+            $page->touchscreen()->tap(20, 20);
+
+            $this->assertTrue($page->evaluate('window.__tapped'));
+        } finally {
+            $context->close();
+        }
+    }
+
+    #[Test]
+    public function itListsStoredConsoleMessages(): void
+    {
+        $this->page->evaluate("console.log('stored message from PHP')");
+
+        $messages = $this->page->consoleMessages();
+        $texts = array_map(static fn (ConsoleMessage $message): string => $message->text(), $messages);
+        $index = array_search('stored message from PHP', $texts, true);
+
+        $this->assertIsInt($index, 'The logged message should be part of the recorded history');
+        $this->assertSame('log', $messages[$index]->type());
+        $this->assertSame($this->page, $messages[$index]->page());
+    }
+
+    #[Test]
+    public function itClearsStoredConsoleMessages(): void
+    {
+        $this->page->evaluate("console.log('about to be dropped')");
+        $this->assertNotEmpty($this->page->consoleMessages());
+
+        $result = $this->page->clearConsoleMessages();
+
+        $this->assertSame($this->page, $result);
+        $this->assertSame([], $this->page->consoleMessages());
+    }
+
+    #[Test]
+    public function itClearsStoredPageErrors(): void
+    {
+        $this->page->evaluate('() => { setTimeout(() => { throw new Error("boom"); }, 0); }');
+
+        $result = $this->page->clearPageErrors();
+
+        $this->assertSame($this->page, $result);
+    }
+
+    #[Test]
+    public function itRemovesEveryPageRoute(): void
+    {
+        $page = $this->context->newPage();
+
+        try {
+            $page->route('**/*', static function (RouteInterface $route): void {
+                $route->fulfill(['body' => '<h1>Routed</h1>']);
+            });
+            $page->goto('https://page-unroute-all.example.test/');
+            $this->assertSame('Routed', $page->locator('h1')->innerText());
+
+            $page->unrouteAll();
+
+            $intercepted = true;
+            try {
+                $page->goto('https://page-unroute-all.example.test/');
+            } catch (PlaywrightException) {
+                $intercepted = false;
+            }
+
+            $this->assertFalse($intercepted, 'Requests should no longer be intercepted');
+        } finally {
+            $page->close();
+        }
+    }
+
+    #[Test]
     public function itWaitsForLoadState(): void
     {
         $this->page->click('a');
@@ -284,7 +423,7 @@ class PageTest extends TestCase
     #[Test]
     public function itThrowsExceptionOnInvalidWaitForFunctionPolling(): void
     {
-        $this->expectException(\Playwright\Exception\PlaywrightException::class);
+        $this->expectException(PlaywrightException::class);
         $this->expectExceptionMessage('Unknown polling option: invalid');
 
         $this->page->waitForFunction(

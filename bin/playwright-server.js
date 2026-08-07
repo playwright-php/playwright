@@ -32,6 +32,7 @@ class PlaywrightServer extends BaseHandler {
       responses: this.responses, routes: this.routes, generateId: this.generateId.bind(this),
       navigationRedirects: this.navigationRedirects,
       extractRequestData: this.extractRequestData.bind(this), serializeResponse: this.serializeResponse.bind(this),
+      serializeConsoleMessage: this.serializeConsoleMessage.bind(this),
       sendFramedResponse,
       routeCounter: { value: this.counters.route },
       setupPageEventListeners: this.setupPageEventListeners.bind(this)
@@ -168,13 +169,7 @@ class PlaywrightServer extends BaseHandler {
 
   formatEventParams(eventName, eventData) {
     const formatters = {
-      console: () => ({
-        type: eventData.type(),
-        text: eventData.text(),
-        args: [],
-        location: eventData.location ? eventData.location() : {},
-        timestamp: eventData.timestamp ? eventData.timestamp() : null,
-      }),
+      console: () => this.serializeConsoleMessage(eventData),
       dialog: () => {
         const dialogId = this.generateId('dialog');
         this.dialogs.set(dialogId, eventData);
@@ -185,6 +180,18 @@ class PlaywrightServer extends BaseHandler {
       response: () => ({ response: this.serializeResponse(eventData) })
     };
     return formatters[eventName] ? formatters[eventName]() : {};
+  }
+
+  serializeConsoleMessage(message) {
+    return {
+      type: message.type(),
+      text: message.text(),
+      // JSHandle instances cannot cross the JSON-RPC boundary; the PHP
+      // ConsoleMessage contract expects the key, so ship an empty snapshot.
+      args: [],
+      location: message.location ? message.location() : {},
+      timestamp: message.timestamp ? message.timestamp() : null,
+    };
   }
 
   generateId(prefix) {
