@@ -80,5 +80,43 @@ interface LocatorAssertionsInterface
      */
     public function toContainClass(string $expected, ?AssertionOptions $options = null): self;
 
+    /**
+     * Asserts the element's accessible name.
+     *
+     * Resolves the first non-empty of aria-label, aria-labelledby, the
+     * associated label element and the element's own text, which is short of
+     * the full accessible name computation. Whitespace is collapsed on both
+     * sides and AssertionOptions::$ignoreCase relaxes the comparison.
+     */
+    public function toHaveAccessibleName(string $expected, ?AssertionOptions $options = null): self;
+
+    /**
+     * Asserts the element's accessible description.
+     *
+     * Resolves the first non-empty of aria-description, aria-describedby and
+     * the title attribute, which is short of the full accessible description
+     * computation. Whitespace is collapsed on both sides and
+     * AssertionOptions::$ignoreCase relaxes the comparison.
+     */
+    public function toHaveAccessibleDescription(string $expected, ?AssertionOptions $options = null): self;
+
+    /**
+     * Asserts the error message the element exposes through aria-errormessage.
+     *
+     * Resolves to an empty string unless the element is flagged invalid by
+     * aria-invalid or fails constraint validation. Whitespace is collapsed on
+     * both sides and AssertionOptions::$ignoreCase relaxes the comparison.
+     */
+    public function toHaveAccessibleErrorMessage(string $expected, ?AssertionOptions $options = null): self;
+
+    /**
+     * Asserts the element's ARIA snapshot equals the expectation.
+     *
+     * Compares the YAML of LocatorInterface::ariaSnapshot() as text, ignoring
+     * blank lines, trailing whitespace and the indentation shared by every
+     * line. The expectation describes the whole subtree, not a subset of it.
+     */
+    public function toMatchAriaSnapshot(string $expected, ?AssertionOptions $options = null): self;
+
     public function not(): self;
 }

@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace Playwright\Assertions;
 
 use Playwright\Assertions\Failure\AssertionException;
+use Playwright\Assertions\Internal\AriaSnapshot;
 use Playwright\Assertions\Internal\Waiter;
 use Playwright\Page\PageInterface;
 
@@ -91,5 +92,51 @@ final class PageAssertions implements PageAssertionsInterface
         }
 
         return $this;
+    }
+
+    public function toMatchAriaSnapshot(string $expected, ?AssertionOptions $options = null): self
+    {
+        $normalized = AriaSnapshot::normalize($expected);
+
+        $this->assertState(
+            fn (): bool => AriaSnapshot::normalize($this->page->locator('body')->ariaSnapshot()) === $normalized,
+            $options,
+            'Expected page to match the ARIA snapshot.',
+            'Expected page not to match the ARIA snapshot.',
+        );
+
+        return $this;
+    }
+
+    /**
+     * @param callable(): bool $predicate
+     */
+    private function assertState(callable $predicate, ?AssertionOptions $options, string $expectedMessage, string $negatedMessage): void
+    {
+        $timeout = $options?->timeoutMs;
+        if (!is_int($timeout)) {
+            $timeout = Waiter::DEFAULT_TIMEOUT_MS;
+        }
+        $interval = $options?->intervalMs;
+        if (!is_int($interval)) {
+            $interval = 50;
+        }
+
+        $ok = true;
+        try {
+            Waiter::eventually($predicate, $timeout, $interval);
+        } catch (\Throwable) {
+            $ok = false;
+        }
+
+        $wasNegated = $this->negated;
+        if ($wasNegated) {
+            $ok = !$ok;
+            $this->negated = false;
+        }
+        if (!$ok) {
+            $message = $options instanceof AssertionOptions ? $options->message : null;
+            throw new AssertionException($message ?? ($wasNegated ? $negatedMessage : $expectedMessage));
+        }
     }
 }
