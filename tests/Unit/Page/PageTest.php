@@ -39,7 +39,9 @@ use Playwright\Page\Options\WaitForRequestOptions;
 use Playwright\Page\Page;
 use Playwright\Page\PageEventHandlerInterface;
 use Playwright\Regex;
+use Playwright\Screencast\ScreencastInterface;
 use Playwright\Transport\TransportInterface;
+use Playwright\WebStorage\WebStorageInterface;
 
 #[CoversClass(Page::class)]
 class PageTest extends TestCase
@@ -75,6 +77,29 @@ class PageTest extends TestCase
         $touchscreen = $this->page->touchscreen();
 
         $this->assertInstanceOf(TouchscreenInterface::class, $touchscreen);
+    }
+
+    public function testGetLocalStorage(): void
+    {
+        $this->assertInstanceOf(WebStorageInterface::class, $this->page->localStorage());
+        $this->assertSame($this->page->localStorage, $this->page->localStorage());
+    }
+
+    public function testGetSessionStorage(): void
+    {
+        $this->assertInstanceOf(WebStorageInterface::class, $this->page->sessionStorage());
+        $this->assertSame($this->page->sessionStorage, $this->page->sessionStorage());
+    }
+
+    public function testLocalAndSessionStorageAreDistinctInstances(): void
+    {
+        $this->assertNotSame($this->page->localStorage, $this->page->sessionStorage);
+    }
+
+    public function testGetScreencast(): void
+    {
+        $this->assertInstanceOf(ScreencastInterface::class, $this->page->screencast());
+        $this->assertSame($this->page->screencast, $this->page->screencast());
     }
 
     public function testGetEvents(): void

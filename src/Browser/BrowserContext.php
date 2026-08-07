@@ -19,6 +19,8 @@ use Playwright\API\APIRequestContextInterface;
 use Playwright\Clock\Clock;
 use Playwright\Clock\ClockInterface;
 use Playwright\Configuration\PlaywrightConfig;
+use Playwright\Credentials\Credentials;
+use Playwright\Credentials\CredentialsInterface;
 use Playwright\Event\EventDispatcherInterface;
 use Playwright\Exception\ProtocolErrorException;
 use Playwright\Exception\TimeoutException;
@@ -55,6 +57,8 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
 
     private ClockInterface $clock;
 
+    private ?CredentialsInterface $credentials = null;
+
     private bool $autoTracing = false;
 
     private ?TracingInterface $tracing = null;
@@ -87,6 +91,11 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
     public function clock(): ClockInterface
     {
         return $this->clock;
+    }
+
+    public function credentials(): CredentialsInterface
+    {
+        return $this->credentials ??= new Credentials($this->transport, $this->contextId);
     }
 
     public function tracing(): TracingInterface

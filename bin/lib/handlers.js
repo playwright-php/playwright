@@ -91,6 +91,20 @@ class ContextHandler extends BaseHandler {
     return this.wrapResult(result);
   }
 
+  async handleCredentials(command, method) {
+    const context = this.validateResource(this.contexts, command.contextId, 'Context')?.context;
+
+    const registry = CommandRegistry.create({
+      create: async () => ({ credential: await context.credentials.create(command.rpId, command.options || {}) }),
+      delete: () => context.credentials.delete(command.credentialId),
+      get: async () => ({ credentials: await context.credentials.get(command.options || {}) }),
+      install: () => context.credentials.install()
+    });
+
+    const result = await ErrorHandler.safeExecute(() => this.executeWithRegistry(registry, method), { method, contextId: command.contextId });
+    return this.wrapResult(result);
+  }
+
   async handleClock(command, method) {
     const context = this.validateResource(this.contexts, command.contextId, 'Context')?.context;
 
@@ -425,6 +439,44 @@ class PageHandler extends BaseHandler {
       expression: command.expression,
       arg: command.arg,
     }));
+  }
+
+  async handleWebStorage(command, method) {
+    const page = this.validateResource(this.pages, command.pageId, 'Page');
+    // Never index the page with the client-supplied name: only these two exist.
+    const storage = command.storage === 'sessionStorage' ? page.sessionStorage : page.localStorage;
+
+    const registry = CommandRegistry.create({
+      clear: () => storage.clear(),
+      getItem: () => PromiseUtils.wrapValue(storage.getItem(command.name)),
+      items: async () => ({ items: await storage.items() }),
+      removeItem: () => storage.removeItem(command.name),
+      setItem: () => storage.setItem(command.name, command.value)
+    });
+
+    const result = await ErrorHandler.safeExecute(() => this.executeWithRegistry(registry, method), { method, pageId: command.pageId });
+    return this.wrapResult(result);
+  }
+
+  async handleScreencast(command, method) {
+    const page = this.validateResource(this.pages, command.pageId, 'Page');
+
+    // start, showOverlay and showActions resolve with a Disposable. It has no
+    // serialisable form, and stop, hideOverlays and hideActions already undo
+    // each of them, so it is dropped rather than shipped to PHP.
+    const registry = CommandRegistry.create({
+      start: async () => { await page.screencast.start(command.options || {}); },
+      stop: () => page.screencast.stop(),
+      showOverlay: async () => { await page.screencast.showOverlay(command.html, command.options || {}); },
+      showOverlays: () => page.screencast.showOverlays(),
+      hideOverlays: () => page.screencast.hideOverlays(),
+      showActions: async () => { await page.screencast.showActions(command.options || {}); },
+      hideActions: () => page.screencast.hideActions(),
+      showChapter: () => page.screencast.showChapter(command.title, command.options || {})
+    });
+
+    const result = await ErrorHandler.safeExecute(() => this.executeWithRegistry(registry, method), { method, pageId: command.pageId });
+    return this.wrapResult(result);
   }
 
   async handleDialog(command) {

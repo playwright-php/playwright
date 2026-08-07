@@ -70,8 +70,12 @@ use Playwright\Page\Options\WaitForResponseOptions;
 use Playwright\Page\Options\WaitForSelectorOptions;
 use Playwright\Page\Options\WaitForUrlOptions;
 use Playwright\Regex;
+use Playwright\Screencast\Screencast;
+use Playwright\Screencast\ScreencastInterface;
 use Playwright\Screenshot\ScreenshotHelper;
 use Playwright\Transport\TransportInterface;
+use Playwright\WebStorage\WebStorage;
+use Playwright\WebStorage\WebStorageInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
@@ -84,6 +88,11 @@ final class Page implements PageInterface, EventDispatcherInterface
     public readonly MouseInterface $mouse;
 
     public readonly TouchscreenInterface $touchscreen;
+    public readonly WebStorageInterface $localStorage;
+
+    public readonly WebStorageInterface $sessionStorage;
+
+    public readonly ScreencastInterface $screencast;
 
     private PageEventHandlerInterface $eventHandler;
 
@@ -106,6 +115,9 @@ final class Page implements PageInterface, EventDispatcherInterface
         $this->keyboard = new Keyboard($this->transport, $this->pageId);
         $this->mouse = new Mouse($this->transport, $this->pageId);
         $this->touchscreen = new Touchscreen($this->transport, $this->pageId);
+        $this->localStorage = new WebStorage($this->transport, $this->pageId, 'localStorage');
+        $this->sessionStorage = new WebStorage($this->transport, $this->pageId, 'sessionStorage');
+        $this->screencast = new Screencast($this->transport, $this->pageId);
         $this->eventHandler = new PageEventHandler();
 
         $this->clock = $this->context->clock();
@@ -196,6 +208,21 @@ final class Page implements PageInterface, EventDispatcherInterface
     public function touchscreen(): TouchscreenInterface
     {
         return $this->touchscreen;
+    }
+
+    public function localStorage(): WebStorageInterface
+    {
+        return $this->localStorage;
+    }
+
+    public function sessionStorage(): WebStorageInterface
+    {
+        return $this->sessionStorage;
+    }
+
+    public function screencast(): ScreencastInterface
+    {
+        return $this->screencast;
     }
 
     public function events(): PageEventHandlerInterface

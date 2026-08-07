@@ -49,6 +49,8 @@ use Playwright\Page\Options\WaitForResponseOptions;
 use Playwright\Page\Options\WaitForSelectorOptions;
 use Playwright\Page\Options\WaitForUrlOptions;
 use Playwright\Regex;
+use Playwright\Screencast\ScreencastInterface;
+use Playwright\WebStorage\WebStorageInterface;
 
 interface PageInterface
 {
@@ -305,6 +307,21 @@ interface PageInterface
      * hasTouch enabled, otherwise the browser ignores the events.
      */
     public function touchscreen(): TouchscreenInterface;
+
+    /**
+     * The `localStorage` of the page's current origin.
+     */
+    public function localStorage(): WebStorageInterface;
+
+    /**
+     * The `sessionStorage` of the page's current origin.
+     */
+    public function sessionStorage(): WebStorageInterface;
+
+    /**
+     * The page's screencast, to record a video and annotate it.
+     */
+    public function screencast(): ScreencastInterface;
 
     public function events(): PageEventHandlerInterface;
 
