@@ -50,6 +50,11 @@ interface ResponseInterface
      */
     public function headersArray(): array;
 
+    /**
+     * Protocol the response was delivered over, such as "HTTP/1.1" or "h2"; null when unknown.
+     */
+    public function httpVersion(): ?string;
+
     public function body(): string;
 
     public function text(): string;

@@ -1266,7 +1266,7 @@ final class Page implements PageInterface, EventDispatcherInterface
      */
     private function createRequest(mixed $data): Request
     {
-        return new Request($this->validateRequestData($data));
+        return new Request($this->validateRequestData($data), $this->transport, null, $this->pageId);
     }
 
     /**

@@ -72,6 +72,11 @@ interface RequestInterface
 
     public function response(): ?ResponseInterface;
 
+    /**
+     * The response if it has already arrived, without waiting for one.
+     */
+    public function existingResponse(): ?ResponseInterface;
+
     public function serviceWorker(): mixed;
 
     /**

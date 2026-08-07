@@ -21,9 +21,13 @@ use Playwright\Page\PageInterface;
  */
 final class WebError implements WebErrorInterface
 {
+    /**
+     * @param array{url: string, line: int, column: int}|null $location
+     */
     public function __construct(
         private readonly \Throwable $error,
         private readonly ?PageInterface $page = null,
+        private readonly ?array $location = null,
     ) {
     }
 
@@ -35,5 +39,13 @@ final class WebError implements WebErrorInterface
     public function page(): ?PageInterface
     {
         return $this->page;
+    }
+
+    /**
+     * @return array{url: string, line: int, column: int}|null
+     */
+    public function location(): ?array
+    {
+        return $this->location;
     }
 }
