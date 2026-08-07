@@ -82,6 +82,7 @@ final class LocatorAssertionsTest extends TestCase
 
         Expect::locator($attached)->toBeAttached();
         Expect::locator($editable)->toBeEditable();
+        $this->expect($attached)->toBeAttached();
     }
 
     #[Test]

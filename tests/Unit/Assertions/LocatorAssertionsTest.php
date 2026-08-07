@@ -34,6 +34,34 @@ final class LocatorAssertionsTest extends TestCase
         $this->assertSame($assertions, $assertions->toBeAttached());
     }
 
+    public function testModifiersAreFluent(): void
+    {
+        $assertions = new LocatorAssertions($this->createMock(LocatorInterface::class));
+
+        $this->assertSame($assertions, $assertions->withTimeout(100));
+        $this->assertSame($assertions, $assertions->withPollInterval(10));
+    }
+
+    public function testToBeAttachedRetriesAfterAnEvaluationError(): void
+    {
+        $locator = $this->createMock(LocatorInterface::class);
+        $calls = 0;
+        $locator->expects($this->exactly(2))
+            ->method('isAttached')
+            ->willReturnCallback(static function () use (&$calls): bool {
+                if (1 === ++$calls) {
+                    throw new \RuntimeException('Detached during evaluation');
+                }
+
+                return true;
+            });
+
+        $this->assertInstanceOf(
+            LocatorAssertions::class,
+            (new LocatorAssertions($locator))->withPollInterval(0)->toBeAttached(),
+        );
+    }
+
     public function testToBeEditable(): void
     {
         $locator = $this->createMock(LocatorInterface::class);
@@ -51,7 +79,7 @@ final class LocatorAssertionsTest extends TestCase
         $assertions = new LocatorAssertions($locator);
 
         try {
-            $assertions->not()->toBeAttached();
+            $assertions->not()->toBeAttached(new AssertionOptions(timeoutMs: 0));
             $this->fail('Expected the negated assertion to fail.');
         } catch (AssertionException $exception) {
             $this->assertSame('Expected locator to be detached.', $exception->getMessage());
@@ -67,7 +95,7 @@ final class LocatorAssertionsTest extends TestCase
         $assertions = new LocatorAssertions($locator);
 
         try {
-            $assertions->not()->toBeEditable();
+            $assertions->not()->toBeEditable(new AssertionOptions(timeoutMs: 0));
             $this->fail('Expected the negated assertion to fail.');
         } catch (AssertionException $exception) {
             $this->assertSame('Expected locator not to be editable.', $exception->getMessage());
@@ -85,6 +113,54 @@ final class LocatorAssertionsTest extends TestCase
             ->willReturn(true);
 
         $this->assertInstanceOf(LocatorAssertions::class, (new LocatorAssertions($locator))->toBeInViewport(new AssertionOptions(ratio: 0.5)));
+    }
+
+    public function testToBeInViewportRejectsAnInvalidRatio(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        (new LocatorAssertions($this->createMock(LocatorInterface::class)))->toBeInViewport(new AssertionOptions(ratio: 1.1));
+    }
+
+    public function testToHaveTextMatchesExactlyInTheCanonicalApi(): void
+    {
+        $locator = $this->createMock(LocatorInterface::class);
+        $locator->expects($this->once())->method('textContent')->willReturn('Exact text');
+
+        $this->assertInstanceOf(LocatorAssertions::class, (new LocatorAssertions($locator))->toHaveText('Exact text'));
+    }
+
+    public function testToHaveTextSupportsMultipleInnerTexts(): void
+    {
+        $locator = $this->createMock(LocatorInterface::class);
+        $locator->expects($this->once())->method('allInnerTexts')->willReturn(['First', 'Second']);
+
+        $this->assertInstanceOf(
+            LocatorAssertions::class,
+            (new LocatorAssertions($locator))->toHaveText(
+                ['First', 'Second'],
+                new AssertionOptions(useInnerText: true),
+            ),
+        );
+    }
+
+    public function testFailureStillThrowsWhenReadingTheActualValueFails(): void
+    {
+        $locator = $this->createMock(LocatorInterface::class);
+        $calls = 0;
+        $locator->expects($this->exactly(2))
+            ->method('count')
+            ->willReturnCallback(static function () use (&$calls): int {
+                if (1 === ++$calls) {
+                    return 1;
+                }
+
+                throw new \RuntimeException('Gone');
+            });
+
+        $this->expectException(AssertionException::class);
+
+        (new LocatorAssertions($locator))->toHaveCount(2, new AssertionOptions(timeoutMs: 0));
     }
 
     public function testToHaveJavaScriptPropertyUsesDeepNativeComparison(): void

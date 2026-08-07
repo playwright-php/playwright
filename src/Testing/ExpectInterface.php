@@ -16,6 +16,8 @@ namespace Playwright\Testing;
 
 interface ExpectInterface
 {
+    public function toBeAttached(): void;
+
     public function toBeVisible(): void;
 
     public function toBeHidden(): void;

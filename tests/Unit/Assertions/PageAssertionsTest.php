@@ -21,10 +21,53 @@ use Playwright\Assertions\Failure\AssertionException;
 use Playwright\Assertions\PageAssertions;
 use Playwright\Locator\LocatorInterface;
 use Playwright\Page\PageInterface;
+use Playwright\Tracing\TracingInterface;
 
 #[CoversClass(PageAssertions::class)]
 final class PageAssertionsTest extends TestCase
 {
+    public function testToHaveTitleRetriesAndUsesTracing(): void
+    {
+        $page = $this->createMock(PageInterface::class);
+        $page->expects($this->exactly(2))->method('title')->willReturn('Loading', 'Ready');
+
+        $tracing = $this->createMock(TracingInterface::class);
+        $tracing->expects($this->once())->method('group')->with('expect(page).toHaveTitle');
+        $tracing->expects($this->once())->method('groupEnd');
+
+        $assertions = new PageAssertions($page, $tracing);
+
+        $this->assertSame($assertions, $assertions->withTimeout(100)->withPollInterval(0)->toHaveTitle('Ready'));
+    }
+
+    public function testToHaveUrlSupportsNegation(): void
+    {
+        $page = $this->createMock(PageInterface::class);
+        $page->expects($this->once())->method('url')->willReturn('https://example.com/');
+
+        $assertions = new PageAssertions($page);
+
+        $this->assertSame($assertions, $assertions->not()->toHaveURL('https://example.com/login'));
+    }
+
+    public function testFailureUsesAssertionOptionsAndResetsNegation(): void
+    {
+        $page = $this->createMock(PageInterface::class);
+        $page->expects($this->exactly(3))->method('title')->willReturn('Actual');
+        $assertions = new PageAssertions($page);
+
+        try {
+            $assertions->not()->toHaveTitle('Actual', new AssertionOptions(timeoutMs: 0, message: 'Custom failure'));
+            $this->fail('Expected the negated assertion to fail.');
+        } catch (AssertionException $exception) {
+            $this->assertSame('Custom failure', $exception->getMessage());
+            $this->assertSame('Actual', $exception->actual);
+            $this->assertSame('Actual', $exception->expected);
+        }
+
+        $this->assertSame($assertions, $assertions->toHaveTitle('Actual'));
+    }
+
     public function testToMatchAriaSnapshotSnapshotsTheBody(): void
     {
         $locator = $this->createMock(LocatorInterface::class);

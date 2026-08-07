@@ -51,6 +51,11 @@ expect($this->page->locator('.success-message'))
     ->toBeVisible();
 ```
 
+### `.withPollInterval()`
+
+Assertions poll every 100 milliseconds by default. Use `withPollInterval()` to
+override that interval for the next assertion.
+
 -----
 
 ## Locator Assertions
@@ -59,16 +64,21 @@ These assertions are available when you pass a `Locator` to `expect()`.
 
 * **`toBeVisible()`**: Asserts the locator resolves to a visible element.
 * **`toBeHidden()`**: Asserts the locator resolves to a hidden element.
+* **`toBeAttached()`**: Asserts the locator resolves to an element in the DOM.
 * **`toBeEnabled()`**: Asserts the element is enabled.
 * **`toBeDisabled()`**: Asserts the element is disabled.
 * **`toBeChecked()`**: Asserts a checkbox or radio button is checked.
+* **`toBeEmpty()`**: Asserts the element has no value or text content.
 * **`toBeFocused()`**: Asserts the element is focused.
+* **`toHaveFocus()`**: Alias for `toBeFocused()`.
 * **`toHaveText(string $text)`**: Asserts the element contains the given text.
 * **`toHaveExactText(string $text)`**: Asserts the element's text is an exact match.
 * **`toContainText(string $text)`**: An alias for `toHaveText()`.
 * **`toHaveValue(string $value)`**: Asserts an input element has a specific value.
 * **`toHaveAttribute(string $name, string $value)`**: Asserts the element has the given attribute and value.
 * **`toHaveCSS(string $name, string $value)`**: Asserts the element has the given computed CSS style.
+* **`toHaveId(string $id)`**: Asserts the element has the given ID.
+* **`toHaveClass(string|array $class)`**: Asserts the complete class list matches.
 * **`toHaveCount(int $count)`**: Asserts the locator resolves to a specific number of elements.
 
 -----

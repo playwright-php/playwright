@@ -14,22 +14,37 @@ declare(strict_types=1);
 
 namespace Playwright\Assertions;
 
-use Playwright\Assertions\Failure\AssertionException;
+use Playwright\Assertions\Internal\AbstractAssertions;
 use Playwright\Assertions\Internal\AriaSnapshot;
-use Playwright\Assertions\Internal\Waiter;
 use Playwright\Page\PageInterface;
+use Playwright\Tracing\TracingInterface;
 
-final class PageAssertions implements PageAssertionsInterface
+final class PageAssertions extends AbstractAssertions implements PageAssertionsInterface
 {
-    private bool $negated = false;
-
-    public function __construct(private PageInterface $page)
-    {
+    public function __construct(
+        private readonly PageInterface $page,
+        ?TracingInterface $tracing = null,
+    ) {
+        parent::__construct($tracing);
     }
 
     public function not(): self
     {
-        $this->negated = !$this->negated;
+        $this->negate();
+
+        return $this;
+    }
+
+    public function withTimeout(int $timeoutMs): self
+    {
+        $this->setTimeout($timeoutMs);
+
+        return $this;
+    }
+
+    public function withPollInterval(int $pollIntervalMs): self
+    {
+        $this->setPollInterval($pollIntervalMs);
 
         return $this;
     }
@@ -37,29 +52,15 @@ final class PageAssertions implements PageAssertionsInterface
     public function toHaveTitle(string|\Stringable $expected, ?AssertionOptions $options = null): self
     {
         $expected = (string) $expected;
-        $timeout = $options?->timeoutMs;
-        if (!is_int($timeout)) {
-            $timeout = Waiter::DEFAULT_TIMEOUT_MS;
-        }
-        $interval = $options?->intervalMs;
-        if (!is_int($interval)) {
-            $interval = 50;
-        }
-
-        $ok = true;
-        try {
-            Waiter::eventually(fn () => $this->page->title() === $expected, $timeout, $interval);
-        } catch (\Throwable) {
-            $ok = false;
-        }
-
-        if ($this->negated) {
-            $ok = !$ok;
-            $this->negated = false;
-        }
-        if (!$ok) {
-            throw new AssertionException('Expected page title to match.', actual: $this->page->title(), expected: $expected);
-        }
+        $this->assertCondition(
+            fn (): bool => $this->page->title() === $expected,
+            'toHaveTitle',
+            $options,
+            'Expected page title to match.',
+            'Expected page title not to match.',
+            $expected,
+            fn (): string => $this->page->title(),
+        );
 
         return $this;
     }
@@ -67,29 +68,15 @@ final class PageAssertions implements PageAssertionsInterface
     public function toHaveURL(string|\Stringable $expected, ?AssertionOptions $options = null): self
     {
         $expected = (string) $expected;
-        $timeout = $options?->timeoutMs;
-        if (!is_int($timeout)) {
-            $timeout = Waiter::DEFAULT_TIMEOUT_MS;
-        }
-        $interval = $options?->intervalMs;
-        if (!is_int($interval)) {
-            $interval = 50;
-        }
-
-        $ok = true;
-        try {
-            Waiter::eventually(fn () => $this->page->url() === $expected, $timeout, $interval);
-        } catch (\Throwable) {
-            $ok = false;
-        }
-
-        if ($this->negated) {
-            $ok = !$ok;
-            $this->negated = false;
-        }
-        if (!$ok) {
-            throw new AssertionException('Expected page URL to match.', actual: $this->page->url(), expected: $expected);
-        }
+        $this->assertCondition(
+            fn (): bool => $this->page->url() === $expected,
+            'toHaveURL',
+            $options,
+            'Expected page URL to match.',
+            'Expected page URL not to match.',
+            $expected,
+            fn (): string => $this->page->url(),
+        );
 
         return $this;
     }
@@ -98,8 +85,9 @@ final class PageAssertions implements PageAssertionsInterface
     {
         $normalized = AriaSnapshot::normalize($expected);
 
-        $this->assertState(
+        $this->assertCondition(
             fn (): bool => AriaSnapshot::normalize($this->page->locator('body')->ariaSnapshot()) === $normalized,
+            'toMatchAriaSnapshot',
             $options,
             'Expected page to match the ARIA snapshot.',
             'Expected page not to match the ARIA snapshot.',
@@ -108,35 +96,8 @@ final class PageAssertions implements PageAssertionsInterface
         return $this;
     }
 
-    /**
-     * @param callable(): bool $predicate
-     */
-    private function assertState(callable $predicate, ?AssertionOptions $options, string $expectedMessage, string $negatedMessage): void
+    protected function subjectName(): string
     {
-        $timeout = $options?->timeoutMs;
-        if (!is_int($timeout)) {
-            $timeout = Waiter::DEFAULT_TIMEOUT_MS;
-        }
-        $interval = $options?->intervalMs;
-        if (!is_int($interval)) {
-            $interval = 50;
-        }
-
-        $ok = true;
-        try {
-            Waiter::eventually($predicate, $timeout, $interval);
-        } catch (\Throwable) {
-            $ok = false;
-        }
-
-        $wasNegated = $this->negated;
-        if ($wasNegated) {
-            $ok = !$ok;
-            $this->negated = false;
-        }
-        if (!$ok) {
-            $message = $options instanceof AssertionOptions ? $options->message : null;
-            throw new AssertionException($message ?? ($wasNegated ? $negatedMessage : $expectedMessage));
-        }
+        return 'page';
     }
 }

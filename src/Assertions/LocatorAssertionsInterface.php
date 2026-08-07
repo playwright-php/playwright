@@ -40,12 +40,41 @@ interface LocatorAssertionsInterface
 
     public function toBeHidden(?AssertionOptions $options = null): self;
 
+    public function toBeChecked(?AssertionOptions $options = null): self;
+
+    public function toBeEnabled(?AssertionOptions $options = null): self;
+
+    public function toBeDisabled(?AssertionOptions $options = null): self;
+
+    public function toBeEmpty(?AssertionOptions $options = null): self;
+
+    public function toBeFocused(?AssertionOptions $options = null): self;
+
+    public function toHaveFocus(?AssertionOptions $options = null): self;
+
     /**
      * @param string|array<string> $expected
      *
      * @return $this
      */
     public function toHaveText(string|array $expected, ?AssertionOptions $options = null): self;
+
+    public function toContainText(string $expected, ?AssertionOptions $options = null): self;
+
+    public function toHaveExactText(string $expected, ?AssertionOptions $options = null): self;
+
+    public function toHaveValue(string $expected, ?AssertionOptions $options = null): self;
+
+    public function toHaveAttribute(string $name, string $expected, ?AssertionOptions $options = null): self;
+
+    public function toHaveCSS(string $name, string $expected, ?AssertionOptions $options = null): self;
+
+    public function toHaveId(string $expected, ?AssertionOptions $options = null): self;
+
+    /**
+     * @param string|string[] $expected
+     */
+    public function toHaveClass(string|array $expected, ?AssertionOptions $options = null): self;
 
     public function toHaveCount(int $expected, ?AssertionOptions $options = null): self;
 
@@ -119,4 +148,8 @@ interface LocatorAssertionsInterface
     public function toMatchAriaSnapshot(string $expected, ?AssertionOptions $options = null): self;
 
     public function not(): self;
+
+    public function withTimeout(int $timeoutMs): self;
+
+    public function withPollInterval(int $pollIntervalMs): self;
 }
