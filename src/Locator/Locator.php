@@ -19,10 +19,13 @@ use Playwright\Exception\ProtocolErrorException;
 use Playwright\Exception\TimeoutException;
 use Playwright\Frame\FrameLocator;
 use Playwright\Frame\FrameLocatorInterface;
+use Playwright\Locator\Options\AriaSnapshotOptions;
+use Playwright\Locator\Options\BoundingBoxOptions;
 use Playwright\Locator\Options\CheckOptions;
 use Playwright\Locator\Options\ClearOptions;
 use Playwright\Locator\Options\ClickOptions;
 use Playwright\Locator\Options\DblClickOptions;
+use Playwright\Locator\Options\DispatchEventOptions;
 use Playwright\Locator\Options\DragToOptions;
 use Playwright\Locator\Options\FillOptions;
 use Playwright\Locator\Options\FilterOptions;
@@ -32,8 +35,12 @@ use Playwright\Locator\Options\GetByRoleOptions;
 use Playwright\Locator\Options\HoverOptions;
 use Playwright\Locator\Options\LocatorScreenshotOptions;
 use Playwright\Locator\Options\PressOptions;
+use Playwright\Locator\Options\ScrollIntoViewIfNeededOptions;
 use Playwright\Locator\Options\SelectOptionOptions;
+use Playwright\Locator\Options\SelectTextOptions;
+use Playwright\Locator\Options\SetCheckedOptions;
 use Playwright\Locator\Options\SetInputFilesOptions;
+use Playwright\Locator\Options\TapOptions;
 use Playwright\Locator\Options\TextContentOptions;
 use Playwright\Locator\Options\TypeOptions;
 use Playwright\Locator\Options\UncheckOptions;
@@ -129,6 +136,73 @@ final class Locator implements \Stringable, LocatorInterface
     public function blur(): void
     {
         $this->sendCommand('locator.blur');
+    }
+
+    /**
+     * @param array<string, mixed>|AriaSnapshotOptions $options
+     */
+    public function ariaSnapshot(array|AriaSnapshotOptions $options = []): string
+    {
+        $options = AriaSnapshotOptions::from($options);
+        $response = $this->sendCommand('locator.ariaSnapshot', ['options' => $options->toArray()]);
+        $value = $response['value'] ?? null;
+        if (!is_string($value)) {
+            throw new ProtocolErrorException('Invalid ariaSnapshot response', 0);
+        }
+
+        return $value;
+    }
+
+    /**
+     * @param array<string, mixed>|BoundingBoxOptions $options
+     *
+     * @return array{x: float|int, y: float|int, width: float|int, height: float|int}|null
+     */
+    public function boundingBox(array|BoundingBoxOptions $options = []): ?array
+    {
+        $options = BoundingBoxOptions::from($options);
+        $response = $this->sendCommand('locator.boundingBox', ['options' => $options->toArray()]);
+        $value = $response['value'] ?? null;
+        if (null === $value) {
+            return null;
+        }
+        if (!is_array($value)
+            || !isset($value['x'], $value['y'], $value['width'], $value['height'])
+            || !(is_int($value['x']) || is_float($value['x']))
+            || !(is_int($value['y']) || is_float($value['y']))
+            || !(is_int($value['width']) || is_float($value['width']))
+            || !(is_int($value['height']) || is_float($value['height']))) {
+            throw new ProtocolErrorException('Invalid boundingBox response', 0);
+        }
+
+        return [
+            'x' => $value['x'],
+            'y' => $value['y'],
+            'width' => $value['width'],
+            'height' => $value['height'],
+        ];
+    }
+
+    /**
+     * @param array<string, mixed>|DispatchEventOptions $options
+     */
+    public function dispatchEvent(string $type, mixed $eventInit = [], array|DispatchEventOptions $options = []): void
+    {
+        $options = DispatchEventOptions::from($options);
+        $this->sendCommand('locator.dispatchEvent', [
+            'type' => $type,
+            'eventInit' => $eventInit,
+            'options' => $options->toArray(),
+        ]);
+    }
+
+    /**
+     * @param array<string, mixed>|ScrollIntoViewIfNeededOptions $options
+     */
+    public function scrollIntoViewIfNeeded(array|ScrollIntoViewIfNeededOptions $options = []): void
+    {
+        $options = ScrollIntoViewIfNeededOptions::from($options);
+        $this->sendCommand('locator.scrollIntoViewIfNeeded', ['options' => $options->toArray()]);
     }
 
     /**
@@ -432,6 +506,15 @@ final class Locator implements \Stringable, LocatorInterface
     }
 
     /**
+     * @param array<string, mixed>|TypeOptions $options
+     */
+    public function pressSequentially(string $text, array|TypeOptions $options = []): void
+    {
+        $options = TypeOptions::from($options);
+        $this->sendCommand('locator.pressSequentially', ['text' => $text, 'options' => $options->toArray()]);
+    }
+
+    /**
      * @param array<string, mixed>|PressOptions $options
      */
     public function press(string $key, array|PressOptions $options = []): void
@@ -564,6 +647,51 @@ final class Locator implements \Stringable, LocatorInterface
         $response = $this->sendCommand('locator.evaluate', ['expression' => $normalized, 'arg' => $arg]);
 
         return $response['value'] ?? null;
+    }
+
+    public function evaluateAll(string $expression, mixed $arg = null): mixed
+    {
+        $response = $this->sendCommand('locator.evaluateAll', [
+            'expression' => self::normalizeForLocator($expression),
+            'arg' => $arg,
+        ]);
+
+        return $response['value'] ?? null;
+    }
+
+    public function highlight(): void
+    {
+        $this->sendCommand('locator.highlight');
+    }
+
+    /**
+     * @param array<string, mixed>|SelectTextOptions $options
+     */
+    public function selectText(array|SelectTextOptions $options = []): void
+    {
+        $options = SelectTextOptions::from($options);
+        $this->sendCommand('locator.selectText', ['options' => $options->toArray()]);
+    }
+
+    /**
+     * @param array<string, mixed>|SetCheckedOptions $options
+     */
+    public function setChecked(bool $checked, array|SetCheckedOptions $options = []): void
+    {
+        $options = SetCheckedOptions::from($options);
+        $this->sendCommand('locator.setChecked', [
+            'checked' => $checked,
+            'options' => $options->toArray(),
+        ]);
+    }
+
+    /**
+     * @param array<string, mixed>|TapOptions $options
+     */
+    public function tap(array|TapOptions $options = []): void
+    {
+        $options = TapOptions::from($options);
+        $this->sendCommand('locator.tap', ['options' => $options->toArray()]);
     }
 
     public function frameLocator(string $selector): FrameLocatorInterface

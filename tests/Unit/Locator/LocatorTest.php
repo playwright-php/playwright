@@ -20,6 +20,12 @@ use Playwright\Exception\PlaywrightException;
 use Playwright\Exception\TimeoutException;
 use Playwright\Frame\FrameLocatorInterface;
 use Playwright\Locator\Locator;
+use Playwright\Locator\Options\AriaSnapshotOptions;
+use Playwright\Locator\Options\BoundingBoxOptions;
+use Playwright\Locator\Options\DispatchEventOptions;
+use Playwright\Locator\Options\SelectTextOptions;
+use Playwright\Locator\Options\SetCheckedOptions;
+use Playwright\Locator\Options\TapOptions;
 use Playwright\Transport\TransportInterface;
 
 #[CoversClass(Locator::class)]
@@ -58,6 +64,36 @@ final class LocatorTest extends TestCase
     {
         $result = (string) $this->locator;
         $this->assertEquals('Locator(selector=".element")', $result);
+    }
+
+    public function testPressSequentiallySendsTextAndOptions(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static function (array $payload): bool {
+                return 'locator.pressSequentially' === $payload['action']
+                    && 'hello' === $payload['text']
+                    && ['delay' => 10.0] === $payload['options'];
+            }))
+            ->willReturn([]);
+
+        $this->locator->pressSequentially('hello', ['delay' => 10.0]);
+    }
+
+    public function testPressSendsKeyAndOptions(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static function (array $payload): bool {
+                return 'locator.press' === $payload['action']
+                    && 'Enter' === $payload['key']
+                    && ['delay' => 10.0] === $payload['options'];
+            }))
+            ->willReturn([]);
+
+        $this->locator->press('Enter', ['delay' => 10.0]);
     }
 
     public function testDblclick(): void
@@ -111,6 +147,136 @@ final class LocatorTest extends TestCase
             ->willReturn([]);
 
         $this->locator->blur();
+    }
+
+    public function testAriaSnapshotSendsOptionsAndReturnsSnapshot(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static function (array $payload): bool {
+                return 'locator.ariaSnapshot' === $payload['action']
+                    && ['timeout' => 500.0] === $payload['options'];
+            }))
+            ->willReturn(['value' => '- button "Save"']);
+
+        $this->assertSame('- button "Save"', $this->locator->ariaSnapshot(new AriaSnapshotOptions(timeout: 500.0)));
+    }
+
+    public function testBoundingBoxSendsOptionsAndReturnsCoordinates(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static function (array $payload): bool {
+                return 'locator.boundingBox' === $payload['action']
+                    && ['timeout' => 500.0] === $payload['options'];
+            }))
+            ->willReturn(['value' => ['x' => 1.0, 'y' => 2.0, 'width' => 3.0, 'height' => 4.0]]);
+
+        $this->assertSame(
+            ['x' => 1.0, 'y' => 2.0, 'width' => 3.0, 'height' => 4.0],
+            $this->locator->boundingBox(new BoundingBoxOptions(timeout: 500.0))
+        );
+    }
+
+    public function testDispatchEventSendsTypeInitializerAndOptions(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static function (array $payload): bool {
+                return 'locator.dispatchEvent' === $payload['action']
+                    && 'click' === $payload['type']
+                    && ['detail' => 2] === $payload['eventInit']
+                    && ['timeout' => 500.0] === $payload['options'];
+            }))
+            ->willReturn([]);
+
+        $this->locator->dispatchEvent('click', ['detail' => 2], new DispatchEventOptions(timeout: 500.0));
+    }
+
+    public function testEvaluateAllSendsExpressionAndArgument(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static function (array $payload): bool {
+                return 'locator.evaluateAll' === $payload['action']
+                    && 'elements => elements.length + arg' === $payload['expression']
+                    && 2 === $payload['arg'];
+            }))
+            ->willReturn(['value' => 4]);
+
+        $this->assertSame(4, $this->locator->evaluateAll('elements => elements.length + arg', 2));
+    }
+
+    public function testHighlightSendsCommand(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static fn (array $payload): bool => 'locator.highlight' === $payload['action']))
+            ->willReturn([]);
+
+        $this->locator->highlight();
+    }
+
+    public function testSelectTextSendsOptions(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static function (array $payload): bool {
+                return 'locator.selectText' === $payload['action']
+                    && ['force' => true, 'timeout' => 500.0] === $payload['options'];
+            }))
+            ->willReturn([]);
+
+        $this->locator->selectText(new SelectTextOptions(force: true, timeout: 500.0));
+    }
+
+    public function testSetCheckedSendsStateAndOptions(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static function (array $payload): bool {
+                return 'locator.setChecked' === $payload['action']
+                    && true === $payload['checked']
+                    && ['force' => true, 'timeout' => 500.0] === $payload['options'];
+            }))
+            ->willReturn([]);
+
+        $this->locator->setChecked(true, new SetCheckedOptions(force: true, timeout: 500.0));
+    }
+
+    public function testTapSendsOptions(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static function (array $payload): bool {
+                return 'locator.tap' === $payload['action']
+                    && ['modifiers' => ['Shift'], 'timeout' => 500.0] === $payload['options'];
+            }))
+            ->willReturn([]);
+
+        $this->locator->tap(new TapOptions(modifiers: ['Shift'], timeout: 500.0));
+    }
+
+    public function testScrollIntoViewIfNeededSendsOptions(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static function (array $payload): bool {
+                return 'locator.scrollIntoViewIfNeeded' === $payload['action']
+                    && ['timeout' => 500.0] === $payload['options'];
+            }))
+            ->willReturn([]);
+
+        $this->locator->scrollIntoViewIfNeeded(['timeout' => 500.0]);
     }
 
     public function testScreenshotWithPath(): void
