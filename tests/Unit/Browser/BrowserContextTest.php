@@ -144,6 +144,46 @@ final class BrowserContextTest extends TestCase
         $this->context->addInitScript($script);
     }
 
+    public function testSetExtraHTTPHeaders(): void
+    {
+        $headers = ['X-Playwright-PHP' => 'context'];
+
+        $this->mockTransport
+            ->expects($this->once())
+            ->method('send')
+            ->with([
+                'action' => 'context.setExtraHTTPHeaders',
+                'contextId' => 'context_1',
+                'headers' => $headers,
+            ]);
+
+        $this->context->setExtraHTTPHeaders($headers);
+    }
+
+    public function testSetExtraHTTPHeadersRejectsInvalidHeaderName(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('HTTP header names must be non-empty token strings.');
+
+        $this->context->setExtraHTTPHeaders(['Invalid Header' => 'value']);
+    }
+
+    public function testSetExtraHTTPHeadersRejectsInvalidHeaderValue(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('HTTP header values must be strings without line breaks.');
+
+        $this->context->setExtraHTTPHeaders(['X-Playwright-PHP' => "value\nnext"]);
+    }
+
+    public function testSetExtraHTTPHeadersRejectsNonStringHeaderValue(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('HTTP header values must be strings without line breaks.');
+
+        $this->context->setExtraHTTPHeaders(['X-Playwright-PHP' => 42]);
+    }
+
     public function testClearCookies(): void
     {
         $this->mockTransport
@@ -183,6 +223,34 @@ final class BrowserContextTest extends TestCase
             ]);
 
         $this->context->clearPermissions();
+    }
+
+    public function testSetDefaultTimeoutSendsCorrectCommand(): void
+    {
+        $this->mockTransport
+            ->expects($this->once())
+            ->method('send')
+            ->with([
+                'action' => 'context.setDefaultTimeout',
+                'contextId' => 'context_1',
+                'timeout' => 500,
+            ]);
+
+        $this->context->setDefaultTimeout(500);
+    }
+
+    public function testSetDefaultNavigationTimeoutSendsCorrectCommand(): void
+    {
+        $this->mockTransport
+            ->expects($this->once())
+            ->method('send')
+            ->with([
+                'action' => 'context.setDefaultNavigationTimeout',
+                'contextId' => 'context_1',
+                'timeout' => 10000,
+            ]);
+
+        $this->context->setDefaultNavigationTimeout(10000);
     }
 
     public function testCookies(): void

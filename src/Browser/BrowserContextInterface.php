@@ -45,6 +45,13 @@ interface BrowserContextInterface
     public function addInitScript(string $script): void;
 
     /**
+     * Set extra HTTP headers for every request made by pages in this context.
+     *
+     * @param array<string, string> $headers
+     */
+    public function setExtraHTTPHeaders(array $headers): void;
+
+    /**
      * @param array<array{domain: string, name: string, path: string}> $options
      */
     public function clearCookies(array $options = []): void;
@@ -163,4 +170,14 @@ interface BrowserContextInterface
      * Requests made with this API will use context cookies.
      */
     public function request(): APIRequestContextInterface;
+
+    /**
+     * Sets the default maximum time for methods that accept a timeout option.
+     */
+    public function setDefaultTimeout(int $timeout): void;
+
+    /**
+     * Sets the default maximum time for navigation methods.
+     */
+    public function setDefaultNavigationTimeout(int $timeout): void;
 }

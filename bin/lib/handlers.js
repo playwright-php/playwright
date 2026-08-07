@@ -9,6 +9,7 @@ class ContextHandler extends BaseHandler {
 
     const registry = CommandRegistry.create({
       addInitScript: () => context.addInitScript(command.script),
+      setExtraHTTPHeaders: () => context.setExtraHTTPHeaders(command.headers),
       setOffline: () => context.setOffline(!!command.offline),
       setGeolocation: () => context.setGeolocation(command.geolocation),
       addCookies: () => context.addCookies(command.cookies),
@@ -35,6 +36,8 @@ class ContextHandler extends BaseHandler {
       },
       waitForPopup: () => this.waitForPopup(context, command),
       setNetworkThrottling: () => this.setThrottling(command),
+      setDefaultTimeout: () => context.setDefaultTimeout(command.timeout),
+      setDefaultNavigationTimeout: () => context.setDefaultNavigationTimeout(command.timeout),
       route: () => RouteUtils.setupRoute(context, command.contextId, command.url, this.generateId, this.routes, this.extractRequestData, this.sendFramedResponse),
       unroute: () => context.unroute(command.url),
       cookies: async () => ({ cookies: await context.cookies(command.urls) }),
