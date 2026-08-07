@@ -226,12 +226,58 @@ class FrameUtils {
     return fl;
   }
 
-  static async evaluateInFrame(page, frameLocator, isMainFrame, expression) {
-    if (isMainFrame) return await page.evaluate(expression);
+  static async evaluateInFrame(page, frameLocator, isMainFrame, expression, arg) {
+    if (isMainFrame) return await page.evaluate(expression, arg);
     const loc = frameLocator.locator('html');
     const count = await loc.count();
     if (count === 0) return null;
-    return await loc.evaluate(expression);
+    if (typeof expression === 'function') return await loc.evaluate(expression);
+    return await loc.evaluate(async (element, payload) => {
+      const value = eval(`(${payload.expression})`);
+      return typeof value === 'function'
+        ? await value(payload.arg)
+        : await eval(payload.expression);
+    }, { expression, arg });
+  }
+
+  static async resolveNativeFrame(page, chain) {
+    const mainFrame = page.mainFrame();
+    if (!chain || chain === ':root') return mainFrame;
+
+    for (const frame of page.frames()) {
+      if (frame === mainFrame) continue;
+      try {
+        if (await this.selectorForNativeFrame(frame, mainFrame) === chain) return frame;
+      } catch {
+        // A detached frame cannot be addressed by the PHP selector anymore.
+      }
+    }
+
+    throw new Error(`Frame not found for selector: ${chain}`);
+  }
+
+  static async selectorForNativeFrame(frame, mainFrame) {
+    const chain = [];
+    let current = frame;
+    while (current && current !== mainFrame) {
+      const element = await current.frameElement();
+      const selector = await element.evaluate((node) => {
+        const escape = (value) => (typeof CSS !== 'undefined' && CSS.escape)
+          ? CSS.escape(value)
+          : String(value).replace(/[^a-zA-Z0-9_-]/g, (match) => `\\${match}`);
+        if (node.id) return `iframe#${escape(node.id)}`;
+        const name = node.getAttribute('name');
+        if (name) return `iframe[name="${name}"]`;
+        const src = node.getAttribute('src');
+        if (src) return `iframe[src="${src}"]`;
+        const iframes = Array.from(node.ownerDocument.querySelectorAll('iframe'));
+        return `iframe >> nth=${iframes.indexOf(node)}`;
+      });
+      chain.unshift(selector);
+      current = current.parentFrame();
+    }
+
+    return chain.join(' >> ');
   }
 
   static async waitForReadyState(evalInFrame, state, timeoutMs) {

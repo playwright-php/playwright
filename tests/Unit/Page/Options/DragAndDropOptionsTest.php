@@ -30,9 +30,11 @@ final class DragAndDropOptionsTest extends TestCase
 
     public function testItCreatesFromArray(): void
     {
-        $options = DragAndDropOptions::from(['strict' => true, 'timeout' => 500.0]);
+        $options = DragAndDropOptions::from(['scroll' => 'none', 'strict' => true, 'steps' => 3, 'timeout' => 500.0]);
 
+        $this->assertSame('none', $options->scroll);
         $this->assertTrue($options->strict);
+        $this->assertSame(3, $options->steps);
         $this->assertSame(500.0, $options->timeout);
     }
 

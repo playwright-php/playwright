@@ -25,7 +25,9 @@ final readonly class DragAndDropOptions
         public ?array $targetPosition = null,
         public ?bool $force = null,
         public ?bool $noWaitAfter = null,
+        public ?string $scroll = null,
         public ?bool $strict = null,
+        public ?int $steps = null,
         public ?float $timeout = null,
         public ?bool $trial = null,
     ) {
@@ -37,7 +39,7 @@ final readonly class DragAndDropOptions
     public function toArray(): array
     {
         $options = [];
-        foreach (['sourcePosition', 'targetPosition', 'force', 'noWaitAfter', 'strict', 'timeout', 'trial'] as $option) {
+        foreach (['sourcePosition', 'targetPosition', 'force', 'noWaitAfter', 'scroll', 'strict', 'steps', 'timeout', 'trial'] as $option) {
             if (null !== $this->{$option}) {
                 $options[$option] = $this->{$option};
             }
@@ -63,13 +65,17 @@ final readonly class DragAndDropOptions
         $force = $options['force'] ?? null;
         /** @var bool|null $noWaitAfter */
         $noWaitAfter = $options['noWaitAfter'] ?? null;
+        /** @var string|null $scroll */
+        $scroll = $options['scroll'] ?? null;
         /** @var bool|null $strict */
         $strict = $options['strict'] ?? null;
+        /** @var int|null $steps */
+        $steps = $options['steps'] ?? null;
         /** @var float|null $timeout */
         $timeout = $options['timeout'] ?? null;
         /** @var bool|null $trial */
         $trial = $options['trial'] ?? null;
 
-        return new self($sourcePosition, $targetPosition, $force, $noWaitAfter, $strict, $timeout, $trial);
+        return new self($sourcePosition, $targetPosition, $force, $noWaitAfter, $scroll, $strict, $steps, $timeout, $trial);
     }
 }

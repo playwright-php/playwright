@@ -17,9 +17,13 @@ namespace Playwright\Tests\Unit\Frame;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Playwright\Exception\ProtocolErrorException;
 use Playwright\Frame\Frame;
 use Playwright\Frame\FrameInterface;
 use Playwright\Locator\LocatorInterface;
+use Playwright\Network\ResponseInterface;
+use Playwright\Page\Options\GotoOptions;
+use Playwright\Page\Options\WaitForNavigationOptions;
 use Playwright\Transport\TransportInterface;
 use Psr\Log\LoggerInterface;
 
@@ -71,6 +75,220 @@ class FrameTest extends TestCase
         $this->assertSame('auth-frame', $frame->name());
         $this->assertSame('https://example.com/', $frame->url());
         $this->assertTrue($frame->isDetached());
+    }
+
+    public function testEvaluateSendsExpressionAndArgument(): void
+    {
+        $frame = new Frame($this->transport, $this->pageId, 'iframe#auth', $this->logger);
+
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'expression' => '(arg) => arg.value * 2',
+                'arg' => ['value' => 21],
+                'action' => 'frame.evaluate',
+                'pageId' => $this->pageId,
+                'frameSelector' => 'iframe#auth',
+            ])
+            ->willReturn(['result' => 42]);
+
+        $this->assertSame(42, $frame->evaluate('(arg) => arg.value * 2', ['value' => 21]));
+    }
+
+    public function testEvaluateNormalizesReturnExpression(): void
+    {
+        $frame = new Frame($this->transport, $this->pageId, 'iframe#auth', $this->logger);
+
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static fn (array $payload): bool => '(arg) => { return arg.value; }' === $payload['expression']))
+            ->willReturn(['result' => 'value']);
+
+        $this->assertSame('value', $frame->evaluate('return arg.value;', ['value' => 'value']));
+    }
+
+    public function testContentReturnsNativeFrameContent(): void
+    {
+        $frame = new Frame($this->transport, $this->pageId, 'iframe#auth', $this->logger);
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'action' => 'frame.content',
+                'pageId' => $this->pageId,
+                'frameSelector' => 'iframe#auth',
+            ])
+            ->willReturn(['content' => '<html><body>Authentication</body></html>']);
+
+        $this->assertSame('<html><body>Authentication</body></html>', $frame->content());
+    }
+
+    public function testGotoReturnsNativeFrameResponse(): void
+    {
+        $frame = new Frame($this->transport, $this->pageId, 'iframe#auth', $this->logger);
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'url' => 'https://example.com/inside-frame',
+                'options' => ['waitUntil' => 'domcontentloaded'],
+                'action' => 'frame.goto',
+                'pageId' => $this->pageId,
+                'frameSelector' => 'iframe#auth',
+            ])
+            ->willReturn(['response' => [
+                'responseId' => 'response-1',
+                'url' => 'https://example.com/inside-frame',
+                'status' => 200,
+                'statusText' => 'OK',
+                'headers' => [],
+            ]]);
+
+        $response = $frame->goto('https://example.com/inside-frame', new GotoOptions(waitUntil: 'domcontentloaded'));
+
+        $this->assertInstanceOf(ResponseInterface::class, $response);
+        $this->assertSame(200, $response->status());
+    }
+
+    public function testSetContentSendsNativeFrameCommand(): void
+    {
+        $frame = new Frame($this->transport, $this->pageId, 'iframe#auth', $this->logger);
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'html' => '<h1>Updated</h1>',
+                'options' => ['waitUntil' => 'load'],
+                'action' => 'frame.setContent',
+                'pageId' => $this->pageId,
+                'frameSelector' => 'iframe#auth',
+            ])
+            ->willReturn(['success' => true]);
+
+        $this->assertSame($frame, $frame->setContent('<h1>Updated</h1>', ['waitUntil' => 'load']));
+    }
+
+    public function testWaitForFunctionSendsNativeFrameCommand(): void
+    {
+        $frame = new Frame($this->transport, $this->pageId, 'iframe#auth', $this->logger);
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'pageFunction' => '(arg) => { return arg.ready; }',
+                'arg' => ['ready' => true],
+                'options' => ['timeout' => 500.0, 'polling' => 'raf'],
+                'action' => 'frame.waitForFunction',
+                'pageId' => $this->pageId,
+                'frameSelector' => 'iframe#auth',
+            ])
+            ->willReturn(['success' => true]);
+
+        $this->assertSame($frame, $frame->waitForFunction('return arg.ready;', ['ready' => true], ['timeout' => 500.0, 'polling' => 'raf']));
+    }
+
+    public function testWaitForUrlSendsNativeFrameCommand(): void
+    {
+        $frame = new Frame($this->transport, $this->pageId, 'iframe#auth', $this->logger);
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'url' => '**/complete.html',
+                'options' => ['timeout' => 500.0, 'waitUntil' => 'commit'],
+                'action' => 'frame.waitForURL',
+                'pageId' => $this->pageId,
+                'frameSelector' => 'iframe#auth',
+            ])
+            ->willReturn(['success' => true]);
+
+        $this->assertSame($frame, $frame->waitForURL('**/complete.html', ['timeout' => 500.0, 'waitUntil' => 'commit']));
+    }
+
+    public function testWaitForNavigationReturnsNativeFrameResponse(): void
+    {
+        $frame = new Frame($this->transport, $this->pageId, 'iframe#auth', $this->logger);
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'options' => ['url' => '**/complete.html', 'waitUntil' => 'commit'],
+                'action' => 'frame.waitForNavigation',
+                'pageId' => $this->pageId,
+                'frameSelector' => 'iframe#auth',
+            ])
+            ->willReturn(['response' => [
+                'responseId' => 'response-2',
+                'url' => 'https://example.com/complete.html',
+                'status' => 201,
+                'statusText' => 'Created',
+                'headers' => [],
+            ]]);
+
+        $response = $frame->waitForNavigation(new WaitForNavigationOptions(url: '**/complete.html', waitUntil: 'commit'));
+
+        $this->assertInstanceOf(ResponseInterface::class, $response);
+        $this->assertSame(201, $response->status());
+    }
+
+    public function testDragAndDropSendsNativeFrameCommand(): void
+    {
+        $frame = new Frame($this->transport, $this->pageId, 'iframe#auth', $this->logger);
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'source' => '#source',
+                'target' => '#target',
+                'options' => ['force' => true],
+                'action' => 'frame.dragAndDrop',
+                'pageId' => $this->pageId,
+                'frameSelector' => 'iframe#auth',
+            ])
+            ->willReturn(['success' => true]);
+
+        $this->assertSame($frame, $frame->dragAndDrop('#source', '#target', ['force' => true]));
+    }
+
+    public function testAddScriptTagSendsNativeFrameCommand(): void
+    {
+        $frame = new Frame($this->transport, $this->pageId, 'iframe#auth', $this->logger);
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'options' => ['content' => 'window.frameReady = true;'],
+                'action' => 'frame.addScriptTag',
+                'pageId' => $this->pageId,
+                'frameSelector' => 'iframe#auth',
+            ])
+            ->willReturn(['success' => true]);
+
+        $this->assertSame($frame, $frame->addScriptTag(['content' => 'window.frameReady = true;']));
+    }
+
+    public function testAddStyleTagSendsNativeFrameCommand(): void
+    {
+        $frame = new Frame($this->transport, $this->pageId, 'iframe#auth', $this->logger);
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'options' => ['content' => 'body { color: red; }'],
+                'action' => 'frame.addStyleTag',
+                'pageId' => $this->pageId,
+                'frameSelector' => 'iframe#auth',
+            ])
+            ->willReturn(['success' => true]);
+
+        $this->assertSame($frame, $frame->addStyleTag(['content' => 'body { color: red; }']));
+    }
+
+    public function testTitleSendsCommandAndReturnsString(): void
+    {
+        $frame = new Frame($this->transport, $this->pageId, 'iframe#auth', $this->logger);
+
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'action' => 'frame.title',
+                'pageId' => $this->pageId,
+                'frameSelector' => 'iframe#auth',
+            ])
+            ->willReturn(['value' => 'Authentication']);
+
+        $this->assertSame('Authentication', $frame->title());
     }
 
     public function testWaitForLoadState(): void
@@ -179,5 +397,72 @@ class FrameTest extends TestCase
         $locator = $frame->getByLabel('Email');
         $this->assertInstanceOf(LocatorInterface::class, $locator);
         $this->assertSame('label:text-is("Email") >> nth=0', $locator->getSelector());
+    }
+
+    public function testContentRejectsANonStringPayload(): void
+    {
+        $this->transport->method('send')->willReturn(['content' => 42]);
+        $frame = new Frame($this->transport, $this->pageId, 'iframe#auth', $this->logger);
+
+        $this->expectException(ProtocolErrorException::class);
+        $this->expectExceptionMessage('Invalid frame.content response');
+
+        $frame->content();
+    }
+
+    public function testTitleRejectsANonStringPayload(): void
+    {
+        $this->transport->method('send')->willReturn(['value' => ['not', 'a', 'string']]);
+        $frame = new Frame($this->transport, $this->pageId, 'iframe#auth', $this->logger);
+
+        $this->expectException(ProtocolErrorException::class);
+        $this->expectExceptionMessage('Invalid frame.title response');
+
+        $frame->title();
+    }
+
+    public function testGotoWithoutAResponsePayloadYieldsNull(): void
+    {
+        $this->transport->method('send')->willReturn([]);
+        $frame = new Frame($this->transport, $this->pageId, 'iframe#auth', $this->logger);
+
+        $this->assertNull($frame->goto('https://example.com'));
+    }
+
+    public function testGotoRejectsANonArrayResponsePayload(): void
+    {
+        $this->transport->method('send')->willReturn(['response' => 'not an array']);
+        $frame = new Frame($this->transport, $this->pageId, 'iframe#auth', $this->logger);
+
+        $this->expectException(ProtocolErrorException::class);
+        $this->expectExceptionMessage('Invalid frame response data from transport');
+
+        $frame->goto('https://example.com');
+    }
+
+    public function testGotoRejectsAResponsePayloadWithNonStringKeys(): void
+    {
+        $this->transport->method('send')->willReturn(['response' => [0 => 'value']]);
+        $frame = new Frame($this->transport, $this->pageId, 'iframe#auth', $this->logger);
+
+        $this->expectException(ProtocolErrorException::class);
+        $this->expectExceptionMessage('non-string key');
+
+        $frame->goto('https://example.com');
+    }
+
+    public function testEvaluateLeavesABareExpressionUntouched(): void
+    {
+        $sent = [];
+        $this->transport->method('send')->willReturnCallback(function (array $payload) use (&$sent): array {
+            $sent[] = $payload;
+
+            return ['result' => 'Example'];
+        });
+        $frame = new Frame($this->transport, $this->pageId, 'iframe#auth', $this->logger);
+
+        $frame->evaluate('document.title');
+
+        $this->assertSame('document.title', $sent[0]['expression']);
     }
 }

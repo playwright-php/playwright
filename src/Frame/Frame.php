@@ -19,6 +19,16 @@ use Playwright\Exception\ProtocolErrorException;
 use Playwright\Locator\Locator;
 use Playwright\Locator\LocatorInterface;
 use Playwright\Locator\RoleSelectorBuilder;
+use Playwright\Network\Response;
+use Playwright\Network\ResponseInterface;
+use Playwright\Page\Options\DragAndDropOptions;
+use Playwright\Page\Options\GotoOptions;
+use Playwright\Page\Options\ScriptTagOptions;
+use Playwright\Page\Options\SetContentOptions;
+use Playwright\Page\Options\StyleTagOptions;
+use Playwright\Page\Options\WaitForFunctionOptions;
+use Playwright\Page\Options\WaitForNavigationOptions;
+use Playwright\Page\Options\WaitForUrlOptions;
 use Playwright\Transport\TransportInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -135,12 +145,137 @@ final class Frame implements \Stringable, FrameInterface
         return new Locator($this->transport, $this->pageId, $this->frameSelector, null, $this->logger);
     }
 
+    public function content(): string
+    {
+        $response = $this->sendCommand('frame.content');
+        $content = $response['content'] ?? null;
+        if (!is_string($content)) {
+            throw new ProtocolErrorException('Invalid frame.content response', 0);
+        }
+
+        return $content;
+    }
+
+    /**
+     * @param array<string, mixed>|GotoOptions $options
+     */
+    public function goto(string $url, array|GotoOptions $options = []): ?ResponseInterface
+    {
+        $response = $this->sendCommand('frame.goto', [
+            'url' => $url,
+            'options' => GotoOptions::from($options)->toArray(),
+        ]);
+
+        return $this->createResponse($response['response'] ?? null);
+    }
+
+    /**
+     * @param array<string, mixed>|SetContentOptions $options
+     */
+    public function setContent(string $html, array|SetContentOptions $options = []): self
+    {
+        $this->sendCommand('frame.setContent', [
+            'html' => $html,
+            'options' => SetContentOptions::from($options)->toArray(),
+        ]);
+
+        return $this;
+    }
+
+    /**
+     * @param array<string, mixed>|WaitForFunctionOptions $options
+     */
+    public function waitForFunction(string $pageFunction, mixed $arg = null, array|WaitForFunctionOptions $options = []): self
+    {
+        $this->sendCommand('frame.waitForFunction', [
+            'pageFunction' => self::normalizeForPage($pageFunction),
+            'arg' => $arg,
+            'options' => WaitForFunctionOptions::from($options)->toArray(),
+        ]);
+
+        return $this;
+    }
+
+    /**
+     * @param array<string, mixed>|WaitForUrlOptions $options
+     */
+    public function waitForURL(string $url, array|WaitForUrlOptions $options = []): self
+    {
+        $this->sendCommand('frame.waitForURL', [
+            'url' => $url,
+            'options' => WaitForUrlOptions::from($options)->toArray(),
+        ]);
+
+        return $this;
+    }
+
+    /**
+     * @param array<string, mixed>|WaitForNavigationOptions $options
+     */
+    public function waitForNavigation(array|WaitForNavigationOptions $options = []): ?ResponseInterface
+    {
+        $response = $this->sendCommand('frame.waitForNavigation', [
+            'options' => WaitForNavigationOptions::from($options)->toArray(),
+        ]);
+
+        return $this->createResponse($response['response'] ?? null);
+    }
+
+    /**
+     * @param array<string, mixed>|DragAndDropOptions $options
+     */
+    public function dragAndDrop(string $source, string $target, array|DragAndDropOptions $options = []): self
+    {
+        $this->sendCommand('frame.dragAndDrop', [
+            'source' => $source,
+            'target' => $target,
+            'options' => DragAndDropOptions::from($options)->toArray(),
+        ]);
+
+        return $this;
+    }
+
+    public function addScriptTag(array|ScriptTagOptions $options = []): self
+    {
+        $this->sendCommand('frame.addScriptTag', ['options' => ScriptTagOptions::from($options)->toArray()]);
+
+        return $this;
+    }
+
+    public function addStyleTag(array|StyleTagOptions $options = []): self
+    {
+        $this->sendCommand('frame.addStyleTag', ['options' => StyleTagOptions::from($options)->toArray()]);
+
+        return $this;
+    }
+
+    public function evaluate(string $expression, mixed $arg = null): mixed
+    {
+        $response = $this->sendCommand('frame.evaluate', [
+            'expression' => self::normalizeForPage($expression),
+            'arg' => $arg,
+        ]);
+
+        return $response['result'] ?? null;
+    }
+
     public function name(): string
     {
         $response = $this->sendCommand('frame.name');
         $value = $response['value'] ?? null;
         if (!is_string($value)) {
             throw new ProtocolErrorException('Invalid frame.name response', 0);
+        }
+
+        return $value;
+    }
+
+    public function title(): string
+    {
+        $response = $this->sendCommand('frame.title');
+        $value = $response['value'] ?? null;
+        if (!is_string($value)) {
+            throw new ProtocolErrorException('Invalid frame.title response', 0);
         }
 
         return $value;
@@ -227,5 +362,50 @@ final class Frame implements \Stringable, FrameInterface
         }
 
         return $response;
+    }
+
+    private function createResponse(mixed $data): ?ResponseInterface
+    {
+        if (null === $data) {
+            return null;
+        }
+        if (!is_array($data)) {
+            throw new ProtocolErrorException('Invalid frame response data from transport', 0);
+        }
+
+        $response = [];
+        foreach ($data as $key => $value) {
+            if (!is_string($key)) {
+                throw new ProtocolErrorException('Invalid frame response data from transport: non-string key', 0);
+            }
+            $response[$key] = $value;
+        }
+
+        return new Response($this->transport, $this->pageId, $response);
+    }
+
+    private static function normalizeForPage(string $expression): string
+    {
+        $trimmed = ltrim($expression);
+
+        if (self::isFunctionLike($trimmed)) {
+            return $expression;
+        }
+
+        if (self::startsWithReturn($trimmed)) {
+            return '(arg) => { '.$trimmed.' }';
+        }
+
+        return $expression;
+    }
+
+    private static function isFunctionLike(string $expression): bool
+    {
+        return (bool) preg_match('/^((async\s+)?function\b|\([^)]*\)\s*=>|[A-Za-z_$][A-Za-z0-9_$]*\s*=>|async\s*\([^)]*\)\s*=>)/', $expression);
+    }
+
+    private static function startsWithReturn(string $expression): bool
+    {
+        return (bool) preg_match('/^return\b/', $expression);
     }
 }

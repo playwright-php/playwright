@@ -399,25 +399,7 @@ class PageHandler extends BaseHandler {
   }
 
   async buildFrameSelector(frame, mainFrame) {
-    const chain = [];
-    let cur = frame;
-    while (cur && cur !== mainFrame) {
-      const element = await cur.frameElement();
-      const sel = await element.evaluate((node) => {
-        const esc = (s) => (typeof CSS !== 'undefined' && CSS.escape) ? CSS.escape(s) : String(s).replace(/[^a-zA-Z0-9_-]/g, (m) => `\\${m}`);
-        if (node.id) return `iframe#${esc(node.id)}`;
-        const name = node.getAttribute('name');
-        if (name) return `iframe[name="${name}"]`;
-        const src = node.getAttribute('src');
-        if (src) return `iframe[src="${src}"]`;
-        const iframes = Array.from(node.ownerDocument.querySelectorAll('iframe'));
-        const idx = iframes.indexOf(node);
-        return `iframe >> nth=${idx}`;
-      });
-      chain.unshift(sel);
-      cur = cur.parentFrame();
-    }
-    return chain.join(' >> ');
+    return FrameUtils.selectorForNativeFrame(frame, mainFrame);
   }
 
   async waitForPopup(page, command) {
@@ -681,9 +663,21 @@ class FrameHandler extends BaseHandler {
     const isMainFrame = !command.frameSelector || command.frameSelector === ':root';
     const frameLocator = isMainFrame ? null : FrameUtils.resolve(page, command.frameSelector);
     const evalInFrame = (expression) => FrameUtils.evaluateInFrame(page, frameLocator, isMainFrame, expression);
+    const nativeFrame = () => FrameUtils.resolveNativeFrame(page, command.frameSelector);
 
     const registry = CommandRegistry.create({
+      content: async () => ({ content: await (await nativeFrame()).content() }),
+      goto: async () => ({ response: this.serializeResponse(await (await nativeFrame()).goto(command.url, command.options)) }),
+      setContent: async () => { await (await nativeFrame()).setContent(command.html, command.options); return { success: true }; },
+      waitForFunction: () => this.waitForFunction(nativeFrame, command),
+      waitForURL: async () => { await (await nativeFrame()).waitForURL(command.url, command.options); return { success: true }; },
+      waitForNavigation: async () => ({ response: this.serializeResponse(await (await nativeFrame()).waitForNavigation(command.options)) }),
+      dragAndDrop: async () => { await (await nativeFrame()).dragAndDrop(command.source, command.target, command.options); return { success: true }; },
+      addScriptTag: async () => { await (await nativeFrame()).addScriptTag(command.options); return { success: true }; },
+      addStyleTag: async () => { await (await nativeFrame()).addStyleTag(command.options); return { success: true }; },
       name: () => evalInFrame(() => window.name || '').then(v => this.createValueResult(v ?? '')),
+      evaluate: () => FrameUtils.evaluateInFrame(page, frameLocator, isMainFrame, command.expression, command.arg).then(result => ({ result })),
+      title: () => evalInFrame(() => document.title).then(v => this.createValueResult(v ?? '')),
       url: () => evalInFrame(() => document.location.href).then(v => this.createValueResult(v ?? '')),
       isDetached: () => this.checkDetached(isMainFrame, frameLocator),
       waitForLoadState: () => isMainFrame ? page.waitForLoadState(command.state || 'load', command.options) : this.waitForLoadState(page, frameLocator, isMainFrame, command),
@@ -692,6 +686,13 @@ class FrameHandler extends BaseHandler {
     });
 
     return await this.executeWithRegistry(registry, method);
+  }
+
+  async waitForFunction(nativeFrame, command) {
+    // Forwarded as a string: Playwright evaluates it in the page. Turning it
+    // into a function here would run it in this Node process instead.
+    await (await nativeFrame()).waitForFunction(command.pageFunction, command.arg, command.options);
+    return { success: true };
   }
 
   async checkDetached(isMainFrame, frameLocator) {
