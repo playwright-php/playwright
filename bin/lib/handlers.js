@@ -91,6 +91,20 @@ class ContextHandler extends BaseHandler {
     return this.wrapResult(result);
   }
 
+  async handleCredentials(command, method) {
+    const context = this.validateResource(this.contexts, command.contextId, 'Context')?.context;
+
+    const registry = CommandRegistry.create({
+      create: async () => ({ credential: await context.credentials.create(command.rpId, command.options || {}) }),
+      delete: () => context.credentials.delete(command.credentialId),
+      get: async () => ({ credentials: await context.credentials.get(command.options || {}) }),
+      install: () => context.credentials.install()
+    });
+
+    const result = await ErrorHandler.safeExecute(() => this.executeWithRegistry(registry, method), { method, contextId: command.contextId });
+    return this.wrapResult(result);
+  }
+
   async handleClock(command, method) {
     const context = this.validateResource(this.contexts, command.contextId, 'Context')?.context;
 

@@ -81,6 +81,7 @@ class PlaywrightServer extends BaseHandler {
       selectors: () => this.selectorsHandler.handle(command, actionMethod),
       clock: () => this.contextHandler.handleClock(command, actionMethod),
       webStorage: () => this.pageHandler.handleWebStorage(command, actionMethod),
+      credentials: () => this.contextHandler.handleCredentials(command, actionMethod),
       // Tracing actions are flat names (no dot), sent by the PHP Tracing class
       tracingStart: () => this.contextHandler.handleTracing(command, 'start'),
       tracingStartChunk: () => this.contextHandler.handleTracing(command, 'startChunk'),

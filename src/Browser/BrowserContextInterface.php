@@ -16,6 +16,7 @@ namespace Playwright\Browser;
 
 use Playwright\API\APIRequestContextInterface;
 use Playwright\Clock\ClockInterface;
+use Playwright\Credentials\CredentialsInterface;
 use Playwright\Network\NetworkThrottling;
 use Playwright\Page\PageInterface;
 use Playwright\Tracing\TracingInterface;
@@ -26,6 +27,11 @@ interface BrowserContextInterface
      * The context's clock, to fake and advance time.
      */
     public function clock(): ClockInterface;
+
+    /**
+     * The context's virtual WebAuthn authenticator, to seed and read passkeys.
+     */
+    public function credentials(): CredentialsInterface;
 
     /**
      * Sets the context's geolocation; null coordinates clear it.

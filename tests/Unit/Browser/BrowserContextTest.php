@@ -20,6 +20,7 @@ use Playwright\Browser\Browser;
 use Playwright\Browser\BrowserContext;
 use Playwright\Browser\StorageState;
 use Playwright\Configuration\PlaywrightConfig;
+use Playwright\Credentials\CredentialsInterface;
 use Playwright\Network\NetworkThrottling;
 use Playwright\Page\PageInterface;
 use Playwright\Tracing\TracingInterface;
@@ -488,6 +489,14 @@ final class BrowserContextTest extends TestCase
             ]);
 
         $this->context->unrouteAll(['behavior' => 'ignoreErrors']);
+    }
+
+    public function testCredentialsReturnsTheSameInstance(): void
+    {
+        $credentials = $this->context->credentials();
+
+        $this->assertInstanceOf(CredentialsInterface::class, $credentials);
+        $this->assertSame($credentials, $this->context->credentials());
     }
 
     public function testTracingReturnsTheSameInstance(): void
