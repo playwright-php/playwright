@@ -183,6 +183,13 @@ class LocatorTest extends TestCase
     }
 
     #[Test]
+    public function itExposesThePageItResolvesAgainst(): void
+    {
+        $this->assertSame($this->page, $this->page->locator('#button-1')->page());
+        $this->assertSame($this->page, $this->page->locator('#button-1')->first()->page());
+    }
+
+    #[Test]
     public function itBlursAnElement(): void
     {
         $this->page->evaluate(<<<'JS'

@@ -212,7 +212,8 @@ final class Page implements PageInterface, EventDispatcherInterface
             $selector,
             null,
             null,
-            $this->normalizeLocatorOptions($options)
+            $this->normalizeLocatorOptions($options),
+            $this,
         );
     }
 
@@ -1053,12 +1054,12 @@ final class Page implements PageInterface, EventDispatcherInterface
 
     public function frameLocator(string $selector): FrameLocatorInterface
     {
-        return new FrameLocator($this->transport, $this->pageId, $selector);
+        return new FrameLocator($this->transport, $this->pageId, $selector, null, $this);
     }
 
     public function mainFrame(): FrameInterface
     {
-        return new Frame($this->transport, $this->pageId, ':root');
+        return new Frame($this->transport, $this->pageId, ':root', null, $this);
     }
 
     /**
@@ -1075,7 +1076,7 @@ final class Page implements PageInterface, EventDispatcherInterface
         $result = [];
         foreach ($frames as $frameData) {
             if (\is_array($frameData) && isset($frameData['selector']) && \is_string($frameData['selector'])) {
-                $result[] = new Frame($this->transport, $this->pageId, $frameData['selector']);
+                $result[] = new Frame($this->transport, $this->pageId, $frameData['selector'], null, $this);
             }
         }
 
@@ -1091,7 +1092,7 @@ final class Page implements PageInterface, EventDispatcherInterface
         $response = $this->sendCommand('frame', ['options' => $options]);
         $selector = $response['selector'] ?? null;
         if (\is_string($selector)) {
-            return new Frame($this->transport, $this->pageId, $selector);
+            return new Frame($this->transport, $this->pageId, $selector, null, $this);
         }
 
         return null;

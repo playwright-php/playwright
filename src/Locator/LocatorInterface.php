@@ -41,6 +41,7 @@ use Playwright\Locator\Options\TextContentOptions;
 use Playwright\Locator\Options\TypeOptions;
 use Playwright\Locator\Options\UncheckOptions;
 use Playwright\Locator\Options\WaitForOptions;
+use Playwright\Page\PageInterface;
 
 interface LocatorInterface
 {
@@ -243,6 +244,15 @@ interface LocatorInterface
     public function nth(int $index): self;
 
     public function evaluate(string $expression, mixed $arg = null): mixed;
+
+    /**
+     * The page this locator resolves against.
+     *
+     * @throws \Playwright\Exception\RuntimeException if the locator was built
+     *                                                without a page, which only
+     *                                                happens when constructed by hand
+     */
+    public function page(): PageInterface;
 
     /**
      * Runs the expression once over every matching element, passing them as an array.

@@ -264,6 +264,13 @@ class FrameIntegrationTest extends TestCase
         $this->assertSame('Frame Text', $locator->textContent());
     }
 
+    #[Test]
+    public function itExposesThePageOwningTheFrame(): void
+    {
+        $this->assertSame($this->page, $this->innerFrame()->page());
+        $this->assertSame($this->page, $this->page->mainFrame()->page());
+    }
+
     private function innerFrame(): Frame
     {
         $frame = $this->page->frame(['urlRegex' => '/inner\\.html$/']);

@@ -16,6 +16,7 @@ namespace Playwright\Frame;
 
 use Playwright\Exception\PlaywrightException;
 use Playwright\Exception\ProtocolErrorException;
+use Playwright\Exception\RuntimeException;
 use Playwright\Locator\Locator;
 use Playwright\Locator\LocatorInterface;
 use Playwright\Locator\RoleSelectorBuilder;
@@ -29,6 +30,7 @@ use Playwright\Page\Options\StyleTagOptions;
 use Playwright\Page\Options\WaitForFunctionOptions;
 use Playwright\Page\Options\WaitForNavigationOptions;
 use Playwright\Page\Options\WaitForUrlOptions;
+use Playwright\Page\PageInterface;
 use Playwright\Transport\TransportInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -42,6 +44,7 @@ final class Frame implements \Stringable, FrameInterface
         private readonly string $pageId,
         private readonly string $frameSelector,
         ?LoggerInterface $logger = null,
+        private readonly ?PageInterface $page = null,
     ) {
         $this->logger = $logger ?? new NullLogger();
     }
@@ -58,7 +61,7 @@ final class Frame implements \Stringable, FrameInterface
             'selector' => $selector,
         ]);
 
-        return new Locator($this->transport, $this->pageId, $selector, $this->frameSelector, $this->logger);
+        return new Locator($this->transport, $this->pageId, $selector, $this->frameSelector, $this->logger, [], $this->page);
     }
 
     /**
@@ -99,7 +102,7 @@ final class Frame implements \Stringable, FrameInterface
             'selector' => $selector,
         ]);
 
-        return new Locator($this->transport, $this->pageId, $selector, $this->frameSelector, $this->logger, $locatorOptions);
+        return new Locator($this->transport, $this->pageId, $selector, $this->frameSelector, $this->logger, $locatorOptions, $this->page);
     }
 
     public function getByTestId(string $testId): LocatorInterface
@@ -133,7 +136,7 @@ final class Frame implements \Stringable, FrameInterface
             'newSelector' => $newSelector,
         ]);
 
-        return new FrameLocator($this->transport, $this->pageId, $newSelector, $this->logger);
+        return new FrameLocator($this->transport, $this->pageId, $newSelector, $this->logger, $this->page);
     }
 
     public function owner(): LocatorInterface
@@ -142,7 +145,7 @@ final class Frame implements \Stringable, FrameInterface
             'frameSelector' => $this->frameSelector,
         ]);
 
-        return new Locator($this->transport, $this->pageId, $this->frameSelector, null, $this->logger);
+        return new Locator($this->transport, $this->pageId, $this->frameSelector, null, $this->logger, [], $this->page);
     }
 
     public function content(): string
@@ -259,6 +262,15 @@ final class Frame implements \Stringable, FrameInterface
         return $response['result'] ?? null;
     }
 
+    public function page(): PageInterface
+    {
+        if (null === $this->page) {
+            throw new RuntimeException('This frame was not created from a page.');
+        }
+
+        return $this->page;
+    }
+
     public function name(): string
     {
         $response = $this->sendCommand('frame.name');
@@ -315,7 +327,7 @@ final class Frame implements \Stringable, FrameInterface
         $selector = $response['selector'] ?? null;
 
         return is_string($selector)
-            ? new Frame($this->transport, $this->pageId, $selector, $this->logger)
+            ? new Frame($this->transport, $this->pageId, $selector, $this->logger, $this->page)
             : null;
     }
 
@@ -333,7 +345,7 @@ final class Frame implements \Stringable, FrameInterface
         $result = [];
         foreach ($frames as $frameData) {
             if (is_array($frameData) && isset($frameData['selector']) && is_string($frameData['selector'])) {
-                $result[] = new Frame($this->transport, $this->pageId, $frameData['selector'], $this->logger);
+                $result[] = new Frame($this->transport, $this->pageId, $frameData['selector'], $this->logger, $this->page);
             }
         }
 

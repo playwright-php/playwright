@@ -17,6 +17,7 @@ namespace Playwright\Frame;
 use Playwright\Locator\Locator;
 use Playwright\Locator\LocatorInterface;
 use Playwright\Locator\RoleSelectorBuilder;
+use Playwright\Page\PageInterface;
 use Playwright\Transport\TransportInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -30,6 +31,7 @@ final class FrameLocator implements \Stringable, FrameLocatorInterface
         private readonly string $pageId,
         private readonly string $frameSelector,
         ?LoggerInterface $logger = null,
+        private readonly ?PageInterface $page = null,
     ) {
         $this->logger = $logger ?? new NullLogger();
     }
@@ -41,7 +43,7 @@ final class FrameLocator implements \Stringable, FrameLocatorInterface
             'selector' => $selector,
         ]);
 
-        return new Locator($this->transport, $this->pageId, $selector, $this->frameSelector, $this->logger);
+        return new Locator($this->transport, $this->pageId, $selector, $this->frameSelector, $this->logger, [], $this->page);
     }
 
     /**
@@ -82,7 +84,7 @@ final class FrameLocator implements \Stringable, FrameLocatorInterface
             'selector' => $selector,
         ]);
 
-        return new Locator($this->transport, $this->pageId, $selector, $this->frameSelector, $this->logger, $locatorOptions);
+        return new Locator($this->transport, $this->pageId, $selector, $this->frameSelector, $this->logger, $locatorOptions, $this->page);
     }
 
     public function getByTestId(string $testId): LocatorInterface
@@ -126,7 +128,7 @@ final class FrameLocator implements \Stringable, FrameLocatorInterface
             'newSelector' => $newSelector,
         ]);
 
-        return new FrameLocator($this->transport, $this->pageId, $newSelector, $this->logger);
+        return new FrameLocator($this->transport, $this->pageId, $newSelector, $this->logger, $this->page);
     }
 
     public function frameLocator(string $selector): self
@@ -139,7 +141,7 @@ final class FrameLocator implements \Stringable, FrameLocatorInterface
             'newSelector' => $newSelector,
         ]);
 
-        return new FrameLocator($this->transport, $this->pageId, $newSelector, $this->logger);
+        return new FrameLocator($this->transport, $this->pageId, $newSelector, $this->logger, $this->page);
     }
 
     public function getSelector(): string
@@ -153,7 +155,7 @@ final class FrameLocator implements \Stringable, FrameLocatorInterface
             'frameSelector' => $this->frameSelector,
         ]);
 
-        return new Locator($this->transport, $this->pageId, $this->frameSelector, null, $this->logger);
+        return new Locator($this->transport, $this->pageId, $this->frameSelector, null, $this->logger, [], $this->page);
     }
 
     public function __toString(): string

@@ -24,6 +24,7 @@ use Playwright\Page\Options\StyleTagOptions;
 use Playwright\Page\Options\WaitForFunctionOptions;
 use Playwright\Page\Options\WaitForNavigationOptions;
 use Playwright\Page\Options\WaitForUrlOptions;
+use Playwright\Page\PageInterface;
 
 interface FrameInterface
 {
@@ -128,6 +129,15 @@ interface FrameInterface
      * defined is not reachable here.
      */
     public function evaluate(string $expression, mixed $arg = null): mixed;
+
+    /**
+     * The page this frame belongs to, main frame and nested frames alike.
+     *
+     * @throws \Playwright\Exception\RuntimeException if the frame was built
+     *                                                without a page, which only
+     *                                                happens when constructed by hand
+     */
+    public function page(): PageInterface;
 
     /**
      * The frame's name attribute.

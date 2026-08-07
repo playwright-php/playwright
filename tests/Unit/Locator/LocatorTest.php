@@ -18,6 +18,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Playwright\Exception\PlaywrightException;
 use Playwright\Exception\ProtocolErrorException;
+use Playwright\Exception\RuntimeException;
 use Playwright\Exception\TimeoutException;
 use Playwright\Frame\FrameLocatorInterface;
 use Playwright\Locator\Locator;
@@ -27,6 +28,7 @@ use Playwright\Locator\Options\DispatchEventOptions;
 use Playwright\Locator\Options\SelectTextOptions;
 use Playwright\Locator\Options\SetCheckedOptions;
 use Playwright\Locator\Options\TapOptions;
+use Playwright\Page\PageInterface;
 use Playwright\Transport\TransportInterface;
 
 #[CoversClass(Locator::class)]
@@ -1052,6 +1054,37 @@ final class LocatorTest extends TestCase
         $this->expectExceptionMessage('Invalid boundingBox response');
 
         $this->locator->boundingBox();
+    }
+
+    public function testPageReturnsTheOriginatingPage(): void
+    {
+        $page = $this->createMock(PageInterface::class);
+        $locator = new Locator($this->transport, 'page1', '.element', null, null, [], $page);
+
+        $this->assertSame($page, $locator->page());
+    }
+
+    public function testPageRejectsALocatorBuiltWithoutAPage(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('This locator was not created from a page.');
+
+        $this->locator->page();
+    }
+
+    public function testDerivedLocatorsCarryThePageAlong(): void
+    {
+        $page = $this->createMock(PageInterface::class);
+        $locator = new Locator($this->transport, 'page1', '.items', null, null, [], $page);
+        $other = new Locator($this->transport, 'page1', '.other');
+
+        $this->assertSame($page, $locator->locator('.child')->page());
+        $this->assertSame($page, $locator->nth(2)->page());
+        $this->assertSame($page, $locator->filter(['hasText' => 'Save'])->page());
+        $this->assertSame($page, $locator->and($other)->page());
+        $this->assertSame($page, $locator->or($other)->page());
+        $this->assertSame($page, $locator->frameLocator('iframe')->locator('.inner')->page());
+        $this->assertSame($page, $locator->contentFrame()->locator('.inner')->page());
     }
 
     /**
