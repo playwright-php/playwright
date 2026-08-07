@@ -20,6 +20,7 @@ use PHPUnit\Framework\TestCase;
 use Playwright\Browser\BrowserContextInterface;
 use Playwright\Playwright;
 use Playwright\Selector\Selectors;
+use Playwright\Selector\SelectorsInterface;
 
 /**
  * The facade hands out one selector registry for every browser it launches, so an
@@ -58,6 +59,15 @@ class PlaywrightFacadeSelectorsTest extends TestCase
         $page->setContent('<div data-engine="target">engine hit</div>');
 
         $this->assertSame('engine hit', $page->locator('facade-engine=target')->textContent());
+    }
+
+    #[Test]
+    public function itHandsOutOneRegistryForTheWholeFacade(): void
+    {
+        $selectors = Playwright::selectors();
+
+        $this->assertInstanceOf(SelectorsInterface::class, $selectors);
+        $this->assertSame($selectors, Playwright::selectors());
     }
 
     #[Test]
