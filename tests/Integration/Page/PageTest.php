@@ -450,4 +450,87 @@ class PageTest extends TestCase
             ['polling' => 'invalid']
         );
     }
+
+    #[Test]
+    public function itCapturesAnAriaSnapshotOfTheWholePage(): void
+    {
+        $this->page->setContent('<button>Save</button><a href="/about">About</a>');
+
+        $snapshot = $this->page->ariaSnapshot();
+
+        $this->assertStringContainsString('button "Save"', $snapshot);
+        $this->assertStringContainsString('link "About"', $snapshot);
+    }
+
+    #[Test]
+    public function itHonoursTheAriaSnapshotTimeout(): void
+    {
+        $this->page->setContent('<h1>Title</h1>');
+
+        $snapshot = $this->page->ariaSnapshot(['timeout' => 5000.0]);
+
+        $this->assertStringContainsString('heading "Title"', $snapshot);
+    }
+
+    #[Test]
+    public function itHidesEveryHighlightOnThePage(): void
+    {
+        $this->page->setContent('<input id="one"><input id="two">');
+        $this->page->locator('#one')->highlight();
+        $this->page->locator('#two')->highlight();
+
+        $this->assertSame($this->page, $this->page->hideHighlight());
+    }
+
+    #[Test]
+    public function itDrivesTheClockOfItsContext(): void
+    {
+        $this->assertSame($this->context->clock(), $this->page->clock());
+
+        $fixedTime = 1_704_067_200_000;
+        $this->page->clock()->install(['time' => 0]);
+        $this->page->clock()->setFixedTime($fixedTime);
+        $this->page->setContent('<output id="time"></output><script>document.querySelector("#time").textContent = String(Date.now());</script>');
+
+        $this->assertSame((string) $fixedTime, $this->page->locator('#time')->textContent());
+    }
+
+    #[Test]
+    public function itHasNoVideoWhenTheContextDoesNotRecord(): void
+    {
+        $this->assertNull($this->page->video());
+    }
+
+    #[Test]
+    public function itExposesTheVideoRecordedForThePage(): void
+    {
+        $videosDir = sys_get_temp_dir().'/pw-php-page-video-'.bin2hex(random_bytes(6));
+        $context = $this->browser->newContext(['recordVideo' => ['dir' => $videosDir]]);
+
+        try {
+            $page = $context->newPage();
+            $page->setContent('<h1>recorded</h1>');
+
+            $video = $page->video();
+            $this->assertNotNull($video);
+            $this->assertStringStartsWith($videosDir, $video->path());
+
+            // The recording is only flushed once the page is gone.
+            $page->close();
+
+            $saved = $videosDir.'/saved.webm';
+            $video->saveAs($saved);
+            $this->assertFileExists($saved);
+            $this->assertGreaterThan(0, (int) filesize($saved));
+
+            $video->delete();
+            $this->assertFileDoesNotExist($video->path());
+        } finally {
+            $context->close();
+            foreach (glob($videosDir.'/*') ?: [] as $file) {
+                @unlink($file);
+            }
+            @rmdir($videosDir);
+        }
+    }
 }

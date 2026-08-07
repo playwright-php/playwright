@@ -20,6 +20,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Playwright\API\APIRequestContextInterface;
 use Playwright\Browser\BrowserContextInterface;
+use Playwright\Clock\ClockInterface;
 use Playwright\Configuration\PlaywrightConfig;
 use Playwright\Console\ConsoleMessage;
 use Playwright\Exception\ProtocolErrorException;
@@ -31,6 +32,7 @@ use Playwright\Input\MouseInterface;
 use Playwright\Input\TouchscreenInterface;
 use Playwright\JSHandle\JSHandleInterface;
 use Playwright\Locator\Locator;
+use Playwright\Locator\Options\AriaSnapshotOptions;
 use Playwright\Locator\Options\GetByRoleOptions;
 use Playwright\Locator\Options\LocatorOptions;
 use Playwright\Page\Options\DragAndDropOptions;
@@ -41,6 +43,7 @@ use Playwright\Page\PageEventHandlerInterface;
 use Playwright\Regex;
 use Playwright\Screencast\ScreencastInterface;
 use Playwright\Transport\TransportInterface;
+use Playwright\Video\VideoInterface;
 use Playwright\WebStorage\WebStorageInterface;
 
 #[CoversClass(Page::class)]
@@ -1241,5 +1244,84 @@ class PageTest extends TestCase
     {
         $files = array_diff(scandir($directory) ?: [], ['.', '..']);
         $this->assertEmpty($files, sprintf('Directory %s should be empty', $directory));
+    }
+
+    public function testAriaSnapshotRejectsANonStringResponse(): void
+    {
+        $this->transport->method('send')->willReturn([]);
+
+        $this->expectException(ProtocolErrorException::class);
+        $this->expectExceptionMessage('Invalid ariaSnapshot response');
+
+        $this->page->ariaSnapshot();
+    }
+
+    public function testAriaSnapshotSendsOptionsAndReturnsTheSnapshot(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static function (array $payload): bool {
+                return 'page.ariaSnapshot' === $payload['action']
+                    && ['timeout' => 500.0] === $payload['options'];
+            }))
+            ->willReturn(['value' => '- button "Save"']);
+
+        $this->assertSame('- button "Save"', $this->page->ariaSnapshot(new AriaSnapshotOptions(timeout: 500.0)));
+    }
+
+    public function testClockIsTheContextClock(): void
+    {
+        $clock = $this->createMock(ClockInterface::class);
+        $context = $this->createMock(BrowserContextInterface::class);
+        $context->method('clock')->willReturn($clock);
+
+        $page = new Page($this->transport, $context, 'page-1', new PlaywrightConfig());
+
+        $this->assertSame($clock, $page->clock());
+    }
+
+    public function testHideHighlightSendsCommand(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static fn (array $payload): bool => 'page.hideHighlight' === $payload['action']))
+            ->willReturn([]);
+
+        $this->assertSame($this->page, $this->page->hideHighlight());
+    }
+
+    public function testVideoExposesTheRecordingPath(): void
+    {
+        $this->transport
+            ->method('send')
+            ->willReturn(['video' => ['videoId' => 'video_1', 'path' => '/tmp/videos/page.webm']]);
+
+        $video = $this->page->video();
+
+        $this->assertInstanceOf(VideoInterface::class, $video);
+        $this->assertSame('/tmp/videos/page.webm', $video->path());
+    }
+
+    public function testVideoIsNullWhenTheContextDoesNotRecord(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static fn (array $payload): bool => 'page.video' === $payload['action']))
+            ->willReturn(['video' => null]);
+
+        $this->assertNull($this->page->video());
+    }
+
+    public function testVideoRejectsAMalformedResponse(): void
+    {
+        $this->transport->method('send')->willReturn(['video' => ['videoId' => 'video_1']]);
+
+        $this->expectException(ProtocolErrorException::class);
+        $this->expectExceptionMessage('Invalid video response');
+
+        $this->page->video();
     }
 }

@@ -315,6 +315,9 @@ class PageHandler extends BaseHandler {
       frame: () => this.getFrame(page, command),
       waitForPopup: () => this.waitForPopup(page, command),
       bringToFront: () => page.bringToFront(),
+      ariaSnapshot: () => PromiseUtils.wrapValue(page.ariaSnapshot(command.options)),
+      hideHighlight: () => page.hideHighlight(),
+      video: () => this.getVideo(page),
     });
 
     return await ErrorHandler.safeExecute(() => this.executeWithRegistry(registry, method), { method, pageId: command.pageId });
@@ -323,6 +326,16 @@ class PageHandler extends BaseHandler {
   async closePage(pageId) {
     const page = this.pages.get(pageId);
     if (page) { await page.close(); this.pages.delete(pageId); }
+  }
+
+  async getVideo(page) {
+    const video = page.video();
+    if (!video) return { video: null };
+    const videoId = this.generateId('video');
+    this.videos.set(videoId, video);
+    // path() resolves right away with the target file, which Playwright only
+    // fills in once the page closes.
+    return { video: { videoId, path: await video.path() } };
   }
 
   async goto(page, command) {
@@ -646,6 +659,9 @@ class LocatorHandler extends BaseHandler {
       dispatchEvent: () => locator.dispatchEvent(command.type, command.eventInit, command.options),
       evaluateAll: () => this.evaluateAll(locator, command),
       highlight: () => locator.highlight(),
+      hideHighlight: () => locator.hideHighlight(),
+      drop: () => locator.drop(this.decodeDropPayload(command.payload), command.options),
+      normalize: () => this.normalize(locator),
       selectText: () => locator.selectText(command.options),
       setChecked: () => locator.setChecked(command.checked, command.options),
       tap: () => locator.tap(command.options),
@@ -679,6 +695,26 @@ class LocatorHandler extends BaseHandler {
       return frameLocator.locator(command.selector);
     }
     return page.locator(command.selector);
+  }
+
+  // File buffers arrive base64 encoded because the PHP transport is JSON.
+  decodeDropPayload(payload) {
+    const source = payload || {};
+    const decoded = {};
+    if (source.data) decoded.data = source.data;
+    if (source.files) {
+      decoded.files = source.files.map(file => typeof file === 'string'
+        ? file
+        : { name: file.name, mimeType: file.mimeType, buffer: Buffer.from(file.buffer, 'base64') });
+    }
+    return decoded;
+  }
+
+  // The resolved selector is the only part of the normalized locator PHP can use,
+  // and Playwright exposes it nowhere else.
+  async normalize(locator) {
+    const normalized = await locator.normalize();
+    return this.createValueResult(normalized._selector);
   }
 
   async evaluateLocator(locator, command) {
@@ -960,4 +996,22 @@ class SelectorsHandler extends BaseHandler {
   }
 }
 
-module.exports = { ContextHandler, PageHandler, LocatorHandler, InteractionHandler, FrameHandler, JSHandleHandler, SelectorsHandler };
+class VideoHandler extends BaseHandler {
+  async handle(command, method) {
+    const video = this.validateResource(this.videos, command.videoId, 'Video');
+
+    const registry = CommandRegistry.create({
+      // Both calls wait for the recording to be flushed, which happens on page close.
+      saveAs: () => video.saveAs(command.path),
+      delete: async () => {
+        await video.delete();
+        this.videos.delete(command.videoId);
+      }
+    });
+
+    const result = await ErrorHandler.safeExecute(() => this.executeWithRegistry(registry, method), { method, videoId: command.videoId });
+    return this.wrapResult(result);
+  }
+}
+
+module.exports = { ContextHandler, PageHandler, LocatorHandler, InteractionHandler, FrameHandler, JSHandleHandler, SelectorsHandler, VideoHandler };

@@ -26,6 +26,8 @@ use Playwright\Locator\Locator;
 use Playwright\Locator\Options\AriaSnapshotOptions;
 use Playwright\Locator\Options\BoundingBoxOptions;
 use Playwright\Locator\Options\DispatchEventOptions;
+use Playwright\Locator\Options\DropOptions;
+use Playwright\Locator\Options\DropPayload;
 use Playwright\Locator\Options\SelectTextOptions;
 use Playwright\Locator\Options\SetCheckedOptions;
 use Playwright\Locator\Options\TapOptions;
@@ -224,6 +226,78 @@ final class LocatorTest extends TestCase
             ->willReturn([]);
 
         $this->locator->highlight();
+    }
+
+    public function testHideHighlightSendsCommand(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static fn (array $payload): bool => 'locator.hideHighlight' === $payload['action']))
+            ->willReturn([]);
+
+        $this->locator->hideHighlight();
+    }
+
+    public function testDropSendsPayloadAndOptions(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static function (array $payload): bool {
+                return 'locator.drop' === $payload['action']
+                    && ['data' => ['text/plain' => 'hello']] === $payload['payload']
+                    && ['position' => ['x' => 4.0, 'y' => 8.0], 'timeout' => 500.0] === $payload['options'];
+            }))
+            ->willReturn([]);
+
+        $this->locator->drop(
+            ['data' => ['text/plain' => 'hello']],
+            new DropOptions(position: ['x' => 4.0, 'y' => 8.0], timeout: 500.0),
+        );
+    }
+
+    public function testDropSendsFileBuffersBase64Encoded(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static function (array $payload): bool {
+                return 'locator.drop' === $payload['action']
+                    && [['name' => 'note.txt', 'mimeType' => 'text/plain', 'buffer' => base64_encode('hi')]] === $payload['payload']['files']
+                    && [] === $payload['options'];
+            }))
+            ->willReturn([]);
+
+        $this->locator->drop(new DropPayload(files: [
+            ['name' => 'note.txt', 'mimeType' => 'text/plain', 'buffer' => 'hi'],
+        ]));
+    }
+
+    public function testNormalizeReturnsALocatorOnTheResolvedSelector(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static fn (array $payload): bool => 'locator.normalize' === $payload['action']))
+            ->willReturn(['value' => 'internal:role=button[name="Save"i]']);
+
+        $normalized = $this->locator->normalize();
+
+        $this->assertSame('internal:role=button[name="Save"i]', $normalized->getSelector());
+        $this->assertNotSame($this->locator, $normalized);
+    }
+
+    public function testNormalizeRejectsAResponseWithoutASelector(): void
+    {
+        $this->transport
+            ->method('send')
+            ->willReturn([]);
+
+        $this->expectException(ProtocolErrorException::class);
+        $this->expectExceptionMessage('Invalid normalize response');
+
+        $this->locator->normalize();
     }
 
     public function testSelectTextSendsOptions(): void
