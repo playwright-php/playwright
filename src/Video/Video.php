@@ -17,7 +17,10 @@ namespace Playwright\Video;
 use Playwright\Transport\TransportInterface;
 
 /**
- * @see https://playwright.dev/docs/api/class-video
+ * Represents a recorded page video.
+ *
+ * The video exposes the local recording path and lets callers save or delete the file.
+ * File operations wait for the browser to finish writing the recording when needed.
  */
 final class Video implements VideoInterface
 {

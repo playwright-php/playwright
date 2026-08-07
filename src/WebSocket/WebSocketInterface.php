@@ -16,6 +16,12 @@ namespace Playwright\WebSocket;
 
 use Playwright\WebSocket\Options\WaitForEventOptions;
 
+/**
+ * Represents a page WebSocket.
+ *
+ * The socket exposes its URL and browser-emitted lifecycle or frame events.
+ * Send frames or wait for socket activity through the active page connection.
+ */
 interface WebSocketInterface
 {
     /**

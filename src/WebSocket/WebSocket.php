@@ -21,10 +21,10 @@ use Playwright\Transport\TransportInterface;
 use Playwright\WebSocket\Options\WaitForEventOptions;
 
 /**
- * WebSocket implementation aligned with Playwright's WebSocket API.
- * Supported events: 'close', 'framereceived', 'framesent', 'socketerror'.
+ * Represents a page WebSocket.
  *
- * @see https://playwright.dev/docs/api/class-websocket
+ * The socket exposes its URL and sends frames through the active page connection.
+ * Browser events report closes, frames, and errors through the event dispatcher.
  */
 final class WebSocket implements WebSocketInterface, EventDispatcherInterface
 {

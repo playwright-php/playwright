@@ -17,17 +17,28 @@ namespace Playwright\WebError;
 use Playwright\Page\PageInterface;
 
 /**
+ * Represents an unhandled page error.
+ *
+ * The exception comes from browser runtime code that did not handle it.
+ * A page is included when Playwright can associate the error with one.
+ *
  * @see https://playwright.dev/docs/api/class-weberror
  */
 interface WebErrorInterface
 {
     /**
-     * Unhandled error object.
+     * Returns the reported exception.
+     *
+     * The exception preserves the error type and message from the runtime.
+     * Inspect it to classify or report the unhandled browser error.
      */
     public function error(): \Throwable;
 
     /**
-     * The page that produced this unhandled exception, if any.
+     * Returns the originating page.
+     *
+     * A null result means the runtime did not associate the error with a page.
+     * The returned page can identify its URL or owning browser context.
      */
     public function page(): ?PageInterface;
 }

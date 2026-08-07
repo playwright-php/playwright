@@ -17,7 +17,10 @@ namespace Playwright\JSHandle;
 use Playwright\Transport\TransportInterface;
 
 /**
- * @see https://playwright.dev/docs/api/class-jshandle
+ * Represents an in-page JavaScript object.
+ *
+ * The handle keeps a reference to a value evaluated in the page's JavaScript context.
+ * Dispose it when the handle is no longer needed to release browser resources.
  */
 final class JSHandle implements JSHandleInterface
 {
