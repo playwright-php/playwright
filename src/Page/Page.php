@@ -60,6 +60,7 @@ use Playwright\Page\Options\TypeOptions;
 use Playwright\Page\Options\WaitForFunctionOptions;
 use Playwright\Page\Options\WaitForLoadStateOptions;
 use Playwright\Page\Options\WaitForPopupOptions;
+use Playwright\Page\Options\WaitForRequestOptions;
 use Playwright\Page\Options\WaitForResponseOptions;
 use Playwright\Page\Options\WaitForSelectorOptions;
 use Playwright\Page\Options\WaitForUrlOptions;
@@ -895,6 +896,27 @@ final class Page implements PageInterface, EventDispatcherInterface
     }
 
     /**
+     * @return array<Request>
+     */
+    public function requests(): array
+    {
+        $response = $this->sendCommand('requests');
+        $requests = $response['requests'] ?? [];
+        if (!is_array($requests)) {
+            throw new ProtocolErrorException('Invalid requests response from transport', 0);
+        }
+
+        $result = [];
+        foreach ($requests as $request) {
+            if (is_array($request)) {
+                $result[] = $this->createRequest($request);
+            }
+        }
+
+        return $result;
+    }
+
+    /**
      * @param array<string, mixed>|WaitForLoadStateOptions $options
      */
     public function waitForLoadState(string $state = 'load', array|WaitForLoadStateOptions $options = []): self
@@ -947,6 +969,27 @@ final class Page implements PageInterface, EventDispatcherInterface
         $response = $this->sendCommand('waitForResponse', ['url' => $url, 'options' => $options->toArray(), 'jsAction' => $action]);
 
         return $this->createResponse($this->pageId, $response['response']);
+    }
+
+    /**
+     * @param array<string, mixed>|WaitForRequestOptions $options
+     */
+    public function waitForRequest(string $url, array|WaitForRequestOptions $options = []): Request
+    {
+        $action = null;
+        if (is_array($options)) {
+            $action = $options['action'] ?? null;
+            unset($options['action']);
+        }
+
+        $options = WaitForRequestOptions::from($options);
+        $response = $this->sendCommand('waitForRequest', [
+            'url' => $url,
+            'options' => $options->toArray(),
+            'jsAction' => $action,
+        ]);
+
+        return $this->createRequest($response['request'] ?? null);
     }
 
     public function addScriptTag(array|ScriptTagOptions $options): self

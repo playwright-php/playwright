@@ -18,6 +18,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Playwright\Console\ConsoleMessage;
+use Playwright\Network\RequestInterface;
 use Playwright\Network\ResponseInterface;
 use Playwright\Page\Page;
 use Playwright\Testing\PlaywrightTestCaseTrait;
@@ -197,6 +198,26 @@ class PageTest extends TestCase
         $this->assertInstanceOf(ResponseInterface::class, $response);
         $this->assertStringContainsString('/page2.html', $response->url());
         $this->assertEquals(200, $response->status());
+    }
+
+    #[Test]
+    public function itWaitsForAGlobMatchedRequest(): void
+    {
+        $request = $this->page->waitForRequest('**/page2.html', ['action' => "document.querySelector('a').click()"]);
+
+        $this->assertInstanceOf(RequestInterface::class, $request);
+        $this->assertStringContainsString('/page2.html', $request->url());
+        $this->assertSame('GET', $request->method());
+    }
+
+    #[Test]
+    public function itListsRecentRequestSnapshots(): void
+    {
+        $requests = $this->page->requests();
+        $urls = array_map(static fn (RequestInterface $request): string => $request->url(), $requests);
+
+        $this->assertContains($this->routeUrl('/index.html'), $urls);
+        $this->assertContains($this->routeUrl('/script.js'), $urls);
     }
 
     #[Test]

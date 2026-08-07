@@ -31,6 +31,7 @@ use Playwright\Locator\Locator;
 use Playwright\Locator\Options\GetByRoleOptions;
 use Playwright\Locator\Options\LocatorOptions;
 use Playwright\Page\Options\DragAndDropOptions;
+use Playwright\Page\Options\WaitForRequestOptions;
 use Playwright\Page\Page;
 use Playwright\Page\PageEventHandlerInterface;
 use Playwright\Regex;
@@ -965,6 +966,92 @@ class PageTest extends TestCase
             ->willReturn([]);
 
         $this->assertSame($this->page, $this->page->clearPageErrors());
+    }
+
+    public function testRequestsHydratesRequestSnapshots(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'action' => 'page.requests',
+                'pageId' => 'page-id',
+            ])
+            ->willReturn(['requests' => [
+                [
+                    'url' => 'https://example.test/resource.js',
+                    'method' => 'GET',
+                    'headers' => [],
+                    'postData' => null,
+                    'resourceType' => 'script',
+                ],
+                'not-a-request',
+            ]]);
+
+        $requests = $this->page->requests();
+
+        $this->assertCount(1, $requests);
+        $this->assertSame('https://example.test/resource.js', $requests[0]->url());
+        $this->assertSame('script', $requests[0]->resourceType());
+    }
+
+    public function testRequestsRejectsANonListResponse(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->willReturn(['requests' => 'nope']);
+
+        $this->expectException(ProtocolErrorException::class);
+
+        $this->page->requests();
+    }
+
+    public function testWaitForRequestSendsTheGlobAndJavaScriptAction(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'url' => '**/page2.html',
+                'options' => ['timeout' => 500.0],
+                'jsAction' => "document.querySelector('a').click()",
+                'action' => 'page.waitForRequest',
+                'pageId' => 'page-id',
+            ])
+            ->willReturn(['request' => [
+                'url' => 'https://example.test/page2.html',
+                'method' => 'GET',
+                'headers' => [],
+                'resourceType' => 'document',
+            ]]);
+
+        $request = $this->page->waitForRequest('**/page2.html', [
+            'timeout' => 500.0,
+            'action' => "document.querySelector('a').click()",
+        ]);
+
+        $this->assertSame('https://example.test/page2.html', $request->url());
+    }
+
+    public function testWaitForRequestAcceptsAnOptionsObject(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'url' => '**/*.css',
+                'options' => ['timeout' => 20.0],
+                'jsAction' => null,
+                'action' => 'page.waitForRequest',
+                'pageId' => 'page-id',
+            ])
+            ->willReturn(['request' => [
+                'url' => 'https://example.test/asset.css',
+                'method' => 'GET',
+                'headers' => [],
+                'resourceType' => 'stylesheet',
+            ]]);
+
+        $request = $this->page->waitForRequest('**/*.css', new WaitForRequestOptions(20.0));
+
+        $this->assertSame('stylesheet', $request->resourceType());
     }
 
     private function createPage(string $pageId = 'page-1'): Page

@@ -238,6 +238,8 @@ class PageHandler extends BaseHandler {
       evaluate: () => this.evaluate(page, command),
       addInitScript: () => page.addInitScript(command.script),
       waitForResponse: () => this.waitForResponse(page, command),
+      waitForRequest: () => this.waitForRequest(page, command),
+      requests: () => this.getRequests(page),
       consoleMessages: () => this.consoleMessages(page, command),
       clearConsoleMessages: () => page.clearConsoleMessages(),
       clearPageErrors: () => page.clearPageErrors(),
@@ -334,6 +336,20 @@ class PageHandler extends BaseHandler {
       jsAction ? page.evaluate(jsAction) : Promise.resolve(),
     ]);
     return { response: this.serializeResponse(response) };
+  }
+
+  async waitForRequest(page, command) {
+    const jsAction = command.jsAction;
+    const [request] = await Promise.all([
+      page.waitForRequest(command.url, command.options),
+      jsAction ? page.evaluate(jsAction) : Promise.resolve(),
+    ]);
+    return { request: this.extractRequestData(request) };
+  }
+
+  async getRequests(page) {
+    const requests = await page.requests();
+    return { requests: requests.map(request => this.extractRequestData(request)) };
   }
 
   async consoleMessages(page, command) {

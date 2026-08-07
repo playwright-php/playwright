@@ -24,6 +24,7 @@ use Playwright\Input\MouseInterface;
 use Playwright\Locator\LocatorInterface;
 use Playwright\Locator\Options\GetByRoleOptions;
 use Playwright\Locator\Options\LocatorOptions;
+use Playwright\Network\RequestInterface;
 use Playwright\Network\ResponseInterface;
 use Playwright\Page\Options\ClickOptions;
 use Playwright\Page\Options\DragAndDropOptions;
@@ -40,6 +41,7 @@ use Playwright\Page\Options\TypeOptions;
 use Playwright\Page\Options\WaitForFunctionOptions;
 use Playwright\Page\Options\WaitForLoadStateOptions;
 use Playwright\Page\Options\WaitForPopupOptions;
+use Playwright\Page\Options\WaitForRequestOptions;
 use Playwright\Page\Options\WaitForResponseOptions;
 use Playwright\Page\Options\WaitForSelectorOptions;
 use Playwright\Page\Options\WaitForUrlOptions;
@@ -292,6 +294,27 @@ interface PageInterface
      * @param array<string, mixed>|WaitForResponseOptions $options
      */
     public function waitForResponse($url, array|WaitForResponseOptions $options = []): ResponseInterface;
+
+    /**
+     * Waits for a request whose URL matches the given Playwright glob.
+     *
+     * PHP cannot act while this call blocks, so the trigger travels with it: an
+     * 'action' entry in $options holds a JavaScript expression the bridge
+     * evaluates once the listener is armed.
+     *
+     * @param array<string, mixed>|WaitForRequestOptions $options
+     */
+    public function waitForRequest(string $url, array|WaitForRequestOptions $options = []): RequestInterface;
+
+    /**
+     * Network requests recorded for this page, oldest first.
+     *
+     * These are snapshots taken by the bridge, not live handles: members that
+     * need the Node object, such as response(), return null on them.
+     *
+     * @return array<RequestInterface>
+     */
+    public function requests(): array;
 
     /**
      * Set files to an input element with type="file".
