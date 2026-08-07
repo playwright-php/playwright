@@ -15,12 +15,11 @@ declare(strict_types=1);
 namespace Playwright;
 
 use Playwright\Browser\BrowserContextInterface;
+use Playwright\Selector\SelectorsInterface;
 
 final class Playwright
 {
-    /** @var PlaywrightClient[] */
-    private static array $clients = [];
-    private static bool $shutdownRegistered = false;
+    private static ?PlaywrightClient $client = null;
 
     /**
      * @param array<string, mixed> $options
@@ -57,11 +56,21 @@ final class Playwright
     }
 
     /**
+     * Selector engine registry shared by every browser this class launches.
+     *
+     * Engines must be registered before the pages that use them are created.
+     */
+    public static function selectors(): SelectorsInterface
+    {
+        return self::client()->selectors();
+    }
+
+    /**
      * @param array<string, mixed> $options
      */
     private static function launch(string $browserType, array $options): BrowserContextInterface
     {
-        $client = PlaywrightFactory::create();
+        $client = self::client();
 
         $builder = match ($browserType) {
             'chromium' => $client->chromium(),
@@ -101,28 +110,22 @@ final class Playwright
             }
         }
 
-        $context = empty($typedOptions) ? $browser->context() : $browser->newContext($typedOptions);
-
-        self::$clients[] = $client;
-        self::registerShutdown();
-
-        return $context;
+        return empty($typedOptions) ? $browser->context() : $browser->newContext($typedOptions);
     }
 
-    private static function registerShutdown(): void
+    private static function client(): PlaywrightClient
     {
-        if (self::$shutdownRegistered) {
-            return;
-        }
-        self::$shutdownRegistered = true;
-        register_shutdown_function(static function (): void {
-            foreach (self::$clients as $i => $client) {
+        $client = self::$client;
+        if (null === $client) {
+            $client = self::$client = PlaywrightFactory::create();
+            register_shutdown_function(static function () use ($client): void {
                 try {
                     $client->close();
                 } catch (\Throwable) {
                 }
-                unset(self::$clients[$i]);
-            }
-        });
+            });
+        }
+
+        return $client;
     }
 }

@@ -20,6 +20,16 @@ const evaluateHandleOnTarget = async (target, { expression, arg }) => {
   return typeof value === 'function' ? await value(target, arg) : await value;
 };
 
+// A HAR url filter accepts a glob or a regex. A glob may legitimately start with
+// a slash, so PHP sends the regex form under its own key as a "/source/flags"
+// literal rather than leaving the two shapes to be told apart here.
+function harOptions(options) {
+  const { urlFilterRegex, ...rest } = options || {};
+  if (typeof urlFilterRegex !== 'string') return rest;
+  const lastSlash = urlFilterRegex.lastIndexOf('/');
+  return { ...rest, urlFilter: new RegExp(urlFilterRegex.slice(1, lastSlash), urlFilterRegex.slice(lastSlash + 1)) };
+}
+
 class ContextHandler extends BaseHandler {
   async handle(command, method) {
     // Closing a context drops it from the registry, and closing its browser drops it
@@ -86,6 +96,9 @@ class ContextHandler extends BaseHandler {
       startChunk: () => context.tracing.startChunk(command.options || {}),
       stop: async () => { context.__phpTracingActive = false; await context.tracing.stop(command.options || {}); },
       stopChunk: () => context.tracing.stopChunk(command.options || {}),
+      // startHar resolves with a Disposable, which cannot cross the JSON bridge
+      startHar: async () => { await context.tracing.startHar(command.path, harOptions(command.options)); return {}; },
+      stopHar: async () => { await context.tracing.stopHar(); return {}; },
       // Groups are silently skipped when tracing is off so callers (e.g. expect
       // assertions) can emit them unconditionally
       group: () => context.__phpTracingActive
@@ -983,7 +996,7 @@ class JSHandleHandler extends BaseHandler {
 
 class SelectorsHandler extends BaseHandler {
   async handle(command, method) {
-    const { playwright } = require('playwright');
+    const playwright = require('playwright');
 
     const registry = CommandRegistry.create({
       register: async () => {

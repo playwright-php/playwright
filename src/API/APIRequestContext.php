@@ -15,6 +15,8 @@ declare(strict_types=1);
 namespace Playwright\API;
 
 use Playwright\Exception\ProtocolErrorException;
+use Playwright\Tracing\Tracing;
+use Playwright\Tracing\TracingInterface;
 use Playwright\Transport\TransportInterface;
 
 final class APIRequestContext implements APIRequestContextInterface
@@ -152,6 +154,11 @@ final class APIRequestContext implements APIRequestContextInterface
         }
 
         return $result;
+    }
+
+    public function tracing(): TracingInterface
+    {
+        return new Tracing($this->transport, $this->contextId);
     }
 
     public function dispose(): void

@@ -15,11 +15,16 @@ declare(strict_types=1);
 namespace Playwright\Tests\Functional\Tracing;
 
 use PHPUnit\Framework\Attributes\CoversClass;
+use Playwright\API\APIRequestContext;
 use Playwright\Browser\BrowserContext;
+use Playwright\Regex;
 use Playwright\Tests\Functional\FunctionalTestCase;
+use Playwright\Tracing\Options\StartHarOptions;
 use Playwright\Tracing\Tracing;
 
 #[CoversClass(Tracing::class)]
+#[CoversClass(StartHarOptions::class)]
+#[CoversClass(APIRequestContext::class)]
 #[CoversClass(BrowserContext::class)]
 final class TracingApiTest extends FunctionalTestCase
 {
@@ -98,6 +103,71 @@ final class TracingApiTest extends FunctionalTestCase
 
         $this->assertFileExists($chunkPath);
         $this->assertGreaterThan(0, (int) filesize($chunkPath));
+    }
+
+    public function testHarRecordingCapturesNetworkActivity(): void
+    {
+        $harPath = $this->tempDir.'/network.har';
+
+        $tracing = $this->context->tracing();
+        $tracing->startHar($harPath, ['content' => 'omit', 'mode' => 'full', 'urlFilter' => '**/*']);
+
+        $this->goto('/index.html');
+
+        $tracing->stopHar();
+
+        $this->assertFileExists($harPath);
+        $entries = $this->readHarEntries($harPath);
+        $this->assertNotSame([], $entries);
+        $this->assertStringContainsString('/index.html', json_encode($entries, \JSON_THROW_ON_ERROR));
+    }
+
+    public function testHarRecordingHonoursARegexUrlFilter(): void
+    {
+        $harPath = $this->tempDir.'/filtered.har';
+
+        $tracing = $this->context->tracing();
+        $tracing->startHar($harPath, ['urlFilter' => new Regex('/nothing-matches-this/')]);
+
+        $this->goto('/index.html');
+
+        $tracing->stopHar();
+
+        $this->assertFileExists($harPath);
+        $this->assertSame([], $this->readHarEntries($harPath));
+    }
+
+    public function testHarRecordingIsAvailableOnTheApiRequestContext(): void
+    {
+        $harPath = $this->tempDir.'/api.har';
+
+        $tracing = $this->context->request()->tracing();
+        $tracing->startHar($harPath);
+
+        $this->goto('/index.html');
+
+        $tracing->stopHar();
+
+        $this->assertFileExists($harPath);
+        $this->assertNotSame([], $this->readHarEntries($harPath));
+    }
+
+    /**
+     * @return array<int, mixed>
+     */
+    private function readHarEntries(string $harPath): array
+    {
+        $raw = file_get_contents($harPath);
+        $this->assertIsString($raw);
+
+        $har = json_decode($raw, true, 512, \JSON_THROW_ON_ERROR);
+        $this->assertIsArray($har);
+        $this->assertArrayHasKey('log', $har);
+        $this->assertIsArray($har['log']);
+        $this->assertArrayHasKey('entries', $har['log']);
+        $this->assertIsArray($har['log']['entries']);
+
+        return array_values($har['log']['entries']);
     }
 
     private function readTraceEvents(string $zipPath): string

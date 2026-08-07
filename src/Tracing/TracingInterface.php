@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace Playwright\Tracing;
 
 use Playwright\Tracing\Options\StartChunkOptions;
+use Playwright\Tracing\Options\StartHarOptions;
 use Playwright\Tracing\Options\StartOptions;
 use Playwright\Tracing\Options\StopChunkOptions;
 use Playwright\Tracing\Options\StopOptions;
@@ -48,6 +49,20 @@ interface TracingInterface
      * @param array<string, mixed>|StopChunkOptions $options
      */
     public function stopChunk(array|StopChunkOptions $options = []): void;
+
+    /**
+     * Record network activity of this context to a HAR file, written only once stopHar() is called.
+     *
+     * A path ending in `.zip` stores response bodies as separate archive entries instead of inline.
+     *
+     * @param array<string, mixed>|StartHarOptions $options
+     */
+    public function startHar(string $path, array|StartHarOptions $options = []): void;
+
+    /**
+     * Stop HAR recording and write the file to the path given to startHar().
+     */
+    public function stopHar(): void;
 
     public function group(string $name, ?string $location = null): void;
 
