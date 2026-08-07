@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## [Unreleased]
+
+### Added
+- `BrowserContextInterface::clock()`, `setGeolocation()` and `setOffline()`
+- `DialogInterface::page()`
+- `KeyboardInterface::insertText()`
+- `PageInterface::pause()`
+- `ResponseInterface::headerValue()`
+
 ## [1.3.1] - 2026-08-04
 
 ### Fixed

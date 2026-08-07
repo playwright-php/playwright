@@ -16,11 +16,13 @@ namespace Playwright\Network;
 
 use Playwright\Frame\FrameInterface;
 
-/**
- * @method ?string headerValue(string $name) The first value of the header, or null when the header is absent
- */
 interface ResponseInterface
 {
+    /**
+     * The first value of the header, or null when the header is absent.
+     */
+    public function headerValue(string $name): ?string;
+
     public function url(): string;
 
     public function status(): int;

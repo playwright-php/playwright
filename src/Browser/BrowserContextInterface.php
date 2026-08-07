@@ -20,13 +20,23 @@ use Playwright\Network\NetworkThrottling;
 use Playwright\Page\PageInterface;
 use Playwright\Tracing\TracingInterface;
 
-/**
- * @method ClockInterface clock()                                                                   The context's clock, to fake and advance time
- * @method void           setGeolocation(?float $latitude, ?float $longitude, ?float $accuracy = 0) Sets the context's geolocation; null coordinates clear it
- * @method void           setOffline(bool $offline)                                                 Toggles the context's network offline or back online
- */
 interface BrowserContextInterface
 {
+    /**
+     * The context's clock, to fake and advance time.
+     */
+    public function clock(): ClockInterface;
+
+    /**
+     * Sets the context's geolocation; null coordinates clear it.
+     */
+    public function setGeolocation(?float $latitude, ?float $longitude, ?float $accuracy = 0): void;
+
+    /**
+     * Toggles the context's network offline or back online.
+     */
+    public function setOffline(bool $offline): void;
+
     /**
      * @param array<array{name: string, value: string, url?: string, domain?: string, path?: string, expires?: int, httpOnly?: bool, secure?: bool, sameSite?: 'Strict'|'Lax'|'None'}> $cookies
      */
