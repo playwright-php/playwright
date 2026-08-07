@@ -254,9 +254,9 @@ class PageHandler extends BaseHandler {
       handleDialog: () => this.handleDialog(command),
       route: () => RouteUtils.setupRoute(page, command.pageId, command.url, this.generateId, this.routes, this.extractRequestData, this.sendFramedResponse, () => `route_${++this.routeCounter.value}`),
       unroute: () => page.unroute(command.url),
-      goBack: () => page.goBack(command.options),
-      goForward: () => page.goForward(command.options),
-      reload: () => page.reload(command.options),
+      goBack: () => this.followNavigationRedirects(command.pageId, page, () => page.goBack(command.options)),
+      goForward: () => this.followNavigationRedirects(command.pageId, page, () => page.goForward(command.options)),
+      reload: () => this.followNavigationRedirects(command.pageId, page, () => page.reload(command.options)),
       waitForLoadState: () => page.waitForLoadState(command.state || 'load', command.options),
       frames: () => this.getFrames(page),
       frame: () => this.getFrame(page, command),
@@ -273,7 +273,11 @@ class PageHandler extends BaseHandler {
   }
 
   async goto(page, command) {
-    const gotoResponse = await page.goto(command.url, command.options);
+    const gotoResponse = await this.followNavigationRedirects(
+      command.pageId,
+      page,
+      () => page.goto(command.url, command.options)
+    );
     return { response: this.serializeResponse(gotoResponse) };
   }
 
@@ -506,7 +510,7 @@ class LocatorHandler extends BaseHandler {
       check: () => locator.check(command.options),
       uncheck: () => locator.uncheck(command.options),
       clear: () => locator.clear(command.options),
-      click: () => locator.click(command.options),
+      click: () => this.followNavigationRedirects(command.pageId, page, () => locator.click(command.options)),
       dblclick: () => locator.dblclick(command.options),
       hover: () => locator.hover(command.options),
       blur: () => locator.blur(),

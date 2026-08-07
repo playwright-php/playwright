@@ -5,6 +5,7 @@ const DEBUG = process.env.PLAYWRIGHT_DEBUG === 'true';
 const DEBUG_LEVEL = process.env.PLAYWRIGHT_DEBUG_LEVEL || 'info';
 const DEBUG_LOG_FILE = process.env.PLAYWRIGHT_DEBUG_LOG || 'debug-dispatch.log';
 const DEBUG_LOG_DIR = process.env.PLAYWRIGHT_DEBUG_DIR || process.cwd();
+const MAX_NAVIGATION_REDIRECTS = 10;
 
 class Logger {
   constructor() {
@@ -184,6 +185,30 @@ class BaseHandler {
   wrapResult(value) { return value === undefined || value === null ? { success: true } : value; }
   createValueResult(value) { return { value }; }
   async executeWithRegistry(registry, method, ...args) { return await registry.execute(method, ...args); }
+  async followNavigationRedirects(pageId, page, action) {
+    let nextAction = action;
+    let redirectCount = 0;
+    let result;
+
+    while (true) {
+      this.navigationRedirects.delete(pageId);
+
+      try {
+        result = await nextAction();
+      } catch (error) {
+        if (!this.navigationRedirects.has(pageId)) throw error;
+      }
+
+      const target = this.navigationRedirects.get(pageId);
+      if (!target) return result;
+
+      this.navigationRedirects.delete(pageId);
+      if (++redirectCount > MAX_NAVIGATION_REDIRECTS) {
+        throw new Error(`Too many navigation redirects for page ${pageId}`);
+      }
+      nextAction = () => page.goto(target);
+    }
+  }
 }
 
 class PromiseUtils {
