@@ -15,24 +15,38 @@ declare(strict_types=1);
 namespace Playwright\Video;
 
 /**
+ * Represents a recorded page video.
+ *
+ * A video becomes available when its owning page or context finishes recording.
+ * Save or delete its local file after the browser has completed the recording.
+ *
  * @see https://playwright.dev/docs/api/class-video
  */
 interface VideoInterface
 {
     /**
-     * Deletes the video file. Will wait for the video to finish if necessary.
+     * Deletes the recording file.
+     *
+     * Waits for the browser to finish writing the video when necessary.
+     * The video cannot be saved from this object after deletion.
      */
     public function delete(): void;
 
     /**
-     * Returns the file system path this video will be recorded to.
+     * Returns the recording path.
+     *
+     * The path identifies the local file assigned to this video.
+     * The file may not exist until the browser finishes recording.
      */
     public function path(): string;
 
     /**
-     * Saves the video to a user-specified path.
+     * Saves the recording to a path.
      *
-     * @param string $path Path where the video should be saved
+     * Waits for the browser to finish writing the source video when necessary.
+     * Creates the target directory when the implementation can do so.
+     *
+     * @param string $path Target file path
      */
     public function saveAs(string $path): void;
 }

@@ -17,7 +17,10 @@ namespace Playwright\WebError;
 use Playwright\Page\PageInterface;
 
 /**
- * @see https://playwright.dev/docs/api/class-weberror
+ * Represents an unhandled page error.
+ *
+ * The error retains the exception reported by the browser runtime.
+ * The originating page is available when Playwright can associate one with the error.
  */
 final class WebError implements WebErrorInterface
 {

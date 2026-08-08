@@ -19,7 +19,10 @@ use Playwright\JSHandle\JSHandleInterface;
 use Playwright\Transport\TransportInterface;
 
 /**
- * @see https://playwright.dev/docs/api/class-worker
+ * Represents a web worker.
+ *
+ * JavaScript runs in the worker's own execution context.
+ * Returned handles stay associated with that worker until they are disposed.
  */
 final class Worker implements WorkerInterface
 {
