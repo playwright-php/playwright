@@ -17,7 +17,10 @@ namespace Playwright\CDPSession;
 use Playwright\Transport\TransportInterface;
 
 /**
- * @see https://playwright.dev/docs/api/class-cdpsession
+ * Communicates with a Chrome DevTools Protocol session.
+ *
+ * Raw CDP commands travel through the Playwright transport for one session.
+ * Detach it when no further browser-protocol interaction is needed.
  */
 final class CDPSession implements CDPSessionInterface
 {

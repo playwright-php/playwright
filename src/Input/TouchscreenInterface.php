@@ -15,6 +15,11 @@ declare(strict_types=1);
 namespace Playwright\Input;
 
 /**
+ * Sends touch input to a page.
+ *
+ * The interface currently exposes single-point tap gestures.
+ * Coordinates are relative to the page viewport.
+ *
  * @see https://playwright.dev/docs/api/class-touchscreen
  */
 interface TouchscreenInterface

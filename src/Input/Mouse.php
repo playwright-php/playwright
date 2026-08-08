@@ -16,6 +16,12 @@ namespace Playwright\Input;
 
 use Playwright\Transport\TransportInterface;
 
+/**
+ * Sends mouse input to a page.
+ *
+ * Coordinates are relative to the page viewport.
+ * Operations dispatch browser mouse events through the page transport.
+ */
 final class Mouse implements MouseInterface
 {
     private string $pageId;

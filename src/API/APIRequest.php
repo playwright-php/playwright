@@ -16,6 +16,12 @@ namespace Playwright\API;
 
 use Playwright\Transport\TransportInterface;
 
+/**
+ * Creates API request contexts.
+ *
+ * Each context sends HTTP requests without opening a browser page.
+ * Options configure shared state such as a base URL or stored cookies.
+ */
 final class APIRequest implements APIRequestInterface
 {
     public function __construct(

@@ -17,7 +17,10 @@ namespace Playwright\Dialog;
 use Playwright\Page\PageInterface;
 
 /**
- * @author Simon André <smn.andre@gmail.com>
+ * Represents a page dialog.
+ *
+ * Dialogs expose alerts, confirms, prompts, and beforeunload messages.
+ * Accept or dismiss them before the page can continue its dialog flow.
  */
 final class Dialog implements DialogInterface
 {

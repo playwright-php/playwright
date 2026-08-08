@@ -16,6 +16,12 @@ namespace Playwright\Input;
 
 use Playwright\Transport\TransportInterface;
 
+/**
+ * Sends keyboard input to a page.
+ *
+ * Key operations target the focused element in the associated page.
+ * Use press() for key combinations and type() for sequential text input.
+ */
 final class Keyboard implements KeyboardInterface
 {
     private string $pageId;

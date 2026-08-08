@@ -15,28 +15,42 @@ declare(strict_types=1);
 namespace Playwright\BrowserServer;
 
 /**
- * BrowserServer facade for a remotely launched Playwright browser server.
- * In PHP, we expose the wsEndpoint for clients to connect and basic lifecycle controls.
+ * Represents a remotely launched browser server.
+ *
+ * The server exposes a WebSocket endpoint for connecting Playwright clients.
+ * Lifecycle methods close or terminate the browser process behind that endpoint.
  */
 interface BrowserServerInterface
 {
     /**
-     * WebSocket endpoint URL of the Playwright browser server.
+     * Returns the WebSocket endpoint.
+     *
+     * Connect a Playwright client to this URL from another process.
+     * The endpoint remains valid while the server is running.
      */
     public function wsEndpoint(): string;
 
     /**
-     * Attempts a graceful server shutdown.
+     * Closes the browser server.
+     *
+     * Requests a graceful shutdown from the Playwright server process.
+     * Connected clients lose their browser connection once it completes.
      */
     public function close(): void;
 
     /**
-     * Forcibly kills the server process.
+     * Kills the browser server.
+     *
+     * Terminates the underlying browser process without a graceful shutdown.
+     * Connected clients lose their browser connection immediately.
      */
     public function kill(): void;
 
     /**
-     * Returns the server process id if known, null otherwise.
+     * Returns the server process identifier.
+     *
+     * A null value means the process identifier is unavailable.
+     * The identifier can be used for operating-system level diagnostics.
      */
     public function process(): ?int;
 }

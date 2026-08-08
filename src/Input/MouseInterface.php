@@ -14,6 +14,12 @@ declare(strict_types=1);
 
 namespace Playwright\Input;
 
+/**
+ * Sends mouse input to a page.
+ *
+ * Coordinates are relative to the page viewport.
+ * Options control buttons, click counts, and event timing.
+ */
 interface MouseInterface
 {
     /**

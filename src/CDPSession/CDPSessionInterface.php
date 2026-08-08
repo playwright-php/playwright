@@ -15,6 +15,11 @@ declare(strict_types=1);
 namespace Playwright\CDPSession;
 
 /**
+ * Communicates with a Chrome DevTools Protocol session.
+ *
+ * Sessions expose browser-specific commands not covered by the standard API.
+ * Their methods operate on the target selected when the session was created.
+ *
  * @see https://playwright.dev/docs/api/class-cdpsession
  */
 interface CDPSessionInterface
