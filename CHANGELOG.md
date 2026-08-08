@@ -3,20 +3,30 @@
 ## [Unreleased]
 
 ### Added
-- `BrowserContextInterface::clock()`, `setGeolocation()` and `setOffline()`
-- `DialogInterface::page()`
-- `KeyboardInterface::insertText()`
-- `PageInterface::pause()`
-- `ResponseInterface::headerValue()`
-- `expect($locator)->toBeAttached()`
+- `BrowserInterface::browserType()` and `BrowserContextInterface::browser()` (#133)
+- Public interface declarations for existing clock, input and response APIs (#136)
+- Console message page and timestamp metadata (#140)
+- Context headers and default timeouts (#141)
+- Locator actions, ARIA snapshots and bounding boxes (#142)
+- Locator assertions for DOM state and values (#139)
+- Page init scripts, drag and drop, and headers (#138)
+- Frame navigation, evaluation and titles (#143)
+- Accessible text and ARIA snapshot assertions (#146)
+- Console/error inspection, request waiting, media emulation, GC and touchscreen APIs (#147)
+- Evaluation handles and `waitForFunction()` (#148)
+- Web storage, virtual credentials and screencast controls (#149)
+- Network metadata and error/WebSocket accessors (#150)
+- Page clocks, ARIA snapshots, video access and locator file drops (#151)
+- `BrowserInterface::bind()` and `unbind()` (#152)
+- HAR recording and API request tracing (#153)
 
 ### Changed
-- `Testing\Expect` delegates to `LocatorAssertions` and `PageAssertions`, sharing one auto-waiting and tracing implementation
+- Shared auto-waiting and tracing for `expect()` assertions (#154)
 
 ### Fixed
-- `expect()->toHaveClass()` matches the class attribute exactly
-- `expect()->toBeEmpty()` evaluates input values and text content in the DOM
-- `expect()->not()` applies to one assertion instead of leaking to later assertions on the same object
+- `expect()->toHaveClass()` matches the class attribute exactly (#137)
+- `expect()->toBeEmpty()` evaluates input values and text content in the DOM (#154)
+- `expect()->not()` applies to one assertion instead of leaking to later assertions on the same object (#154)
 
 ## [1.3.1] - 2026-08-04
 
