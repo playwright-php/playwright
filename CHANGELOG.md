@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## [Unreleased]
+## [1.4.0] - 2026-08-10
 
 ### Added
 - `BrowserInterface::browserType()` and `BrowserContextInterface::browser()` (#133)
@@ -19,6 +19,7 @@
 - Page clocks, ARIA snapshots, video access and locator file drops (#151)
 - `BrowserInterface::bind()` and `unbind()` (#152)
 - HAR recording and API request tracing (#153)
+- `expect()->toBeAttached()` (#154)
 
 ### Changed
 - Shared auto-waiting and tracing for `expect()` assertions (#154)
