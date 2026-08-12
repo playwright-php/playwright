@@ -1,0 +1,126 @@
+name: "Nightly"
+
+on:
+  schedule:
+    - cron: '13 3 * * *'  # At 03:13 every day
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}
+  # Never cancel: a scheduled run that gets killed by a manual dispatch loses the
+  # only signal of the day.
+  cancel-in-progress: false
+
+jobs:
+  browser-suite:
+    name: "Browser suite (Playwright ${{ matrix.playwright }})"
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # floor:  the exact minimum bin/package.json declares, so a release that
+        #         raises the real requirement without raising the range is caught.
+        # latest: whatever the declared range resolves to today, so an upstream
+        #         release that breaks us is reported the day it ships, without
+        #         waiting for someone to open a pull request.
+        playwright: ['floor', 'latest']
+      fail-fast: false
+    steps:
+      - name: "Git: checkout"
+        uses: actions/checkout@v4
+
+      - name: "PHP: setup 8.4"
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+
+      - name: "Node: setup"
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: "Composer: install"
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      # The floor is derived from the declaration, never written twice: raising
+      # bin/package.json is enough to move what this job tests.
+      - name: "Playwright: resolve version"
+        id: resolve
+        env:
+          LEG: ${{ matrix.playwright }}
+        run: |
+          range=$(node -p "require('./bin/package.json').dependencies.playwright")
+          if [ "$LEG" = "floor" ]; then
+            version=$(printf '%s' "$range" | sed 's/^[^0-9]*//')
+          else
+            # A range can match several releases; npm lists one per line.
+            version=$(npm view "playwright@$range" version | tail -1 | tr -d "'" | awk '{print $NF}')
+          fi
+          case "$version" in
+            [0-9]*.[0-9]*.[0-9]*) ;;
+            *) echo "::error::could not resolve a version from range '$range'"; exit 1 ;;
+          esac
+          echo "range=$range"     >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Declared range $range, testing $version"
+
+      - name: "Playwright: cache browsers"
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ms-playwright-${{ runner.os }}-${{ steps.resolve.outputs.version }}
+
+      - name: "Playwright: pin the bridge"
+        env:
+          VERSION: ${{ steps.resolve.outputs.version }}
+        run: npm install --prefix bin --no-audit --no-fund --save-exact "playwright@$VERSION"
+
+      - name: "Playwright: install browsers"
+        timeout-minutes: 15
+        run: |
+          for attempt in 1 2 3; do
+            if timeout 300 php bin/playwright-install --with-deps; then
+              exit 0
+            fi
+            echo "Attempt $attempt failed or timed out after 5 minutes, retrying."
+          done
+          exit 1
+
+      # Guards the pin itself: without this a silent fallback to another version
+      # would make the job green while proving nothing about the one named above.
+      - name: "Playwright: verify the pin held"
+        env:
+          VERSION: ${{ steps.resolve.outputs.version }}
+        run: |
+          installed=$(node -p "require('./bin/node_modules/playwright/package.json').version")
+          echo "Bridge runs Playwright $installed"
+          if [ "$installed" != "$VERSION" ]; then
+            echo "::error::expected Playwright $VERSION, bridge has $installed"
+            exit 1
+          fi
+
+      - name: "PHPUnit: integration"
+        run: vendor/bin/phpunit --no-coverage --testsuite=integration
+
+      - name: "PHPUnit: functional"
+        run: vendor/bin/phpunit --no-coverage --testsuite=functional
+
+      - name: "Summary"
+        if: always()
+        env:
+          LEG: ${{ matrix.playwright }}
+          RANGE: ${{ steps.resolve.outputs.range }}
+          VERSION: ${{ steps.resolve.outputs.version }}
+          STATUS: ${{ job.status }}
+        run: |
+          {
+            echo "| | |"
+            echo "|---|---|"
+            echo "| Leg | \`$LEG\` |"
+            echo "| Declared range | \`$RANGE\` |"
+            echo "| Playwright tested | \`${VERSION:-unresolved}\` |"
+            echo "| Result | $STATUS |"
+          } >> "$GITHUB_STEP_SUMMARY"
