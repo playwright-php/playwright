@@ -8,25 +8,22 @@
 
 </div>
 
-# Playwright PHP - Modern Browser Automation
+# Playwright PHP
 
-## About
+Automate Chromium, Firefox, and WebKit from PHP for browser testing, scraping,
+screenshots, and other browser-driven workflows.
 
-Playwright for PHP lets you launch real browsers (Chromium, Firefox, WebKit), drive pages and locators, and write
-reliable end‑to‑end tests — all from PHP.
-
-- **Familiar model**: browser → context → page → locator
-- **Auto‑waiting** interactions reduce flakiness
-- **PHPUnit integration** with a base trait and fluent `expect()` assertions
-- **Cross‑browser**: Chromium, Firefox, and WebKit supported
-- No separate server to manage — a lightweight Node server is started for you
+- Familiar browser, context, page, and locator model
+- Auto-waiting interactions
+- PHPUnit integration with fluent `expect()` assertions
+- No separate server to manage: the package starts its bundled Node server
 
 Requirements:
 
 - PHP 8.2+
 - Node.js 20+ (used by the bundled Playwright server and browsers)
 
-## Install
+## Installation
 
 Add the library to your project:
 
@@ -43,9 +40,6 @@ vendor/bin/playwright-install --browsers
 # On fresh machines/CI where you need Playwright's OS dependencies too
 vendor/bin/playwright-install --with-deps
 
-# The same commands apply when you work on this repository
-# (the script lives in vendor/bin/playwright-install here too)
-
 # Preview commands without changes
 vendor/bin/playwright-install --dry-run --with-deps
 ```
@@ -54,7 +48,7 @@ For advanced install options (including browser cache location), see the
 [Getting Started guide](docs/guide/getting-started.md).
 
 
-## Quick start
+## Quick Start
 
 Open a page and print its title:
 
@@ -183,7 +177,7 @@ Notes:
 - Use `$this->expect($locator)` or `$this->expect($page)` for fluent assertions with auto-waiting.
 - If you prefer full control, you can skip the trait and use the static `Playwright` facade directly.
 
-## CI usage (GitHub Actions)
+## GitHub Actions
 
 Example workflow snippet:
 
@@ -217,12 +211,13 @@ Tips:
 
 ## Contributing
 
-Contributions are welcome. Please use Conventional Commits, include tests for behavior changes, and ensure docs/examples
-are updated when relevant. A typical first run inside the repository is:
+Include tests for behavior changes and update documentation or examples when
+their public behavior changes. Set up the repository with:
 
 ```bash
 composer install                                # installs PHP deps and the bundled Playwright server
-vendor/bin/playwright-install --with-deps       # downloads browsers + optional system deps
+bin/playwright-install --with-deps              # downloads browsers + optional system deps
+make ci                                         # runs code style, static analysis, and tests
 ```
 
 See `docs/contributing/testing.md` for more details on the local workflow.
