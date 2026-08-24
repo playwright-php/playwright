@@ -121,7 +121,7 @@ class PlaywrightServer extends BaseHandler {
     const info = this.validateResource(this.routes, command.routeId, 'Route');
     const route = info.route || info;
     const registry = CommandRegistry.create({
-      fulfill: () => route.fulfill(command.options),
+      fulfill: () => this.fulfillRoute(route, command.options),
       abort: () => route.abort(command.errorCode),
       redirectNavigationRequest: () => this.redirectNavigationRequest(route, info, command),
       continue: () => this.continueRoute(route, info, command)
@@ -129,6 +129,15 @@ class PlaywrightServer extends BaseHandler {
     logger.info(`ROUTE ${method.toUpperCase()}`, { routeId: command.routeId });
     await ErrorHandler.safeExecute(() => this.executeWithRegistry(registry, method), { method, routeId: command.routeId });
     this.routes.delete(command.routeId);
+  }
+
+  async fulfillRoute(route, options = {}) {
+    const { isBase64, ...fulfillOptions } = options;
+    if (isBase64) {
+      if (typeof fulfillOptions.body !== 'string') throw new Error('route.fulfill isBase64 requires a string body');
+      fulfillOptions.body = Buffer.from(fulfillOptions.body, 'base64');
+    }
+    await route.fulfill(fulfillOptions);
   }
 
   async redirectNavigationRequest(route, info, command) {
