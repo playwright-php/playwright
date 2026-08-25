@@ -90,6 +90,27 @@ final class APIResponse implements APIResponseInterface
      */
     public function headersArray(): array
     {
+        $headersArray = $this->data['headersArray'] ?? null;
+        if (is_array($headersArray)) {
+            $result = [];
+            foreach ($headersArray as $header) {
+                if (!is_array($header)) {
+                    continue;
+                }
+
+                $name = $header['name'] ?? null;
+                $value = $header['value'] ?? null;
+                if (!is_string($name) || !is_string($value)) {
+                    continue;
+                }
+
+                $result[$name] ??= [];
+                $result[$name][] = $value;
+            }
+
+            return $result;
+        }
+
         $headers = $this->data['headers'] ?? [];
 
         if (!is_array($headers)) {
@@ -156,11 +177,7 @@ final class APIResponse implements APIResponseInterface
      */
     public function json(): array
     {
-        $body = $this->data['body'] ?? '';
-
-        if (!is_string($body)) {
-            return [];
-        }
+        $body = $this->decodedBody();
 
         try {
             /** @var array<array-key, mixed>|null $decoded */
@@ -184,9 +201,26 @@ final class APIResponse implements APIResponseInterface
 
     public function text(): string
     {
-        $body = $this->data['body'] ?? '';
+        return $this->decodedBody();
+    }
 
-        return is_string($body) ? $body : '';
+    private function decodedBody(): string
+    {
+        $body = $this->data['body'] ?? '';
+        if (!is_string($body)) {
+            return '';
+        }
+
+        if ('base64' !== ($this->data['bodyEncoding'] ?? null)) {
+            return $body;
+        }
+
+        $decoded = base64_decode($body, true);
+        if (false === $decoded) {
+            throw new PlaywrightException('API response body is not valid base64.');
+        }
+
+        return $decoded;
     }
 
     public function dispose(): void

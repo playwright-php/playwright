@@ -16,6 +16,7 @@ namespace Playwright\Tests\Unit\Browser;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Playwright\API\APIRequestContext;
 use Playwright\Browser\Browser;
 use Playwright\Browser\BrowserContext;
 use Playwright\Browser\StorageState;
@@ -897,5 +898,14 @@ final class BrowserContextTest extends TestCase
         $this->expectExceptionMessage('No popup was created within the timeout period');
 
         $context->waitForPopup(static function (): void {});
+    }
+
+    public function testRequestSharesTheBrowserContextCookieJar(): void
+    {
+        $request = $this->context->request();
+
+        $this->assertInstanceOf(APIRequestContext::class, $request);
+        $this->assertTrue($request->getShareCookies());
+        $this->assertSame($request, $this->context->request());
     }
 }

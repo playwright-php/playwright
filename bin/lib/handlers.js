@@ -30,6 +30,76 @@ function harOptions(options) {
   return { ...rest, urlFilter: new RegExp(urlFilterRegex.slice(1, lastSlash), urlFilterRegex.slice(lastSlash + 1)) };
 }
 
+class APIRequestHandler extends BaseHandler {
+  async handle(command, method) {
+    const registry = CommandRegistry.create({
+      newContext: () => this.newContext(command),
+      fetch: () => this.fetch(command),
+      storageState: () => this.storageState(command),
+      dispose: () => this.dispose(command)
+    });
+
+    const result = await ErrorHandler.safeExecute(
+      () => this.executeWithRegistry(registry, method),
+      { method, contextId: command.contextId }
+    );
+
+    return this.wrapResult(result);
+  }
+
+  requestContext(contextId) {
+    const isolated = this.apiContexts.get(contextId);
+    if (isolated) return isolated;
+
+    const browserContext = this.contexts.get(contextId)?.context;
+    if (browserContext) return browserContext.request;
+
+    throw new Error(`APIRequestContext not found: ${contextId}`);
+  }
+
+  async newContext(command) {
+    const context = await this.apiRequest.newContext(command.options || {});
+    const contextId = this.generateId('api');
+    this.apiContexts.set(contextId, context);
+
+    return { contextId };
+  }
+
+  async fetch(command) {
+    const context = this.requestContext(command.contextId);
+    const response = await context.fetch(command.url, command.options || {});
+
+    try {
+      const body = await response.body();
+
+      return {
+        response: {
+          url: response.url(),
+          status: response.status(),
+          statusText: response.statusText(),
+          headers: response.headers(),
+          headersArray: response.headersArray(),
+          body: body.toString('base64'),
+          bodyEncoding: 'base64'
+        }
+      };
+    } finally {
+      await response.dispose();
+    }
+  }
+
+  async storageState(command) {
+    const options = command.path ? { path: command.path } : {};
+    return { storageState: await this.requestContext(command.contextId).storageState(options) };
+  }
+
+  async dispose(command) {
+    const context = this.requestContext(command.contextId);
+    await context.dispose();
+    this.apiContexts.delete(command.contextId);
+  }
+}
+
 class ContextHandler extends BaseHandler {
   async handle(command, method) {
     // Closing a context drops it from the registry, and closing its browser drops it
@@ -89,7 +159,11 @@ class ContextHandler extends BaseHandler {
   }
 
   async handleTracing(command, method) {
-    const context = this.validateResource(this.contexts, command.contextId, 'Context')?.context;
+    const context = this.contexts.get(command.contextId)?.context ?? this.apiContexts.get(command.contextId);
+
+    if (!context) {
+      throw new Error(`Tracing context not found: ${command.contextId}`);
+    }
 
     const registry = CommandRegistry.create({
       start: async () => { await context.tracing.start(command.options || {}); context.__phpTracingActive = true; },
@@ -1034,4 +1108,4 @@ class VideoHandler extends BaseHandler {
   }
 }
 
-module.exports = { ContextHandler, PageHandler, LocatorHandler, InteractionHandler, FrameHandler, JSHandleHandler, SelectorsHandler, VideoHandler };
+module.exports = { APIRequestHandler, ContextHandler, PageHandler, LocatorHandler, InteractionHandler, FrameHandler, JSHandleHandler, SelectorsHandler, VideoHandler };

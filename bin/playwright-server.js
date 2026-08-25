@@ -1,6 +1,6 @@
-const {chromium, firefox, webkit} = require('playwright');
+const {chromium, firefox, webkit, request} = require('playwright');
 const { logger, ErrorHandler, LspFraming, sendFramedResponse, CommandRegistry, BaseHandler } = require('./lib/core');
-const { ContextHandler, PageHandler, LocatorHandler, InteractionHandler, FrameHandler, JSHandleHandler, SelectorsHandler, VideoHandler } = require('./lib/handlers');
+const { APIRequestHandler, ContextHandler, PageHandler, LocatorHandler, InteractionHandler, FrameHandler, JSHandleHandler, SelectorsHandler, VideoHandler } = require('./lib/handlers');
 const { globalCoordinator } = require('./lib/coordination');
 
 class PlaywrightServer extends BaseHandler {
@@ -23,12 +23,14 @@ class PlaywrightServer extends BaseHandler {
     this.navigationRedirects = new Map();
     this.servers = new Map();
     this.videos = new Map();
-    this.counters = { browser: 0, context: 0, page: 0, response: 0, route: 0, element: 0, server: 0, video: 0 };
+    this.apiContexts = new Map();
+    this.counters = { api: 0, browser: 0, context: 0, page: 0, response: 0, route: 0, element: 0, server: 0, video: 0 };
   }
 
   initHandlers() {
     const deps = {
       contexts: this.contexts, contextThrottling: this.contextThrottling, pages: this.pages,
+      apiContexts: this.apiContexts, apiRequest: request,
       pageContexts: this.pageContexts, dialogs: this.dialogs, elementHandles: this.elementHandles,
       responses: this.responses, routes: this.routes, videos: this.videos, generateId: this.generateId.bind(this),
       navigationRedirects: this.navigationRedirects,
@@ -38,6 +40,7 @@ class PlaywrightServer extends BaseHandler {
       routeCounter: { value: this.counters.route },
       setupPageEventListeners: this.setupPageEventListeners.bind(this)
     };
+    this.apiRequestHandler = new APIRequestHandler(deps);
     this.contextHandler = new ContextHandler(deps);
     this.pageHandler = new PageHandler(deps);
     this.locatorHandler = new LocatorHandler(deps);
@@ -69,6 +72,7 @@ class PlaywrightServer extends BaseHandler {
     const [actionPrefix, actionMethod] = command.action.split('.');
 
     const handlerRegistry = CommandRegistry.create({
+      api: () => this.apiRequestHandler.handle(command, actionMethod),
       context: () => this.contextHandler.handle(command, actionMethod),
       page: () => this.pageHandler.handle(command, actionMethod),
       locator: () => this.locatorHandler.handle(command, actionMethod),
@@ -417,6 +421,10 @@ class PlaywrightServer extends BaseHandler {
 
   async exit() {
     logger.info('Shutting down server');
+    for (const context of this.apiContexts.values()) {
+      try { await context.dispose(); } catch (e) { logger.warn('Error disposing API request context during exit', { error: e.message }); }
+    }
+    this.apiContexts.clear();
     for (const browser of this.browsers.values()) {
       try { await browser.close(); } catch (e) { logger.warn('Error closing browser during exit', { error: e.message }); }
     }
