@@ -14,6 +14,54 @@ declare(strict_types=1);
 
 $uri = parse_url($_SERVER['REQUEST_URI'] ?? '/', \PHP_URL_PATH);
 
+if (!is_string($uri)) {
+    $uri = '/';
+}
+
+if ('/api/echo' === $uri) {
+    $body = file_get_contents('php://input');
+    if (!is_string($body)) {
+        $body = '';
+    }
+
+    $json = null;
+    if ('' !== $body) {
+        $decoded = json_decode($body, true);
+        if (is_array($decoded)) {
+            $json = $decoded;
+        }
+    }
+
+    header('Content-Type: application/json');
+    echo json_encode([
+        'method' => $_SERVER['REQUEST_METHOD'] ?? 'GET',
+        'body' => $body,
+        'json' => $json,
+        'query' => $_GET,
+        'cookies' => $_COOKIE,
+        'requestHeader' => $_SERVER['HTTP_X_PLAYWRIGHT_PHP'] ?? null,
+    ], \JSON_THROW_ON_ERROR);
+
+    return true;
+}
+
+if ('/api/set-cookie' === $uri) {
+    header('Content-Type: application/json');
+    header('Set-Cookie: api-session=from-api; Path=/; SameSite=Lax');
+    echo '{"cookie":"set"}';
+
+    return true;
+}
+
+if (1 === preg_match('#^/api/status/(\d{3})$#', $uri, $matches)) {
+    $status = (int) $matches[1];
+    http_response_code($status);
+    header('Content-Type: application/json');
+    echo json_encode(['status' => $status], \JSON_THROW_ON_ERROR);
+
+    return true;
+}
+
 // Default to index.html if root
 if ('/' === $uri) {
     $uri = '/index.html';

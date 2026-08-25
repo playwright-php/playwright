@@ -144,12 +144,15 @@ final class TracingApiTest extends FunctionalTestCase
         $tracing = $this->context->request()->tracing();
         $tracing->startHar($harPath);
 
-        $this->goto('/index.html');
+        $response = $this->context->request()->get($this->getBaseUrl().'/index.html');
 
         $tracing->stopHar();
 
+        $this->assertSame(200, $response->status());
         $this->assertFileExists($harPath);
-        $this->assertNotSame([], $this->readHarEntries($harPath));
+        $entries = $this->readHarEntries($harPath);
+        $this->assertNotSame([], $entries);
+        $this->assertStringContainsString('/index.html', json_encode($entries, \JSON_THROW_ON_ERROR));
     }
 
     /**

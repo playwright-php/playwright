@@ -50,16 +50,11 @@ final class APIRequest implements APIRequestInterface
             $baseURL = $options['baseURL'];
         }
 
-        $shareCookies = false;
-        if (isset($options['storageState']) && is_array($options['storageState'])) {
-            $shareCookies = true;
-        }
-
         return new APIRequestContext(
             $this->transport,
             $contextId,
             $baseURL,
-            $shareCookies
+            false
         );
     }
 }

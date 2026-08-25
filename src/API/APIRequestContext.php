@@ -130,7 +130,7 @@ final class APIRequestContext implements APIRequestContextInterface
     }
 
     /**
-     * @return array<array<string, mixed>>
+     * @return array<string, mixed>
      */
     public function storageState(?string $path = null): array
     {
@@ -140,22 +140,15 @@ final class APIRequestContext implements APIRequestContextInterface
             'path' => $path,
         ]);
 
-        if (!isset($response['storageState']) || !is_array($response['storageState'])) {
-            return [];
+        $storageState = $response['storageState'] ?? null;
+        if (!is_array($storageState)) {
+            throw new ProtocolErrorException('Invalid API storageState response', 0);
         }
 
         $result = [];
-        foreach ($response['storageState'] as $item) {
-            if (is_array($item)) {
-                $validated = [];
-                foreach ($item as $key => $value) {
-                    if (is_string($key)) {
-                        $validated[$key] = $value;
-                    }
-                }
-                if (!empty($validated)) {
-                    $result[] = $validated;
-                }
+        foreach ($storageState as $key => $value) {
+            if (is_string($key)) {
+                $result[$key] = $value;
             }
         }
 

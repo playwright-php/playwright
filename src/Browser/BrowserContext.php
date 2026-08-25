@@ -63,6 +63,8 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
 
     private ?TracingInterface $tracing = null;
 
+    private ?APIRequestContextInterface $apiRequestContext = null;
+
     public function __construct(
         private readonly TransportInterface $transport,
         private readonly string $contextId,
@@ -687,7 +689,7 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
 
     public function request(): APIRequestContextInterface
     {
-        return new APIRequestContext($this->transport, $this->contextId, null);
+        return $this->apiRequestContext ??= new APIRequestContext($this->transport, $this->contextId, null, true);
     }
 
     public function setDefaultTimeout(int $timeout): void

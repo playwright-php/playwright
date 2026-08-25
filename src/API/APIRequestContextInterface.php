@@ -102,7 +102,7 @@ interface APIRequestContextInterface
      * The returned cookies and origins can initialize another API or browser context.
      * Pass a path to save the serialized state for later reuse.
      *
-     * @return array<array<string, mixed>>
+     * @return array<string, mixed>
      */
     public function storageState(?string $path = null): array;
 
