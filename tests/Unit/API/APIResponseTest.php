@@ -69,6 +69,19 @@ final class APIResponseTest extends TestCase
         );
     }
 
+    public function testHeadersArrayIgnoresInvalidProtocolEntries(): void
+    {
+        $response = new APIResponse([
+            'headersArray' => [
+                'invalid',
+                ['name' => 123, 'value' => 'value'],
+                ['name' => 'x-valid', 'value' => 'value'],
+            ],
+        ]);
+
+        $this->assertSame(['x-valid' => ['value']], $response->headersArray());
+    }
+
     public function testHeadersArrayFallsBackToNormalizedHeaders(): void
     {
         $response = new APIResponse([
@@ -103,6 +116,13 @@ final class APIResponseTest extends TestCase
         $this->expectExceptionMessage('API response body is not valid base64');
 
         $response->text();
+    }
+
+    public function testNonStringBodyUsesAnEmptyString(): void
+    {
+        $response = new APIResponse(['body' => ['not', 'a', 'string']]);
+
+        $this->assertSame('', $response->text());
     }
 
     public function testMissingValuesUseSafeDefaults(): void
