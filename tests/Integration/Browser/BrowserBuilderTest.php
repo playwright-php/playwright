@@ -20,6 +20,8 @@ use PHPUnit\Framework\TestCase;
 use Playwright\Browser\Browser;
 use Playwright\Browser\BrowserBuilder;
 use Playwright\Configuration\PlaywrightConfig;
+use Playwright\Exception\MissingDependencyException;
+use Playwright\Exception\PlaywrightException;
 use Playwright\Transport\TransportInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -266,6 +268,52 @@ class BrowserBuilderTest extends TestCase
             new NullLogger(),
             new PlaywrightConfig(videosDir: '/tmp/videos'),
         );
+
+        $builder->launch();
+    }
+
+    #[Test]
+    public function itReportsMissingBrowsersWithTheInstallCommand(): void
+    {
+        $transport = $this->createMock(TransportInterface::class);
+        $transport->method('send')->willReturn([
+            'error' => "browserType.launch: Executable doesn't exist at /tmp/chrome\nPlease run the following command",
+        ]);
+
+        $builder = new BrowserBuilder('chromium', $transport, new NullLogger(), new PlaywrightConfig());
+
+        $this->expectException(MissingDependencyException::class);
+        $this->expectExceptionMessageMatches('/vendor\/bin\/playwright-install/');
+
+        $builder->launch();
+    }
+
+    #[Test]
+    public function itReportsMissingHostDependenciesWithTheWithDepsCommand(): void
+    {
+        $transport = $this->createMock(TransportInterface::class);
+        $transport->method('send')->willReturn([
+            'error' => "browserType.launch: Host system is missing dependencies to run browsers.\nMissing libraries: libnss3",
+        ]);
+
+        $builder = new BrowserBuilder('chromium', $transport, new NullLogger(), new PlaywrightConfig());
+
+        $this->expectException(MissingDependencyException::class);
+        $this->expectExceptionMessageMatches('/vendor\/bin\/playwright-install --with-deps/');
+
+        $builder->launch();
+    }
+
+    #[Test]
+    public function itLeavesUnrelatedLaunchErrorsAlone(): void
+    {
+        $transport = $this->createMock(TransportInterface::class);
+        $transport->method('send')->willReturn(['error' => 'browserType.launch: something else went wrong']);
+
+        $builder = new BrowserBuilder('chromium', $transport, new NullLogger(), new PlaywrightConfig());
+
+        $this->expectException(PlaywrightException::class);
+        $this->expectExceptionMessage('browserType.launch: something else went wrong');
 
         $builder->launch();
     }
