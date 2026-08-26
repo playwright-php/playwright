@@ -45,6 +45,25 @@ final class RouteTest extends FunctionalTestCase
         $this->assertStringContainsString('Mocked response', $result);
     }
 
+    public function testCanFulfillBase64EncodedBinaryBody(): void
+    {
+        $this->goto('/index.html');
+        $expected = [0x77, 0x4F, 0x46, 0x32, 0x00, 0x01, 0x02, 0xFF];
+
+        $this->page->route('**/binary', static function ($route) use ($expected): void {
+            $route->fulfill([
+                'status' => 200,
+                'contentType' => 'application/octet-stream',
+                'body' => base64_encode(pack('C*', ...$expected)),
+                'isBase64' => true,
+            ]);
+        });
+
+        $result = $this->page->evaluate('async () => Array.from(new Uint8Array(await (await fetch("/binary")).arrayBuffer()))');
+
+        $this->assertSame($expected, $result);
+    }
+
     public function testCanInterceptAndAbortRequest(): void
     {
         $this->goto('/network.html');
