@@ -34,6 +34,12 @@ root:
 vendor/bin/playwright-install --browsers
 ```
 
+Install a specific browser when the project does not need the full set:
+
+```bash
+vendor/bin/playwright-install chromium
+```
+
 Need Playwright to pull in recommended system dependencies as well (handy on fresh CI runners)?
 
 ```bash
@@ -48,6 +54,9 @@ If you need a custom browsers cache location (for example in CI), set `PLAYWRIGH
 ```bash
 PLAYWRIGHT_BROWSERS_PATH=/path/to/.playwright-browsers vendor/bin/playwright-install --browsers
 ```
+
+For browser targets, branded Chrome and Edge channels, and runtime browser
+types, see [Browsers, Browser Types, and Channels](./browsers.md).
 
 ## Your First Script
 
