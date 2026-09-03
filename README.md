@@ -37,6 +37,9 @@ Install the Playwright browsers (Chromium, Firefox, WebKit):
 # Run after composer install in your application or in this repository
 vendor/bin/playwright-install --browsers
 
+# Or install only the browser targets your project uses
+vendor/bin/playwright-install chromium
+
 # On fresh machines/CI where you need Playwright's OS dependencies too
 vendor/bin/playwright-install --with-deps
 
@@ -44,8 +47,8 @@ vendor/bin/playwright-install --with-deps
 vendor/bin/playwright-install --dry-run --with-deps
 ```
 
-For advanced install options (including browser cache location), see the
-[Getting Started guide](docs/guide/getting-started.md).
+For targeted installation, browser cache location, and Chrome or Edge channels,
+see [Browsers, Browser Types, and Channels](docs/guide/browsers.md).
 
 
 ## Quick Start

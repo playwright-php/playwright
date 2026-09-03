@@ -51,13 +51,21 @@ final class PlaywrightServerInstaller
     private bool $withDeps;
 
     /**
+     * @var list<string>
+     */
+    private array $browserTargets;
+
+    /**
      * Cache of command availability checks.
      *
      * @var array<string, bool>
      */
     private array $commandAvailability = [];
 
-    public function __construct(bool $verbose, bool $dryRun, bool $installBrowsers, bool $withDeps)
+    /**
+     * @param list<string> $browserTargets
+     */
+    public function __construct(bool $verbose, bool $dryRun, bool $installBrowsers, bool $withDeps, array $browserTargets)
     {
         $this->serverDir = __DIR__;
         $this->output = new ConsoleOutput();
@@ -65,6 +73,7 @@ final class PlaywrightServerInstaller
         $this->dryRun = $dryRun;
         $this->shouldInstallBrowsers = $installBrowsers;
         $this->withDeps = $withDeps;
+        $this->browserTargets = $browserTargets;
 
         if ($this->verbose) {
             $this->output->setVerbosity(OutputInterface::VERBOSITY_VERBOSE);
@@ -288,6 +297,16 @@ final class PlaywrightServerInstaller
     {
         $this->output->writeln('Installing Playwright browsers...');
 
+        $brandedTargets = array_intersect($this->browserTargets, [
+            'chrome',
+            'chrome-beta',
+            'msedge',
+            'msedge-beta',
+        ]);
+        if ([] !== $brandedTargets) {
+            $this->output->writeln('<comment>Warning: branded browsers are installed in the operating system\'s global location.</comment>');
+        }
+
         $packageManager = $this->detectPackageManager();
         $command = $this->getBrowserInstallCommand($packageManager);
 
@@ -303,6 +322,8 @@ final class PlaywrightServerInstaller
         if ($this->withDeps) {
             $args[] = '--with-deps';
         }
+
+        array_push($args, ...$this->browserTargets);
 
         return match ($packageManager) {
             'pnpm' => array_merge(['pnpm', 'exec', 'playwright'], $args),
@@ -363,6 +384,17 @@ $dryRun = false;
 $installBrowsers = false;
 $withDeps = false;
 $help = false;
+$browserTargets = [];
+$defaultBrowsersRequested = false;
+$supportedBrowserTargets = [
+    'chromium',
+    'firefox',
+    'webkit',
+    'chrome',
+    'chrome-beta',
+    'msedge',
+    'msedge-beta',
+];
 
 foreach ($args as $arg) {
     switch ($arg) {
@@ -379,27 +411,65 @@ foreach ($args as $arg) {
             break;
         case '--browsers':
             $installBrowsers = true;
+            $defaultBrowsersRequested = true;
             break;
         case '--with-deps':
             $installBrowsers = true;
             $withDeps = true;
             break;
         default:
-            throw new \InvalidArgumentException(sprintf('Unknown option: %s', $arg));
+            if (str_starts_with($arg, '-')) {
+                throw new \InvalidArgumentException(sprintf('Unknown option: %s', $arg));
+            }
+
+            if (!in_array($arg, $supportedBrowserTargets, true)) {
+                fwrite(STDERR, sprintf(
+                    "Unknown browser target: %s. Supported browsers: %s.\n",
+                    $arg,
+                    implode(', ', $supportedBrowserTargets),
+                ));
+
+                exit(2);
+            }
+
+            $installBrowsers = true;
+            if (!in_array($arg, $browserTargets, true)) {
+                $browserTargets[] = $arg;
+            }
     }
+}
+
+if ($defaultBrowsersRequested && [] !== $browserTargets) {
+    fwrite(STDERR, "The --browsers option cannot be combined with explicit browser targets.\n");
+
+    exit(2);
 }
 
 if ($help) {
     echo "Playwright Server Installer\n";
     echo "\n";
-    echo "Usage: playwright-install [options]\n";
+    echo "Usage: playwright-install [options] [browser...]\n";
     echo "\n";
     echo "Options:\n";
     echo "  -v, --verbose     Show detailed output\n";
     echo "  -h, --help        Show this help message\n";
     echo "  --dry-run         Print commands without executing install steps\n";
-    echo "  --browsers        Install Playwright browser binaries\n";
-    echo "  --with-deps       Install browsers and system dependencies (implies --browsers)\n";
+    echo "  --browsers        Install Playwright's default browsers\n";
+    echo "  --with-deps       Install selected browsers and system dependencies\n";
+    echo "\n";
+    echo "Managed browser targets:\n";
+    echo "  chromium          Playwright's bundled Chromium browser\n";
+    echo "  firefox           Playwright's Firefox browser\n";
+    echo "  webkit            Playwright's WebKit browser\n";
+    echo "\n";
+    echo "Branded browser targets:\n";
+    echo "  chrome            Google Chrome stable\n";
+    echo "  chrome-beta       Google Chrome Beta\n";
+    echo "  msedge            Microsoft Edge stable\n";
+    echo "  msedge-beta       Microsoft Edge Beta\n";
+    echo "\n";
+    echo "Branded browsers are installed in the operating system's global location.\n";
+    echo "They are distinct from Playwright's managed Chromium browser.\n";
     echo "\n";
     echo "Requirements:\n";
     echo "  - Node.js 20+ (for optimal performance and security)\n";
@@ -410,8 +480,14 @@ if ($help) {
     echo "\n";
     echo "Environment:\n";
     echo "  PLAYWRIGHT_BROWSERS_PATH   Custom directory for Playwright browser binaries\n";
+    echo "\n";
+    echo "Examples:\n";
+    echo "  playwright-install --browsers\n";
+    echo "  playwright-install firefox\n";
+    echo "  playwright-install chromium webkit\n";
+    echo "  playwright-install chrome\n";
     exit(0);
 }
 
-$installer = new PlaywrightServerInstaller($verbose, $dryRun, $installBrowsers, $withDeps);
+$installer = new PlaywrightServerInstaller($verbose, $dryRun, $installBrowsers, $withDeps, $browserTargets);
 exit($installer->install());

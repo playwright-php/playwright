@@ -1,6 +1,7 @@
 # Playwright PHP - Quick Start Guide
 
 - [Getting Started](./guide/getting-started.md)
+- [Browsers, Browser Types, and Channels](./guide/browsers.md)
 - [Core Concepts](./guide/core-concepts.md)
 - [Handling Authentication](./guide/handling-authentication.md)
 - [Testing with PHPUnit](./guide/testing-with-phpunit.md)

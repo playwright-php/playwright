@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## [Unreleased]
+
+### Added
+- Targeted browser installation through `playwright-install [browser...]`
+
 ## [1.4.0] - 2026-08-10
 
 ### Added
