@@ -17,6 +17,7 @@ namespace Playwright\Tests\Integration\BrowserServer;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Playwright\BrowserServer\BrowserServer;
+use Playwright\Exception\MissingDependencyException;
 use Playwright\Exception\ProcessLaunchException;
 use Playwright\Exception\TransportException;
 use Playwright\PlaywrightFactory;
@@ -43,7 +44,7 @@ final class BrowserServerFunctionalTest extends TestCase
 
             // Try graceful close
             $server->close();
-        } catch (ProcessLaunchException|TransportException $e) {
+        } catch (MissingDependencyException|ProcessLaunchException|TransportException $e) {
             $this->markTestSkipped('launchServer not available or environment missing browsers: '.$e->getMessage());
         } catch (\Throwable $e) {
             $this->fail('Unexpected failure launching browser server: '.$e->getMessage());
