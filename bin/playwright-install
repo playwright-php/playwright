@@ -269,8 +269,8 @@ final class PlaywrightServerInstaller
 
         return match ($packageManager) {
             'pnpm' => $hasPnpmLock
-                    ? ['pnpm', 'install', '--prod', '--frozen-lockfile']
-                    : ['pnpm', 'install', '--prod', '--no-frozen-lockfile'],
+                    ? ['pnpm', 'install', '--prod', '--frozen-lockfile', '--ignore-workspace', '--lockfile-dir', $this->serverDir]
+                    : ['pnpm', 'install', '--prod', '--no-frozen-lockfile', '--ignore-workspace', '--lockfile-dir', $this->serverDir],
             'yarn' => $hasYarnLock
                     ? ['yarn', 'install', '--production', '--frozen-lockfile']
                     : ['yarn', 'install', '--production'],
