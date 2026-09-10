@@ -93,8 +93,7 @@ trait PlaywrightTestCaseTrait
         $status = $this->status();
 
         if ($status->isFailure() || $status->isError()) {
-            $testName = method_exists($this, 'getName') && is_string($this->getName()) ? $this->getName() : 'test';
-            $this->captureFailureArtifacts($testName);
+            $this->captureFailureArtifacts($this->resolveTestName());
         }
 
         $this->safeClose($this->context);
@@ -178,6 +177,31 @@ trait PlaywrightTestCaseTrait
         $value = is_string($env) ? $env : '';
 
         return '' !== $value && '0' !== $value;
+    }
+
+    private function resolveTestName(): string
+    {
+        foreach (['name', 'getName'] as $method) {
+            if (!method_exists($this, $method)) {
+                continue;
+            }
+
+            $name = $this->{$method}();
+
+            if (is_string($name) && '' !== $name) {
+                return self::sanitizeFileName($name);
+            }
+        }
+
+        return 'test';
+    }
+
+    private static function sanitizeFileName(string $name): string
+    {
+        $sanitized = preg_replace('/[^A-Za-z0-9._-]+/', '_', $name) ?? '';
+        $sanitized = trim($sanitized, '_.');
+
+        return '' === $sanitized ? 'test' : $sanitized;
     }
 
     private function captureFailureArtifacts(string $testName): void

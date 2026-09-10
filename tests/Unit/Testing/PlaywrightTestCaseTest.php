@@ -59,4 +59,30 @@ final class PlaywrightTestCaseTest extends TestCase
         $this->assertTrue($setUpMethod->hasReturnType());
         $this->assertEquals('void', $setUpMethod->getReturnType()->getName());
     }
+
+    public function testResolveTestNameUsesTheRunningTestName(): void
+    {
+        $case = new class('testExample') extends PlaywrightTestCase {
+            public function testExample(): void
+            {
+            }
+        };
+
+        $method = new \ReflectionMethod($case, 'resolveTestName');
+
+        $this->assertSame('testExample', $method->invoke($case));
+    }
+
+    public function testResolveTestNameStaysUsableAsAFileName(): void
+    {
+        $case = new class('testExample with data set "a/b"') extends PlaywrightTestCase {
+            public function testExample(): void
+            {
+            }
+        };
+
+        $method = new \ReflectionMethod($case, 'resolveTestName');
+
+        $this->assertSame('testExample_with_data_set_a_b', $method->invoke($case));
+    }
 }
