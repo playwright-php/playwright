@@ -58,6 +58,25 @@ PLAYWRIGHT_BROWSERS_PATH=/path/to/.playwright-browsers vendor/bin/playwright-ins
 For browser targets, branded Chrome and Edge channels, and runtime browser
 types, see [Browsers, Browser Types, and Channels](./browsers.md).
 
+### Selecting a Package-Manager Binary
+
+To override automatic package-manager selection, pass the executable to the installer:
+
+```bash
+vendor/bin/playwright-install --package-manager-bin=/path/to/npm --browsers
+```
+
+The filename identifies the manager: `npm`, `pnpm`, or `yarn` (Windows `.cmd`, `.exe`, and `.bat` extensions are also
+accepted). Relative paths are resolved from your current directory. Quote paths containing spaces.
+
+The selected executable is used for version checks, dependency installation, and browser installation. The usual
+installer checks, browser arguments, and options such as `--with-deps` still apply. Without this option, the existing
+auto-detection remains in place.
+
+The override uses the existing installation commands: npm 7+ (for `npm exec`), pnpm, or Yarn Classic (1.x).
+It does not add support for modern Yarn, install package-manager versions, or enforce the version in `packageManager`.
+The selected executable can still enforce its own project configuration.
+
 ## Your First Script
 
 You're now ready to write your first script. Create a new file named `example.php` and add the following code:
