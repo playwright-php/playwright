@@ -85,4 +85,17 @@ final class PlaywrightTestCaseTest extends TestCase
 
         $this->assertSame('testExample_with_data_set_a_b', $method->invoke($case));
     }
+
+    public function testResolveTestNameFallsBackWhenTheNameIsEmpty(): void
+    {
+        $case = new class('') extends PlaywrightTestCase {
+            public function testExample(): void
+            {
+            }
+        };
+
+        $method = new \ReflectionMethod($case, 'resolveTestName');
+
+        $this->assertSame('test', $method->invoke($case));
+    }
 }
