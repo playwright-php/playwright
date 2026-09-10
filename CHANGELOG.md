@@ -5,6 +5,9 @@
 ### Added
 - Targeted browser installation through `playwright-install [browser...]`
 
+### Fixed
+- Failure screenshots are named after the failing test again on PHPUnit 10 and newer
+
 ## [1.4.0] - 2026-08-10
 
 ### Added
