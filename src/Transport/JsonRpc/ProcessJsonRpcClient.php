@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace Playwright\Transport\JsonRpc;
 
 use Playwright\Exception\DisconnectedException;
+use Playwright\Exception\MissingDependencyException;
 use Playwright\Exception\NetworkException;
 use Playwright\Exception\TimeoutException;
 use Psr\Clock\ClockInterface;
@@ -240,7 +241,20 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
     {
         if (!$this->process->isRunning()) {
             $exitCode = $this->process->getExitCode() ?? -1;
-            throw new DisconnectedException(sprintf('Process exited with code %d', $exitCode), 0, null, ['exitCode' => $exitCode, 'pid' => $this->process->getPid()]);
+            $stderr = trim($this->processLauncher->getStderrOutput());
+
+            if (self::indicatesMissingServer($stderr)) {
+                throw MissingDependencyException::server($stderr);
+            }
+
+            // Without the stderr excerpt an exit code alone gives the user nothing to act on.
+            $message = sprintf('Process exited with code %d', $exitCode);
+
+            if ('' !== $stderr) {
+                $message .= sprintf(":\n\n%s", $stderr);
+            }
+
+            throw new DisconnectedException($message, 0, null, ['exitCode' => $exitCode, 'pid' => $this->process->getPid(), 'stderr' => $stderr]);
         }
 
         try {
@@ -248,5 +262,15 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
         } catch (\Throwable $e) {
             throw new DisconnectedException('Process health check failed: '.$e->getMessage(), 0, $e);
         }
+    }
+
+    /**
+     * playwright-server.js starts with require('playwright'), so a missing install kills the
+     * process immediately with a module resolution error.
+     */
+    private static function indicatesMissingServer(string $stderr): bool
+    {
+        return str_contains($stderr, "Cannot find module 'playwright'")
+            || str_contains($stderr, 'Cannot find module "playwright"');
     }
 }

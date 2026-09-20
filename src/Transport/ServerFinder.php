@@ -14,7 +14,7 @@ declare(strict_types=1);
 
 namespace Playwright\Transport;
 
-use Playwright\Exception\NetworkException;
+use Playwright\Exception\MissingDependencyException;
 use Playwright\Node\NodeBinaryResolver;
 use Playwright\Node\NodeBinaryResolverInterface;
 
@@ -109,7 +109,7 @@ final class ServerFinder
     {
         $playwrightPath = $this->findPlaywright();
         if (!$playwrightPath) {
-            throw new NetworkException('Playwright not found. Please run: npm install playwright');
+            throw MissingDependencyException::server();
         }
 
         $nodeResolver = $this->nodeResolver ?? new NodeBinaryResolver();
