@@ -2,11 +2,18 @@
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-09-20
+
 ### Added
-- Targeted browser installation through `playwright-install [browser...]`
+- Targeted browser installation through `playwright-install [browser...]` (#165)
+- Package manager selection from the consuming project's `packageManager` declaration or `--package-manager-bin` (#168)
 
 ### Fixed
-- Failure screenshots are named after the failing test again on PHPUnit 10 and newer
+- Browser-context API requests preserve response status, headers, binary bodies, cookies, storage state and tracing (#163)
+- API request tracing and HAR recording use the correct request tracer with Playwright 1.63 and newer (#166)
+- `Route::fulfill()` decodes base64 response bodies (#162)
+- `playwright-install` keeps pnpm dependencies and lockfiles isolated from enclosing workspaces (#167)
+- Failure screenshots are named after the failing test again on PHPUnit 10 and newer (#169)
 
 ## [1.4.0] - 2026-08-10
 
