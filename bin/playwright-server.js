@@ -417,7 +417,8 @@ class PlaywrightServer extends BaseHandler {
       const attached = await chromium.connectOverCDP(endpointURL, options || {});
       const browserId = this.generateId('browser');
       this.browsers.set(browserId, attached);
-      const context = await attached.newContext();
+      const existingContexts = attached.contexts();
+      const context = existingContexts.length > 0 ? existingContexts[0] : await attached.newContext();
       const contextId = this.generateId('context');
       this.contexts.set(contextId, { context, browserId, id: contextId });
       this.registerContextPopups(context, contextId);
