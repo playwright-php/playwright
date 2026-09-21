@@ -99,15 +99,20 @@ final class AutoWaitingTest extends FunctionalTestCase
         $this->assertSame('Data from server', $data);
     }
 
-    public function testClickAutomaticallyWaitsForElement(): void
+    public function testClickAutomaticallyWaitsForElementToBecomeActionable(): void
     {
         $this->goto('/waiting.html');
 
-        $this->page->click('#show-after-delay');
+        $this->page->evaluate(<<<'JS'
+const button = document.querySelector('#enable-button-later');
+button.addEventListener('click', () => document.body.dataset.enabledButtonClicked = 'yes');
+JS);
 
-        $this->page->waitForSelector('#delayed-element.visible');
+        $this->page->click('#trigger-enable');
+        $this->page->locator('#enable-button-later')->click();
 
-        $this->assertTrue($this->page->locator('#delayed-element')->isVisible());
+        $clicked = $this->page->evaluate('document.body.dataset.enabledButtonClicked');
+        $this->assertSame('yes', $clicked);
     }
 
     public function testFillAutomaticallyWaitsForElement(): void
@@ -122,8 +127,6 @@ setTimeout(() => {
     document.body.appendChild(input);
 }, 500);
 JS);
-
-        $this->page->waitForSelector('#delayed-input');
 
         $this->page->locator('#delayed-input')->fill('test value');
 

@@ -16,6 +16,7 @@ namespace Playwright\Tests\Functional\Transport;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use Playwright\Configuration\PlaywrightConfig;
+use Playwright\Exception\PlaywrightException;
 use Playwright\Exception\TimeoutException;
 use Playwright\PlaywrightFactory;
 use Playwright\Tests\Functional\FunctionalTestCase;
@@ -25,6 +26,35 @@ use Symfony\Component\Process\ExecutableFinder;
 #[CoversClass(JsonRpcTransport::class)]
 final class RequestTimeoutTest extends FunctionalTestCase
 {
+    public function testDefaultOperationTimeoutIsNotCutByTheTransportDeadline(): void
+    {
+        $node = (new ExecutableFinder())->find('node');
+        if (null === $node) {
+            $this->markTestSkipped('Node.js executable not found.');
+        }
+
+        $config = new PlaywrightConfig(nodePath: $node, timeoutMs: 5000);
+        $playwright = PlaywrightFactory::create($config);
+        $browser = $playwright->chromium()->launch();
+
+        try {
+            $context = $browser->newContext();
+            $page = $context->newPage();
+            $page->setContent('<html><body><p>empty</p></body></html>');
+            $page->setDefaultTimeout(7000);
+
+            try {
+                $page->locator('#does-not-exist')->click();
+                $this->fail('Expected a TimeoutException');
+            } catch (PlaywrightException $e) {
+                $this->assertStringContainsString('Timeout 7000ms exceeded', $e->getMessage());
+                $this->assertStringContainsString('waiting for locator', $e->getMessage());
+            }
+        } finally {
+            $browser->close();
+        }
+    }
+
     public function testAnOperationTimeoutIsNotCutByTheTransportDeadline(): void
     {
         $node = (new ExecutableFinder())->find('node');

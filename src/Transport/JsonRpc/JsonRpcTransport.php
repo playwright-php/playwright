@@ -166,19 +166,7 @@ final class JsonRpcTransport implements TransportInterface
         $this->ensureConnected();
 
         try {
-            $timeout = $this->config['timeout'] ?? null;
-            $timeoutMs = null;
-            if (null !== $timeout) {
-                if (!is_numeric($timeout)) {
-                    throw new NetworkException('Invalid timeout: must be numeric');
-                }
-                $timeoutMs = (int) ($timeout * 1000);
-            }
-
-            $operationTimeoutMs = $this->extractOperationTimeoutMs($message);
-            if (null !== $operationTimeoutMs) {
-                $timeoutMs = max($timeoutMs ?? 30000, $operationTimeoutMs + self::OPERATION_TIMEOUT_GRACE_MS);
-            }
+            $timeoutMs = $this->resolveRequestTimeoutMs($message);
 
             if (null === $this->client) {
                 throw new NetworkException('JSON-RPC client not available');
@@ -207,7 +195,24 @@ final class JsonRpcTransport implements TransportInterface
         $options = $message['options'] ?? null;
         $timeout = \is_array($options) && isset($options['timeout']) ? $options['timeout'] : ($message['timeout'] ?? null);
 
-        return is_numeric($timeout) && $timeout > 0 ? (int) $timeout : null;
+        return is_numeric($timeout) && $timeout >= 0 ? (int) $timeout : null;
+    }
+
+    /**
+     * @param array<string, mixed> $message
+     */
+    private function resolveRequestTimeoutMs(array $message): int
+    {
+        $configuredTimeout = $this->config['timeout'] ?? null;
+        $configuredTimeoutMs = is_int($configuredTimeout) || is_float($configuredTimeout)
+            ? (int) ($configuredTimeout * 1000)
+            : 0;
+        $operationTimeoutMs = $this->extractOperationTimeoutMs($message);
+        if (null === $operationTimeoutMs || 0 === $operationTimeoutMs) {
+            return 0;
+        }
+
+        return max($configuredTimeoutMs, $operationTimeoutMs + self::OPERATION_TIMEOUT_GRACE_MS);
     }
 
     /**

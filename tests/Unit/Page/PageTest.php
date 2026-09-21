@@ -301,22 +301,15 @@ class PageTest extends TestCase
         $selector = 'button';
         $options = ['force' => true];
 
-        $this->transport->expects($this->exactly(3))
+        $this->transport->expects($this->once())
             ->method('send')
-            ->willReturnCallback(function (array $payload) {
-                if ('locator.isVisible' === $payload['action']) {
-                    return ['value' => true];
-                }
-                if ('locator.isEnabled' === $payload['action']) {
-                    return ['value' => true];
-                }
-                if ('locator.click' === $payload['action']) {
-                    $this->assertSame(['force' => true], $payload['options']);
-
-                    return [];
-                }
-                $this->fail('Unexpected action: '.$payload['action']);
-            });
+            ->with([
+                'options' => ['force' => true],
+                'action' => 'locator.click',
+                'pageId' => 'page-id',
+                'selector' => $selector,
+            ])
+            ->willReturn([]);
 
         $this->page->click($selector, $options);
     }
