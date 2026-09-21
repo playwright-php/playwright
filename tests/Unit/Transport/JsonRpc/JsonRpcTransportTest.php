@@ -383,7 +383,7 @@ final class JsonRpcTransportTest extends TestCase
 
     public function testSendExtendsTheDeadlineForAnOperationTimeout(): void
     {
-        $transport = $this->createConnectedTransport(['command' => ['node', 'server.js'], 'timeout' => 30]);
+        $transport = $this->createConnectedTransport(['command' => ['node', 'server.js']]);
 
         $client = $this->createMock(JsonRpcClient::class);
         $client->expects($this->once())
