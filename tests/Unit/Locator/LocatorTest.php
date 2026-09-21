@@ -577,32 +577,18 @@ final class LocatorTest extends TestCase
         $targetLocator = new Locator($this->transport, 'page1', '.target');
 
         $this->transport
-            ->expects($this->exactly(3))
+            ->expects($this->once())
             ->method('send')
-            ->willReturnCallback(function ($payload) {
-                // First call: isVisible check
-                if ('locator.isVisible' === $payload['action']) {
-                    return ['value' => true];
-                }
-                // Second call: isEnabled check
-                if ('locator.isEnabled' === $payload['action']) {
-                    return ['value' => true];
-                }
-                // Third call: actual dragAndDrop
-                if ('locator.dragAndDrop' === $payload['action']
-                    && '.target' === $payload['target']
-                    && [] === $payload['options']) {
-                    return ['value' => true];
-                }
-
-                return [];
-            });
+            ->with($this->callback(static fn (array $payload): bool => 'locator.dragAndDrop' === $payload['action']
+                && '.target' === $payload['target']
+                && ['timeout' => 1.0] === $payload['options']))
+            ->willReturn(['value' => true]);
 
         $this->transport
             ->expects($this->once())
             ->method('processEvents');
 
-        $this->locator->dragTo($targetLocator);
+        $this->locator->dragTo($targetLocator, waitForActionableTimeout: 1);
     }
 
     public function testDragToWithOptions(): void
@@ -612,30 +598,16 @@ final class LocatorTest extends TestCase
             'sourcePosition' => ['x' => 10, 'y' => 15],
             'targetPosition' => ['x' => 20, 'y' => 25],
             'force' => true,
-            'timeout' => 5000,
+            'timeout' => 5000.0,
         ];
 
         $this->transport
-            ->expects($this->exactly(3))
+            ->expects($this->once())
             ->method('send')
-            ->willReturnCallback(function ($payload) use ($options) {
-                // First call: isVisible check
-                if ('locator.isVisible' === $payload['action']) {
-                    return ['value' => true];
-                }
-                // Second call: isEnabled check
-                if ('locator.isEnabled' === $payload['action']) {
-                    return ['value' => true];
-                }
-                // Third call: actual dragAndDrop
-                if ('locator.dragAndDrop' === $payload['action']
-                    && '.target' === $payload['target']
-                    && $options === $payload['options']) {
-                    return ['value' => true];
-                }
-
-                return [];
-            });
+            ->with($this->callback(static fn (array $payload): bool => 'locator.dragAndDrop' === $payload['action']
+                && '.target' === $payload['target']
+                && $options === $payload['options']))
+            ->willReturn(['value' => true]);
 
         $this->transport
             ->expects($this->once())
@@ -649,25 +621,11 @@ final class LocatorTest extends TestCase
         $targetLocator = new Locator($this->transport, 'page1', '#dropzone .drop-target[data-accept="files"]');
 
         $this->transport
-            ->expects($this->exactly(3))
+            ->expects($this->once())
             ->method('send')
-            ->willReturnCallback(function ($payload) {
-                // First call: isVisible check
-                if ('locator.isVisible' === $payload['action']) {
-                    return ['value' => true];
-                }
-                // Second call: isEnabled check
-                if ('locator.isEnabled' === $payload['action']) {
-                    return ['value' => true];
-                }
-                // Third call: actual dragAndDrop
-                if ('locator.dragAndDrop' === $payload['action']
-                    && '#dropzone .drop-target[data-accept="files"]' === $payload['target']) {
-                    return ['value' => true];
-                }
-
-                return [];
-            });
+            ->with($this->callback(static fn (array $payload): bool => 'locator.dragAndDrop' === $payload['action']
+                && '#dropzone .drop-target[data-accept="files"]' === $payload['target']))
+            ->willReturn(['value' => true]);
 
         $this->transport
             ->expects($this->once())
@@ -742,39 +700,44 @@ final class LocatorTest extends TestCase
         $this->assertSame('Locator(selector=".element >> label:text-is("Email") >> nth=0")', (string) $result);
     }
 
-    public function testClickWaitsForActionable(): void
+    public function testClickSendsNativeCommandWithoutActionabilityChecks(): void
     {
-        $callCount = 0;
         $this->transport
-            ->expects($this->exactly(3))
+            ->expects($this->once())
             ->method('send')
-            ->willReturnCallback(function ($payload) use (&$callCount) {
-                ++$callCount;
-
-                if (1 === $callCount) {
-                    $this->assertEquals('locator.isVisible', $payload['action']);
-
-                    return ['value' => true];
-                }
-
-                if (2 === $callCount) {
-                    $this->assertEquals('locator.isEnabled', $payload['action']);
-
-                    return ['value' => true];
-                }
-
-                if (3 === $callCount) {
-                    $this->assertEquals('locator.click', $payload['action']);
-
-                    return [];
-                }
-
-                return [];
-            });
+            ->with($this->callback(static fn (array $payload): bool => 'locator.click' === $payload['action']
+                && ['timeout' => 1.0] === $payload['options']))
+            ->willReturn([]);
 
         $locator = new Locator($this->transport, 'page1', '.button');
 
-        $locator->click();
+        $locator->click(waitForActionableTimeout: 1);
+    }
+
+    public function testClickPropagatesJsonRpcTimeout(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static fn (array $payload): bool => 'locator.click' === $payload['action']))
+            ->willThrowException(new TimeoutException('JSON-RPC request locator.click timed out'));
+
+        $this->expectException(TimeoutException::class);
+        $this->expectExceptionMessage('JSON-RPC request locator.click timed out');
+
+        $this->locator->click();
+    }
+
+    public function testActionableTimeoutOverridesNativeOptionTimeout(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static fn (array $payload): bool => 'locator.click' === $payload['action']
+                && ['timeout' => 1000.0] === $payload['options']))
+            ->willReturn([]);
+
+        $this->locator->click(['timeout' => 5000], 1000);
     }
 
     public function testWaitForVisibleSucceeds(): void
@@ -782,30 +745,28 @@ final class LocatorTest extends TestCase
         $this->transport
             ->expects($this->once())
             ->method('send')
-            ->with($this->callback(function ($payload) {
-                return 'locator.isVisible' === $payload['action'];
-            }))
-            ->willReturn(['value' => true]);
+            ->with($this->callback(static fn (array $payload): bool => 'locator.waitFor' === $payload['action']
+                && ['state' => 'visible'] === $payload['options']))
+            ->willReturn([]);
 
         $locator = new Locator($this->transport, 'page1', '.element');
 
         $locator->waitForVisible();
     }
 
-    public function testWaitForVisibleTimeout(): void
+    public function testWaitForVisibleUsesNativeTimeout(): void
     {
         $this->transport
-            ->expects($this->atLeastOnce())
+            ->expects($this->once())
             ->method('send')
-            ->with($this->callback(function ($payload) {
-                return 'locator.isVisible' === $payload['action'];
-            }))
-            ->willReturn(['value' => false]);
+            ->with($this->callback(static fn (array $payload): bool => 'locator.waitFor' === $payload['action']
+                && ['state' => 'visible', 'timeout' => 1000.0] === $payload['options']))
+            ->willThrowException(new TimeoutException('Timeout 1000ms exceeded'));
 
         $locator = new Locator($this->transport, 'page1', '.element');
 
         $this->expectException(TimeoutException::class);
-        $this->expectExceptionMessage('Element not visible (timeout: 1000ms)');
+        $this->expectExceptionMessage('Timeout 1000ms exceeded');
 
         $locator->waitForVisible(['timeout' => 1000]);
     }
@@ -833,56 +794,31 @@ final class LocatorTest extends TestCase
 
     public function testWaitForHidden(): void
     {
-        $callCount = 0;
         $this->transport
-            ->expects($this->exactly(2))
+            ->expects($this->once())
             ->method('send')
-            ->willReturnCallback(function ($payload) use (&$callCount) {
-                ++$callCount;
-
-                if ('locator.isHidden' === $payload['action']) {
-                    return ['value' => 2 === $callCount];
-                }
-
-                return [];
-            });
+            ->with($this->callback(static fn (array $payload): bool => 'locator.waitFor' === $payload['action']
+                && ['state' => 'hidden'] === $payload['options']))
+            ->willReturn([]);
 
         $locator = new Locator($this->transport, 'page1', '.modal');
 
         $locator->waitForHidden();
     }
 
-    public function testFillWaitsForActionable(): void
+    public function testFillSendsNativeCommandWithoutActionabilityChecks(): void
     {
-        $callCount = 0;
         $this->transport
-            ->expects($this->exactly(3))
+            ->expects($this->once())
             ->method('send')
-            ->willReturnCallback(function ($payload) use (&$callCount) {
-                ++$callCount;
-
-                if ($callCount <= 2) {
-                    if ('locator.isVisible' === $payload['action']) {
-                        return ['value' => true];
-                    }
-                    if ('locator.isEnabled' === $payload['action']) {
-                        return ['value' => true];
-                    }
-                }
-
-                if (3 === $callCount) {
-                    $this->assertEquals('locator.fill', $payload['action']);
-                    $this->assertEquals('test value', $payload['value']);
-
-                    return [];
-                }
-
-                return [];
-            });
+            ->with($this->callback(static fn (array $payload): bool => 'locator.fill' === $payload['action']
+                && 'test value' === $payload['value']
+                && ['timeout' => 1.0] === $payload['options']))
+            ->willReturn([]);
 
         $locator = new Locator($this->transport, 'page1', 'input[type="text"]');
 
-        $locator->fill('test value');
+        $locator->fill('test value', waitForActionableTimeout: 1);
     }
 
     public function testWaitForAttached(): void
@@ -890,10 +826,9 @@ final class LocatorTest extends TestCase
         $this->transport
             ->expects($this->once())
             ->method('send')
-            ->with($this->callback(function ($payload) {
-                return 'locator.isAttached' === $payload['action'];
-            }))
-            ->willReturn(['value' => true]);
+            ->with($this->callback(static fn (array $payload): bool => 'locator.waitFor' === $payload['action']
+                && ['state' => 'attached'] === $payload['options']))
+            ->willReturn([]);
 
         $locator = new Locator($this->transport, 'page1', '.dynamic-element');
 
@@ -905,14 +840,27 @@ final class LocatorTest extends TestCase
         $this->transport
             ->expects($this->once())
             ->method('send')
-            ->with($this->callback(function ($payload) {
-                return 'locator.isAttached' === $payload['action'];
-            }))
-            ->willReturn(['value' => false]);
+            ->with($this->callback(static fn (array $payload): bool => 'locator.waitFor' === $payload['action']
+                && ['state' => 'detached'] === $payload['options']))
+            ->willReturn([]);
 
         $locator = new Locator($this->transport, 'page1', '.removed-element');
 
         $locator->waitForDetached();
+    }
+
+    public function testWaitForConditionPropagatesTransportTimeout(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static fn (array $payload): bool => 'locator.isEnabled' === $payload['action']))
+            ->willThrowException(new TimeoutException('JSON-RPC request locator.isEnabled timed out'));
+
+        $this->expectException(TimeoutException::class);
+        $this->expectExceptionMessage('JSON-RPC request locator.isEnabled timed out');
+
+        $this->locator->waitForEnabled(['timeout' => 1000]);
     }
 
     public function testFilterWithHasText(): void
