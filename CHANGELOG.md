@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Added
+- `toHaveScreenshot()` visual regression assertion on pages and locators, with PNG or lossless WebP baselines (#174)
 - Launching a browser from a custom path through `withExecutablePath()` and `PW_EXECUTABLE_PATH` (#191)
 - Read recorded JavaScript errors with `PageInterface::pageErrors()` (#179). Custom `PageInterface` implementations must add this method.
 

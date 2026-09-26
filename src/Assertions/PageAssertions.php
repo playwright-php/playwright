@@ -16,14 +16,25 @@ namespace Playwright\Assertions;
 
 use Playwright\Assertions\Internal\AbstractAssertions;
 use Playwright\Assertions\Internal\AriaSnapshot;
+use Playwright\Assertions\Internal\ScreenshotExpectation;
+use Playwright\Assertions\Options\ToHaveScreenshotOptions;
+use Playwright\Page\Page;
 use Playwright\Page\PageInterface;
 use Playwright\Tracing\TracingInterface;
 
 final class PageAssertions extends AbstractAssertions implements PageAssertionsInterface
 {
+    /**
+     * @param string|null $screenshotOutputDir Where toHaveScreenshot() writes the expected, actual and diff images of a
+     *                                         failure. Defaults to test-failures/snapshots/ in the working directory.
+     * @param string|null $screenshotVariant   Suffix of the baseline names, such as "chromium-linux", left out of the
+     *                                         failure image names: "card-chromium-linux.png" fails as "card-actual.png".
+     */
     public function __construct(
         private readonly PageInterface $page,
         ?TracingInterface $tracing = null,
+        private readonly ?string $screenshotOutputDir = null,
+        private readonly ?string $screenshotVariant = null,
     ) {
         parent::__construct($tracing);
     }
@@ -92,6 +103,29 @@ final class PageAssertions extends AbstractAssertions implements PageAssertionsI
             'Expected page to match the ARIA snapshot.',
             'Expected page not to match the ARIA snapshot.',
         );
+
+        return $this;
+    }
+
+    public function toHaveScreenshot(string $path, ?ToHaveScreenshotOptions $options = null): self
+    {
+        $options ??= new ToHaveScreenshotOptions();
+        $subject = $this->page;
+        if (!$subject instanceof Page) {
+            throw new \LogicException(sprintf('toHaveScreenshot() needs a %s created by Playwright PHP, %s given.', Page::class, get_debug_type($subject)));
+        }
+
+        $outputDir = $this->screenshotOutputDir;
+        $variant = $this->screenshotVariant;
+        $this->assertWithoutPolling('toHaveScreenshot', $options->timeoutMs, static function (int $timeoutMs) use ($subject, $path, $options, $outputDir, $variant): void {
+            $expectation = new ScreenshotExpectation(
+                $subject->expectScreenshot(...),
+                'page',
+                outputDir: $outputDir,
+                variant: $variant,
+            );
+            $expectation->assert($path, $options, $timeoutMs);
+        });
 
         return $this;
     }

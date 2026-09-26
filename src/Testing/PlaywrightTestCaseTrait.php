@@ -124,7 +124,31 @@ trait PlaywrightTestCaseTrait
 
     protected function expect(LocatorInterface|PageInterface $subject): ExpectInterface
     {
-        return new ExpectDecorator(new Expect($subject, $this->context->tracing()), $this);
+        return new ExpectDecorator(new Expect($subject, $this->context->tracing(), $this->snapshotDirectory(), $this->testOutputDirectory()), $this);
+    }
+
+    /**
+     * Where a failing toHaveScreenshot() leaves its expected, actual and diff
+     * images: one directory per test, as Playwright JS does under
+     * test-results/. Override to write them elsewhere.
+     */
+    protected function testOutputDirectory(): string
+    {
+        $class = (new \ReflectionClass($this))->getShortName();
+
+        return getcwd().'/test-failures/'.self::sanitizeFileName($class.'-'.$this->resolveTestName());
+    }
+
+    /**
+     * Where toHaveScreenshot() keeps baselines: next to the test file, as in.
+     *
+     * @playwright/test. Override to store them elsewhere.
+     */
+    protected function snapshotDirectory(): string
+    {
+        $file = (new \ReflectionClass($this))->getFileName();
+
+        return false === $file ? getcwd().'/snapshots' : $file.'-snapshots';
     }
 
     private function resolveLogger(LoggerInterface $logger): LoggerInterface

@@ -16,8 +16,10 @@ namespace Playwright\Testing;
 
 use Playwright\Assertions\LocatorAssertions;
 use Playwright\Assertions\LocatorAssertionsInterface;
+use Playwright\Assertions\Options\ToHaveScreenshotOptions;
 use Playwright\Assertions\PageAssertions;
 use Playwright\Assertions\PageAssertionsInterface;
+use Playwright\Exception\RuntimeException;
 use Playwright\Locator\LocatorInterface;
 use Playwright\Page\PageInterface;
 use Playwright\Tracing\TracingInterface;
@@ -26,11 +28,32 @@ final class Expect implements ExpectInterface
 {
     private readonly LocatorAssertionsInterface|PageAssertionsInterface $assertions;
 
-    public function __construct(LocatorInterface|PageInterface $subject, ?TracingInterface $tracing = null)
-    {
+    /**
+     * Browser and platform of the run, "chromium-linux": the suffix of relative
+     * baseline names, as {projectName}-{platform} in @playwright/test.
+     */
+    private readonly string $variant;
+
+    /**
+     * @param string|null $outputDir Directory of the test for failure images. The browser is appended, as Playwright JS
+     *                               appends the project: each browser of a test gets its own directory.
+     */
+    public function __construct(
+        LocatorInterface|PageInterface $subject,
+        ?TracingInterface $tracing = null,
+        private readonly ?string $snapshotDir = null,
+        ?string $outputDir = null,
+    ) {
+        $browser = self::browserName($subject);
+        $this->variant = implode('-', array_filter([$browser, self::platform()]));
+
+        if (null !== $outputDir && '' !== $browser) {
+            $outputDir .= '-'.$browser;
+        }
+
         $this->assertions = $subject instanceof LocatorInterface
-            ? new LocatorAssertions($subject, $tracing)
-            : new PageAssertions($subject, $tracing);
+            ? new LocatorAssertions($subject, $tracing, $outputDir, $this->variant)
+            : new PageAssertions($subject, $tracing, $outputDir, $this->variant);
         $this->assertions->withPollInterval(100);
     }
 
@@ -156,6 +179,44 @@ final class Expect implements ExpectInterface
     public function toHaveURL(string $url): void
     {
         $this->page(__FUNCTION__)->toHaveURL($url);
+    }
+
+    public function toHaveScreenshot(string $name, ?ToHaveScreenshotOptions $options = null): void
+    {
+        $this->assertions->toHaveScreenshot($this->snapshotPath($name), $options);
+    }
+
+    private function snapshotPath(string $name): string
+    {
+        if (str_starts_with($name, '/') || 1 === preg_match('~^[a-zA-Z]:[\\\\/]~', $name)) {
+            return $name;
+        }
+
+        $extension = pathinfo($name, \PATHINFO_EXTENSION);
+        $stem = '' === $extension ? $name : substr($name, 0, -\strlen($extension) - 1);
+
+        return sprintf('%s/%s-%s.%s', $this->snapshotDir ?? getcwd(), $stem, $this->variant, '' === $extension ? 'png' : $extension);
+    }
+
+    /**
+     * The browser rendering the subject, read from the page under test.
+     * Empty when it cannot be known: a persistent context has no browser
+     * object, a locator built by hand has no page.
+     */
+    private static function browserName(LocatorInterface|PageInterface $subject): string
+    {
+        try {
+            $page = $subject instanceof LocatorInterface ? $subject->page() : $subject;
+
+            return $page->context()->browser()?->browserType()->value ?? '';
+        } catch (RuntimeException) {
+            return '';
+        }
+    }
+
+    private static function platform(): string
+    {
+        return 'Windows' === \PHP_OS_FAMILY ? 'win32' : strtolower(\PHP_OS_FAMILY);
     }
 
     private function locator(string $matcher): LocatorAssertionsInterface

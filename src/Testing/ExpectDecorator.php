@@ -14,6 +14,8 @@ declare(strict_types=1);
 
 namespace Playwright\Testing;
 
+use Playwright\Assertions\Options\ToHaveScreenshotOptions;
+
 /**
  * Decorator for Expect that automatically increments PHPUnit assertion count when available.
  * This allows the Expect class to work independently (without PHPUnit) while still
@@ -149,6 +151,12 @@ final class ExpectDecorator implements ExpectInterface
     public function toHaveURL(string $url): void
     {
         $this->expect->toHaveURL($url);
+        $this->recordAssertion(1);
+    }
+
+    public function toHaveScreenshot(string $name, ?ToHaveScreenshotOptions $options = null): void
+    {
+        $this->expect->toHaveScreenshot($name, $options);
         $this->recordAssertion(1);
     }
 
