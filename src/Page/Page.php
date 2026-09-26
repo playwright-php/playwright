@@ -77,6 +77,7 @@ use Playwright\PageError\PageErrorInterface;
 use Playwright\Regex;
 use Playwright\Screencast\Screencast;
 use Playwright\Screencast\ScreencastInterface;
+use Playwright\Screenshot\ScreenshotComparison;
 use Playwright\Screenshot\ScreenshotHelper;
 use Playwright\Transport\TransportInterface;
 use Playwright\Video\Video;
@@ -412,6 +413,24 @@ final class Page implements PageInterface, EventDispatcherInterface
         }
 
         return $finalPath;
+    }
+
+    /**
+     * Takes screenshots until two consecutive ones match, then compares the
+     * last one with $expected. Without $expected, returns the stable screenshot.
+     *
+     * @internal Backs toHaveScreenshot(); the shape may change without notice
+     *
+     * @param array<string, mixed> $options
+     */
+    public function expectScreenshot(?string $expected, array $options = []): ScreenshotComparison
+    {
+        $response = $this->sendCommand('expectScreenshot', [
+            'expected' => null === $expected ? null : base64_encode($expected),
+            'options' => $options,
+        ]);
+
+        return ScreenshotComparison::fromResponse($response);
     }
 
     /**

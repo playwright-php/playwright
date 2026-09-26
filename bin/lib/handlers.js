@@ -2,6 +2,40 @@ const { logger, ErrorHandler, CommandRegistry, BaseHandler, PromiseUtils, FrameU
 const { globalCoordinator } = require('./coordination');
 const { PopupCoordinator } = require('./popup-coordinator');
 
+// Runs Playwright's own toHaveScreenshot machinery: the loop until two
+// consecutive screenshots match, masking, and the pixelmatch or ssim-cie94
+// comparison. page._expectScreenshot() is private API, covered by the
+// functional suite so a Playwright upgrade that moves it fails there first.
+// The defaults below are the ones @playwright/test applies in its runner,
+// which the private method does not apply by itself.
+async function expectScreenshot(page, locator, command) {
+  const options = command.options || {};
+  const mask = (options.mask || []).map(target => target.frameSelector
+    ? FrameUtils.resolve(page, target.frameSelector).locator(target.selector)
+    : page.locator(target.selector));
+
+  const result = await page._expectScreenshot({
+    animations: 'disabled',
+    caret: 'hide',
+    scale: 'css',
+    ...options,
+    mask,
+    locator: locator || undefined,
+    expected: command.expected ? Buffer.from(command.expected, 'base64') : undefined,
+    isNot: false,
+  });
+
+  const encode = buffer => (buffer ? buffer.toString('base64') : null);
+
+  return {
+    actual: encode(result.actual),
+    previous: encode(result.previous),
+    diff: encode(result.diff),
+    errorMessage: result.errorMessage || null,
+    timedOut: Boolean(result.timedOut),
+  };
+}
+
 // The two callbacks below never run in this Node process: Playwright ships
 // their source to the browser, so their eval() has page scope only, exactly
 // like the callbacks passed to page.evaluate() elsewhere in this file.
@@ -395,6 +429,7 @@ class PageHandler extends BaseHandler {
       waitForSelector: () => page.waitForSelector(command.selector, command.options),
       waitForFunction: () => this.waitForFunction(page, command),
       screenshot: () => PromiseUtils.wrapBinary(page.screenshot(command.options)),
+      expectScreenshot: () => expectScreenshot(page, null, command),
       pdf: () => PromiseUtils.wrapBinary(page.pdf(command.options || {})),
       evaluateHandle: () => this.evaluateHandle(page, command),
       addScriptTag: () => page.addScriptTag(command.options),
@@ -790,6 +825,7 @@ class LocatorHandler extends BaseHandler {
       getAttribute: () => PromiseUtils.wrapValue(locator.getAttribute(command.name, command.options)),
       selectOption: () => PromiseUtils.wrapValues(locator.selectOption(command.values, command.options)),
       screenshot: () => PromiseUtils.wrapBinary(locator.screenshot(command.options)),
+      expectScreenshot: () => expectScreenshot(page, locator, command),
       evaluate: () => this.evaluateLocator(locator, command),
       evaluateHandle: () => this.evaluateHandle(locator, command),
       waitForFunction: () => this.waitForFunction(locator, command),

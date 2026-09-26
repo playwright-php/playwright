@@ -52,6 +52,7 @@ use Playwright\Locator\Options\UncheckOptions;
 use Playwright\Locator\Options\WaitForFunctionOptions;
 use Playwright\Locator\Options\WaitForOptions;
 use Playwright\Page\PageInterface;
+use Playwright\Screenshot\ScreenshotComparison;
 use Playwright\Transport\TransportInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -230,6 +231,32 @@ final class Locator implements \Stringable, LocatorInterface
         $binary = $response['binary'] ?? null;
 
         return is_string($binary) ? $binary : null;
+    }
+
+    /**
+     * Takes screenshots until two consecutive ones match, then compares the
+     * last one with $expected. Without $expected, returns the stable screenshot.
+     *
+     * @internal Backs toHaveScreenshot(); the shape may change without notice
+     *
+     * @param array<string, mixed> $options
+     */
+    public function expectScreenshot(?string $expected, array $options = []): ScreenshotComparison
+    {
+        $response = $this->sendCommand('locator.expectScreenshot', [
+            'expected' => null === $expected ? null : base64_encode($expected),
+            'options' => $options,
+        ]);
+
+        return ScreenshotComparison::fromResponse($response);
+    }
+
+    /**
+     * @internal
+     */
+    public function getFrameSelector(): ?string
+    {
+        return $this->frameSelector;
     }
 
     /**
