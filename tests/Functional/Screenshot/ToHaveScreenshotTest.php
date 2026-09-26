@@ -108,10 +108,11 @@ final class ToHaveScreenshotTest extends FunctionalTestCase
         } catch (AssertionException $e) {
             $this->assertStringContainsString('Screenshot of the locator does not match', $e->getMessage());
             $this->assertStringContainsString('pixels', $e->getMessage());
+            $this->assertNotNull($e->actual);
+            $out = dirname($e->actual).'/card';
         }
 
-        $out = $this->testOutputDirectory().'-chromium/card';
-        $this->assertStringEndsWith('/test-failures/ToHaveScreenshotTest-testChangedElementFailsAndKeepsTheImagesUntilItPassesAgain-chromium/card', $out);
+        $this->assertStringStartsWith($this->testOutputDirectory().'-chromium/', $out);
         $this->assertFileExists($out.'-expected.png');
         $this->assertFileExists($out.'-actual.png');
         $this->assertFileExists($out.'-diff.png');
@@ -122,6 +123,36 @@ final class ToHaveScreenshotTest extends FunctionalTestCase
         $this->assertFileDoesNotExist($out.'-expected.png');
         $this->assertFileDoesNotExist($out.'-actual.png');
         $this->assertFileDoesNotExist($out.'-diff.png');
+    }
+
+    public function testMatchingAnotherBaselineKeepsTheFailureImages(): void
+    {
+        $this->card('#818cf8', 'Light');
+        $card = $this->page->locator('#card');
+        $options = new ToHaveScreenshotOptions(mask: [$this->page->locator('.time')]);
+        $this->record(fn () => $this->expect($card)->toHaveScreenshot('light/card.png', $options));
+
+        $this->card('#f472b6', 'Dark');
+        $this->record(fn () => $this->expect($card)->toHaveScreenshot('dark/card.png', $options));
+
+        try {
+            $this->expect($card)->toHaveScreenshot('light/card.png', $options);
+            $this->fail('A changed element must fail the assertion.');
+        } catch (AssertionException $e) {
+            $this->assertNotNull($e->actual);
+            $outputDir = dirname($e->actual);
+        }
+
+        $this->expect($card)->toHaveScreenshot('dark/card.png', $options);
+
+        foreach (['expected', 'actual', 'diff'] as $kind) {
+            $this->assertFileExists($outputDir.'/card-'.$kind.'.png');
+        }
+
+        $this->card('#818cf8', 'Light');
+        $this->expect($card)->toHaveScreenshot('light/card.png', $options);
+
+        $this->assertDirectoryDoesNotExist($outputDir);
     }
 
     public function testDefaultThresholdToleratesCloseShadesOfOneHue(): void
@@ -185,10 +216,12 @@ final class ToHaveScreenshotTest extends FunctionalTestCase
         try {
             $this->expect($card)->toHaveScreenshot('card.webp', $options);
             $this->fail('A changed element must fail the assertion.');
-        } catch (AssertionException) {
+        } catch (AssertionException $e) {
+            $this->assertNotNull($e->actual);
+            $out = dirname($e->actual).'/card';
         }
 
-        $out = $this->testOutputDirectory().'-chromium/card';
+        $this->assertStringStartsWith($this->testOutputDirectory().'-chromium/', $out);
         $this->assertSame('WEBP', substr((string) file_get_contents($out.'-actual.webp'), 8, 4));
         $this->assertSame("\x89PNG", substr((string) file_get_contents($out.'-diff.png'), 0, 4));
     }

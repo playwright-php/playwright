@@ -249,15 +249,18 @@ final class ExpectFactoryTest extends TestCase
         try {
             (new Expect($page, null, $dir, $dir.'/CardTest-testCard'))->toHaveScreenshot('card.png');
             $this->fail('A mismatch must fail the assertion.');
-        } catch (AssertionException) {
+        } catch (AssertionException $e) {
+            $this->assertNotNull($e->actual);
+            $out = dirname($e->actual);
         }
 
-        $out = $dir.'/CardTest-testCard-firefox';
+        $this->assertStringStartsWith($dir.'/CardTest-testCard-firefox/', $out);
         $this->assertSame(['card-actual.png', 'card-diff.png', 'card-expected.png'], array_map('basename', glob($out.'/*') ?: []));
         foreach (glob($out.'/*') ?: [] as $file) {
             unlink($file);
         }
         rmdir($out);
+        rmdir(dirname($out));
     }
 
     public function testALocatorWithoutPageKeepsThePlatformOnly(): void

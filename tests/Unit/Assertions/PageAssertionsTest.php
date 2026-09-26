@@ -191,8 +191,11 @@ final class PageAssertionsTest extends TestCase
         try {
             (new PageAssertions($page, $tracing))->toHaveScreenshot($path);
         } finally {
-            foreach (glob(getcwd().'/test-failures/snapshots/page-*') ?: [] as $file) {
-                unlink($file);
+            foreach (glob(getcwd().'/test-failures/snapshots/page-*', GLOB_ONLYDIR) ?: [] as $directory) {
+                foreach (glob($directory.'/*') ?: [] as $file) {
+                    unlink($file);
+                }
+                rmdir($directory);
             }
             @rmdir(getcwd().'/test-failures/snapshots');
         }

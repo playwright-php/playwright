@@ -117,9 +117,11 @@ scrolls, 15 pixels that fail any full-page comparison against a headless baselin
 
 Each test writes its failure images in its own directory, one per browser, as Playwright JS does per test and project
 under `test-results/`: `test-failures/<TestClass>-<testMethod>-<browser>/`. Override `testOutputDirectory()` in your
-test case to move it. The images are named after the name given to `toHaveScreenshot()`, the directory already telling
-the browser. For `toHaveScreenshot('card.png')` in `CardTest::testCard`, run in Chromium, the baseline is
-`card-chromium-linux.png` and a failure writes to `test-failures/CardTest-testCard-chromium/`:
+test case to move it. Each baseline has a subdirectory with its name and a short identifier derived from its path.
+This keeps `light/card.png`, `dark/card.png` and `card.webp` separate, including when a passing assertion cleans up
+its earlier failure. The image names omit the browser, which the test directory already identifies.
+For `toHaveScreenshot('card.png')` in `CardTest::testCard`, run in Chromium, the baseline is
+`card-chromium-linux.png` and a failure writes to `test-failures/CardTest-testCard-chromium/card-<id>/`:
 
 | File | Content |
 |---|---|
@@ -213,7 +215,8 @@ The defaults are the ones of `@playwright/test`:
 | `message` | generated | Replaces the first line of the failure message |
 
 Invalid values throw an `InvalidArgumentException` when the options are created, so a typo such as `comparator: 'ssim'`
-fails in PHP with the list of accepted values. On a locator, `fullPage` and `clip` throw too: an element is captured whole.
+fails in PHP with the list of accepted values. Numeric options must be finite: `NAN` and infinities are rejected before
+reaching the browser. On a locator, `fullPage` and `clip` throw too: an element is captured whole.
 
 ### Tolerating differences
 

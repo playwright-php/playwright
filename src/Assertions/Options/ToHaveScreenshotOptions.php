@@ -152,6 +152,10 @@ final readonly class ToHaveScreenshotOptions
 
     private static function assertRange(string $option, float $value): void
     {
+        if (!is_finite($value)) {
+            throw new \InvalidArgumentException(sprintf('The %s option must be between 0 and 1, a non-finite value given.', $option));
+        }
+
         if ($value < 0 || $value > 1) {
             throw new \InvalidArgumentException(sprintf('The %s option must be between 0 and 1, %s given.', $option, $value));
         }
@@ -175,6 +179,10 @@ final readonly class ToHaveScreenshotOptions
         foreach (['x', 'y', 'width', 'height'] as $key) {
             if (!isset($clip[$key]) || !is_int($clip[$key]) && !is_float($clip[$key])) {
                 throw new \InvalidArgumentException(sprintf('The clip option needs numeric "x", "y", "width" and "height" keys, "%s" is missing or not a number.', $key));
+            }
+
+            if (!is_finite($clip[$key])) {
+                throw new \InvalidArgumentException(sprintf('The clip option needs a finite "%s" value.', $key));
             }
         }
 
