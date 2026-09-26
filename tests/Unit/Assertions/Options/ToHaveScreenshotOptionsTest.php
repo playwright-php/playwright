@@ -126,6 +126,18 @@ final class ToHaveScreenshotOptionsTest extends TestCase
      */
     public static function provideInvalidOptions(): iterable
     {
+        foreach (['NaN' => \NAN, 'positive infinity' => \INF, 'negative infinity' => -\INF] as $label => $value) {
+            foreach (['threshold', 'maxDiffPixelRatio'] as $option) {
+                yield $option.' '.$label => [[$option => $value], sprintf('The %s option must be between 0 and 1', $option)];
+            }
+            foreach (['x', 'y', 'width', 'height'] as $coordinate) {
+                $clip = ['x' => 0, 'y' => 0, 'width' => 10, 'height' => 10];
+                $clip[$coordinate] = $value;
+
+                yield 'clip '.$coordinate.' '.$label => [['clip' => $clip], sprintf('The clip option needs a finite "%s" value.', $coordinate)];
+            }
+        }
+
         yield 'threshold above 1' => [['threshold' => 2.0], 'The threshold option must be between 0 and 1, 2 given.'];
         yield 'negative threshold' => [['threshold' => -0.1], 'The threshold option must be between 0 and 1, -0.1 given.'];
         yield 'ratio above 1' => [['maxDiffPixelRatio' => 1.5], 'The maxDiffPixelRatio option must be between 0 and 1, 1.5 given.'];

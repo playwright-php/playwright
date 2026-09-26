@@ -442,14 +442,18 @@ final class LocatorAssertionsTest extends TestCase
         try {
             (new LocatorAssertions(new Locator($transport, 'page1', '#card'), null, $dir.'/out'))->toHaveScreenshot($path);
             $this->fail('A mismatch must fail the assertion.');
-        } catch (AssertionException) {
+        } catch (AssertionException $e) {
+            $this->assertNotNull($e->actual);
+            $outputDir = dirname($e->actual);
         }
 
-        $this->assertSame('actual', file_get_contents($dir.'/out/card-actual.png'));
-        $this->assertSame('diff', file_get_contents($dir.'/out/card-diff.png'));
-        foreach (glob($dir.'/out/*') ?: [] as $file) {
+        $this->assertStringStartsWith($dir.'/out/', $outputDir);
+        $this->assertSame('actual', file_get_contents($outputDir.'/card-actual.png'));
+        $this->assertSame('diff', file_get_contents($outputDir.'/card-diff.png'));
+        foreach (glob($outputDir.'/*') ?: [] as $file) {
             unlink($file);
         }
+        rmdir($outputDir);
         rmdir($dir.'/out');
     }
 

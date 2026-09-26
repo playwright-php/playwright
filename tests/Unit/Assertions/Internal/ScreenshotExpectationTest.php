@@ -145,12 +145,12 @@ final class ScreenshotExpectationTest extends TestCase
             $this->assertStringContainsString("Screenshot of the page does not match {$path}.", $e->getMessage());
             $this->assertStringContainsString('120 pixels (ratio 0.02 of all image pixels) are different.', $e->getMessage());
             $this->assertStringContainsString('PLAYWRIGHT_UPDATE_SNAPSHOTS=changed', $e->getMessage());
-            $this->assertSame($this->dir.'/out/card-actual.png', $e->actual);
+            $this->assertSame($this->artifact('card-actual.png'), $e->actual);
         }
 
-        $this->assertSame('baseline', file_get_contents($this->dir.'/out/card-expected.png'));
-        $this->assertSame('actual', file_get_contents($this->dir.'/out/card-actual.png'));
-        $this->assertSame('diff', file_get_contents($this->dir.'/out/card-diff.png'));
+        $this->assertSame('baseline', file_get_contents($this->artifact('card-expected.png')));
+        $this->assertSame('actual', file_get_contents($this->artifact('card-actual.png')));
+        $this->assertSame('diff', file_get_contents($this->artifact('card-diff.png')));
         $this->assertSame('baseline', file_get_contents($path));
     }
 
@@ -190,6 +190,73 @@ final class ScreenshotExpectationTest extends TestCase
         $this->assertFileExists($this->dir.'/out/other-actual.png');
     }
 
+    #[DataProvider('provideCollidingBaselineNames')]
+    public function testArtifactsBelongOnlyToTheirBaseline(string $firstName, string $secondName, string $cleanupMode): void
+    {
+        $paths = [$this->dir.'/'.$firstName, $this->dir.'/'.$secondName];
+        $directories = [];
+
+        foreach ($paths as $index => $path) {
+            if (!is_dir(dirname($path))) {
+                mkdir(dirname($path), 0777, true);
+            }
+            file_put_contents($path, 'baseline '.$index);
+
+            try {
+                $this->expectation(new ScreenshotComparison(actual: 'actual '.$index, diff: 'diff '.$index, errorMessage: 'different'))
+                    ->assert($path, new ToHaveScreenshotOptions(), 5000);
+                $this->fail('A mismatch must fail the assertion.');
+            } catch (AssertionException $e) {
+                $this->assertNotNull($e->actual);
+                $directories[] = dirname($e->actual);
+            }
+        }
+
+        $this->assertNotSame($directories[0], $directories[1]);
+        foreach ($paths as $index => $path) {
+            $extension = pathinfo($path, \PATHINFO_EXTENSION);
+            $this->assertSame('baseline '.$index, file_get_contents($directories[$index].'/card-expected.'.$extension));
+            $this->assertSame('actual '.$index, file_get_contents($directories[$index].'/card-actual.'.$extension));
+            $this->assertSame('diff '.$index, file_get_contents($directories[$index].'/card-diff.png'));
+        }
+
+        $result = match ($cleanupMode) {
+            'changed' => new ScreenshotComparison(actual: 'updated', errorMessage: 'different'),
+            'all' => new ScreenshotComparison(actual: 'updated'),
+            default => new ScreenshotComparison(actual: null),
+        };
+        $this->expectation($result, $cleanupMode)->assert($paths[0], new ToHaveScreenshotOptions(), 5000);
+
+        $this->assertDirectoryDoesNotExist($directories[0]);
+        $this->assertSame('diff 1', file_get_contents($directories[1].'/card-diff.png'));
+
+        $this->expectation(new ScreenshotComparison(actual: null))->assert($paths[1], new ToHaveScreenshotOptions(), 5000);
+
+        $this->assertDirectoryDoesNotExist($this->dir.'/out');
+    }
+
+    /**
+     * @return iterable<string, array{string, string, string}>
+     */
+    public static function provideCollidingBaselineNames(): iterable
+    {
+        foreach (['none', 'changed', 'all'] as $mode) {
+            yield 'different directories, '.$mode => ['a/card.png', 'b/card.png', $mode];
+            yield 'different formats, '.$mode => ['card.png', 'card.webp', $mode];
+        }
+    }
+
+    public function testMatchingTheSameBaselineThroughAnotherPathCleansItsArtifacts(): void
+    {
+        $this->baseline('baseline');
+        $this->staleArtifacts();
+
+        $this->expectation(new ScreenshotComparison(actual: null))
+            ->assert($this->dir.'/./card.png', new ToHaveScreenshotOptions(), 5000);
+
+        $this->assertDirectoryDoesNotExist($this->dir.'/out');
+    }
+
     public function testFailureImagesDropTheVariantOfTheBaselineName(): void
     {
         $path = $this->dir.'/card-chromium-linux.webp';
@@ -202,7 +269,7 @@ final class ScreenshotExpectationTest extends TestCase
         } catch (AssertionException) {
         }
 
-        $this->assertSame(['card-actual.webp', 'card-diff.png', 'card-expected.webp'], array_map('basename', glob($this->dir.'/out/*') ?: []));
+        $this->assertSame(['card-actual.webp', 'card-diff.png', 'card-expected.webp'], array_map('basename', glob($this->dir.'/out/*/*') ?: []));
 
         $this->expectation(new ScreenshotComparison(actual: null), variant: 'chromium-linux')->assert($path, new ToHaveScreenshotOptions(), 5000);
 
@@ -219,7 +286,7 @@ final class ScreenshotExpectationTest extends TestCase
         } catch (AssertionException) {
         }
 
-        $this->assertFileExists($this->dir.'/out/card-actual.png');
+        $this->assertFileExists($this->artifact('card-actual.png'));
     }
 
     public function testMismatchUsesTheCustomMessage(): void
@@ -315,9 +382,9 @@ final class ScreenshotExpectationTest extends TestCase
         }
 
         $this->assertSame('webp', $this->calls[0]['options']['type']);
-        $this->assertFileExists($this->dir.'/out/card-expected.webp');
-        $this->assertFileExists($this->dir.'/out/card-actual.webp');
-        $this->assertFileExists($this->dir.'/out/card-diff.png');
+        $this->assertFileExists($this->artifact('card-expected.webp'));
+        $this->assertFileExists($this->artifact('card-actual.webp'));
+        $this->assertFileExists($this->artifact('card-diff.png'));
     }
 
     public function testJpegBaselineIsRejected(): void
@@ -341,8 +408,8 @@ final class ScreenshotExpectationTest extends TestCase
         }
 
         $this->assertSame('baseline', file_get_contents($path));
-        $this->assertSame('baseline', file_get_contents($this->dir.'/out/card-expected.png'));
-        $this->assertSame('moving', file_get_contents($this->dir.'/out/card-actual.png'));
+        $this->assertSame('baseline', file_get_contents($this->artifact('card-expected.png')));
+        $this->assertSame('moving', file_get_contents($this->artifact('card-actual.png')));
     }
 
     public function testUnreadableBaselineIsReported(): void
@@ -377,7 +444,7 @@ final class ScreenshotExpectationTest extends TestCase
         );
 
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage(sprintf('Directory "%s/file/out" was not created.', $this->dir));
+        $this->expectExceptionMessage(sprintf('Directory "%s/file/out/', $this->dir));
 
         $expectation->assert($path, new ToHaveScreenshotOptions(), 5000);
     }
@@ -401,11 +468,21 @@ final class ScreenshotExpectationTest extends TestCase
         $this->expectation(new ScreenshotComparison(actual: 'stable'), 'yes')->assert($this->dir.'/card.png', new ToHaveScreenshotOptions(), 5000);
     }
 
+    private function artifact(string $name): string
+    {
+        $files = glob($this->dir.'/out/*/'.$name) ?: [];
+        $this->assertCount(1, $files);
+
+        return $files[0];
+    }
+
     private function staleArtifacts(): void
     {
-        mkdir($this->dir.'/out');
-        foreach (['card-expected.png', 'card-actual.png', 'card-diff.png'] as $file) {
-            file_put_contents($this->dir.'/out/'.$file, 'stale');
+        try {
+            $this->expectation(new ScreenshotComparison(actual: 'stale', diff: 'stale', errorMessage: 'different'))
+                ->assert($this->dir.'/card.png', new ToHaveScreenshotOptions(), 5000);
+            $this->fail('A mismatch must fail the assertion.');
+        } catch (AssertionException) {
         }
     }
 

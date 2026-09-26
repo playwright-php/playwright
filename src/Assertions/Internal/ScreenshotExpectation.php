@@ -118,8 +118,10 @@ final class ScreenshotExpectation
             }
         }
 
-        if (is_dir($this->outputDir()) && [] === array_diff(scandir($this->outputDir()) ?: [], ['.', '..'])) {
-            rmdir($this->outputDir());
+        foreach ([dirname($stem), $this->outputDir()] as $directory) {
+            if (is_dir($directory) && [] === array_diff(scandir($directory) ?: [], ['.', '..'])) {
+                rmdir($directory);
+            }
         }
     }
 
@@ -195,7 +197,8 @@ final class ScreenshotExpectation
     /**
      * Failure images drop the variant of the baseline name, which their
      * directory already carries: "card-chromium-linux.png" fails as
-     * "card-actual.png", as in Playwright JS.
+     * "card-actual.png", as in Playwright JS. Each baseline gets its own
+     * directory so matching one cannot erase another baseline's failure.
      */
     private function artifactStem(string $path): string
     {
@@ -204,7 +207,9 @@ final class ScreenshotExpectation
             $stem = substr($stem, 0, -\strlen($this->variant) - 1);
         }
 
-        return $this->outputDir().'/'.$stem;
+        $identity = substr(hash('sha256', realpath($path) ?: $path), 0, 12);
+
+        return $this->outputDir().'/'.$stem.'-'.$identity.'/'.$stem;
     }
 
     private function outputDir(): string
