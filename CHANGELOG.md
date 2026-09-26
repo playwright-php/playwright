@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Added
+- `toHaveScreenshot()` visual regression assertion on pages and locators, backed by Playwright's own screenshot comparison, with PNG or lossless WebP baselines (#174)
+
 ## [1.5.1] - 2026-11-06
 
 ### Fixed

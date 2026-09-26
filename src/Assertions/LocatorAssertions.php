@@ -16,6 +16,9 @@ namespace Playwright\Assertions;
 
 use Playwright\Assertions\Internal\AbstractAssertions;
 use Playwright\Assertions\Internal\AriaSnapshot;
+use Playwright\Assertions\Internal\ScreenshotExpectation;
+use Playwright\Assertions\Options\ToHaveScreenshotOptions;
+use Playwright\Locator\Locator;
 use Playwright\Locator\LocatorInterface;
 use Playwright\Tracing\TracingInterface;
 
@@ -83,9 +86,17 @@ final class LocatorAssertions extends AbstractAssertions implements LocatorAsser
         }
         JS;
 
+    /**
+     * @param string|null $screenshotOutputDir Where toHaveScreenshot() writes the expected, actual and diff images of a
+     *                                         failure. Defaults to test-failures/snapshots/ in the working directory.
+     * @param string|null $screenshotVariant   Suffix of the baseline names, such as "chromium-linux", left out of the
+     *                                         failure image names: "card-chromium-linux.png" fails as "card-actual.png".
+     */
     public function __construct(
         private readonly LocatorInterface $locator,
         ?TracingInterface $tracing = null,
+        private readonly ?string $screenshotOutputDir = null,
+        private readonly ?string $screenshotVariant = null,
     ) {
         parent::__construct($tracing);
     }
@@ -628,6 +639,33 @@ final class LocatorAssertions extends AbstractAssertions implements LocatorAsser
         $tokens = preg_split('/\s+/', trim($classAttribute), -1, PREG_SPLIT_NO_EMPTY);
 
         return false === $tokens ? [] : $tokens;
+    }
+
+    public function toHaveScreenshot(string $path, ?ToHaveScreenshotOptions $options = null): self
+    {
+        $options ??= new ToHaveScreenshotOptions();
+        $subject = $this->locator;
+        if (!$subject instanceof Locator) {
+            throw new \LogicException(sprintf('toHaveScreenshot() needs a %s created by Playwright PHP, %s given.', Locator::class, get_debug_type($subject)));
+        }
+
+        if ($options->fullPage || null !== $options->clip) {
+            throw new \InvalidArgumentException('The fullPage and clip options apply to a page screenshot, an element is captured whole.');
+        }
+
+        $outputDir = $this->screenshotOutputDir;
+        $variant = $this->screenshotVariant;
+        $this->assertWithoutPolling('toHaveScreenshot', $options->timeoutMs, static function (int $timeoutMs) use ($subject, $path, $options, $outputDir, $variant): void {
+            $expectation = new ScreenshotExpectation(
+                $subject->expectScreenshot(...),
+                'locator',
+                outputDir: $outputDir,
+                variant: $variant,
+            );
+            $expectation->assert($path, $options, $timeoutMs);
+        });
+
+        return $this;
     }
 
     protected function subjectName(): string

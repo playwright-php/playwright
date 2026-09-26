@@ -72,6 +72,33 @@ abstract class AbstractAssertions
         }
     }
 
+    /**
+     * Runs a matcher that brings its own waiting, such as a screenshot
+     * comparison, inside the same tracing group as polled matchers.
+     *
+     * @param callable(int): void $assertion receives the timeout in milliseconds
+     */
+    protected function assertWithoutPolling(string $matcher, ?int $timeoutMs, callable $assertion): void
+    {
+        if ($this->negated) {
+            $this->negated = false;
+
+            throw new \LogicException(sprintf('%s() cannot be negated.', $matcher));
+        }
+
+        if (null !== $this->tracing) {
+            $this->tracing->group(sprintf('expect(%s).%s', $this->subjectName(), $matcher));
+        }
+
+        try {
+            $assertion($timeoutMs ?? $this->timeoutMs);
+        } finally {
+            if (null !== $this->tracing) {
+                $this->tracing->groupEnd();
+            }
+        }
+    }
+
     abstract protected function subjectName(): string;
 
     /**
