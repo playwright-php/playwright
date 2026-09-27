@@ -36,6 +36,81 @@ final class JsonRpcTransport implements TransportInterface
      */
     private const OPERATION_TIMEOUT_GRACE_MS = 5000;
 
+    /**
+     * Commands whose native Playwright timeout owns the deadline when omitted.
+     *
+     * @var list<string>
+     */
+    private const NATIVE_TIMEOUT_ACTIONS = [
+        'api.fetch',
+        'connect',
+        'connectOverCDP',
+        'context.waitForEvent',
+        'context.waitForPopup',
+        'fileChooser.setFiles',
+        'frame.dragAndDrop',
+        'frame.goto',
+        'frame.setContent',
+        'frame.waitForFunction',
+        'frame.waitForLoadState',
+        'frame.waitForNavigation',
+        'frame.waitForURL',
+        'launch',
+        'launchServer',
+        'locator.ariaSnapshot',
+        'locator.boundingBox',
+        'locator.blur',
+        'locator.check',
+        'locator.clear',
+        'locator.click',
+        'locator.dblclick',
+        'locator.dispatchEvent',
+        'locator.dragAndDrop',
+        'locator.drop',
+        'locator.fill',
+        'locator.focus',
+        'locator.getAttribute',
+        'locator.hover',
+        'locator.innerHTML',
+        'locator.innerText',
+        'locator.inputValue',
+        'locator.isChecked',
+        'locator.isDisabled',
+        'locator.isEditable',
+        'locator.isEnabled',
+        'locator.press',
+        'locator.pressSequentially',
+        'locator.screenshot',
+        'locator.scrollIntoViewIfNeeded',
+        'locator.selectOption',
+        'locator.selectText',
+        'locator.setChecked',
+        'locator.setInputFiles',
+        'locator.tap',
+        'locator.textContent',
+        'locator.type',
+        'locator.uncheck',
+        'locator.waitFor',
+        'locator.waitForFunction',
+        'page.ariaSnapshot',
+        'page.dragAndDrop',
+        'page.goBack',
+        'page.goForward',
+        'page.goto',
+        'page.reload',
+        'page.screenshot',
+        'page.setContent',
+        'page.waitForFunction',
+        'page.waitForLoadState',
+        'page.waitForPopup',
+        'page.waitForRequest',
+        'page.waitForResponse',
+        'page.waitForSelector',
+        'page.waitForURL',
+        'route.fetch',
+        'worker.waitForEvent',
+    ];
+
     private ?Process $process = null;
     private ?JsonRpcClient $client = null;
     private bool $connected = false;
@@ -198,6 +273,11 @@ final class JsonRpcTransport implements TransportInterface
      */
     private function extractOperationTimeoutMs(array $message): ?int
     {
+        $action = $message['action'] ?? null;
+        if (!is_string($action) || !in_array($action, self::NATIVE_TIMEOUT_ACTIONS, true)) {
+            return null;
+        }
+
         $options = $message['options'] ?? null;
         if (\is_array($options)) {
             $timeout = $options['timeout'] ?? 0;

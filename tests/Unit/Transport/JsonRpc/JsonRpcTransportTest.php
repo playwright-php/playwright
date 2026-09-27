@@ -363,6 +363,57 @@ final class JsonRpcTransportTest extends TestCase
         $transport->send(['action' => 'page.evaluate', 'expression' => 'new Promise(() => {})']);
     }
 
+    public function testSendWithNonTimeoutOptionsUsesTheConfiguredDeadline(): void
+    {
+        $transport = $this->createConnectedTransport(['command' => ['node', 'server.js'], 'timeout' => 45]);
+
+        $client = $this->createMock(JsonRpcClient::class);
+        $client->expects($this->once())
+            ->method('sendRaw')
+            ->with($this->anything(), 45000.0)
+            ->willReturn([]);
+        $this->injectClient($transport, $client);
+
+        $transport->send([
+            'action' => 'page.addScriptTag',
+            'options' => ['url' => 'https://example.com/script.js'],
+        ]);
+    }
+
+    public function testSendLetsANativeDefaultTimeoutOwnTheDeadline(): void
+    {
+        $transport = $this->createConnectedTransport(['command' => ['node', 'server.js'], 'timeout' => 30]);
+
+        $client = $this->createMock(JsonRpcClient::class);
+        $client->expects($this->once())
+            ->method('sendRaw')
+            ->with($this->anything(), 0.0)
+            ->willReturn([]);
+        $this->injectClient($transport, $client);
+
+        $transport->send([
+            'action' => 'locator.click',
+            'options' => [],
+        ]);
+    }
+
+    public function testSendDoesNotTreatConfigurationCommandsAsTimedOperations(): void
+    {
+        $transport = $this->createConnectedTransport(['command' => ['node', 'server.js'], 'timeout' => 30]);
+
+        $client = $this->createMock(JsonRpcClient::class);
+        $client->expects($this->once())
+            ->method('sendRaw')
+            ->with($this->anything(), 30000.0)
+            ->willReturn([]);
+        $this->injectClient($transport, $client);
+
+        $transport->send([
+            'action' => 'page.setDefaultTimeout',
+            'timeout' => 60000,
+        ]);
+    }
+
     public function testSendDisablesTheTransportDeadlineForAnUnlimitedOperation(): void
     {
         $transport = $this->createConnectedTransport(['command' => ['node', 'server.js'], 'timeout' => 30]);
