@@ -1017,7 +1017,7 @@ final class Locator implements \Stringable, LocatorInterface
             throw new ProtocolErrorException('Invalid normalize response', 0);
         }
 
-        return new self($this->transport, $this->pageId, $value, $this->frameSelector, $this->logger);
+        return new self($this->transport, $this->pageId, $value, $this->frameSelector, $this->logger, [], $this->page);
     }
 
     public function contentFrame(): FrameLocatorInterface

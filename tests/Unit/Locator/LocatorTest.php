@@ -288,6 +288,15 @@ final class LocatorTest extends TestCase
         $this->assertNotSame($this->locator, $normalized);
     }
 
+    public function testNormalizeKeepsThePageOfTheLocator(): void
+    {
+        $page = $this->createStub(PageInterface::class);
+        $locator = new Locator($this->transport, 'page1', '.element', null, null, [], $page);
+        $this->transport->method('send')->willReturn(['value' => 'internal:role=button[name="Save"i]']);
+
+        $this->assertSame($page, $locator->normalize()->page());
+    }
+
     public function testNormalizeRejectsAResponseWithoutASelector(): void
     {
         $this->transport
@@ -1174,10 +1183,6 @@ final class LocatorTest extends TestCase
         $this->assertSame($page, $locator->contentFrame()->locator('.inner')->page());
     }
 
-    /**
-     * Rebinds $this->locator to the '.items' selector used by the filter and
-     * combinator tests, which need a different base selector than setUp().
-     */
     public function testExpectScreenshotSendsTheBaselineAndOptions(): void
     {
         $this->transport->expects($this->once())
@@ -1246,6 +1251,10 @@ final class LocatorTest extends TestCase
         $this->assertSame('iframe#preview', (new Locator($this->transport, 'page1', '.inner', 'iframe#preview'))->getFrameSelector());
     }
 
+    /**
+     * Rebinds $this->locator to the '.items' selector used by the filter and
+     * combinator tests, which need a different base selector than setUp().
+     */
     private function useItemsLocator(): void
     {
         $this->locator = new Locator($this->transport, 'page1', '.items');

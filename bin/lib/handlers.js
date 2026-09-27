@@ -21,7 +21,7 @@ async function expectScreenshot(page, locator, command) {
     ...options,
     mask,
     locator: locator || undefined,
-    expected: command.expected ? Buffer.from(command.expected, 'base64') : undefined,
+    expected: typeof command.expected === 'string' ? Buffer.from(command.expected, 'base64') : undefined,
     isNot: false,
   });
 

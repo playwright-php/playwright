@@ -188,7 +188,7 @@ final class Expect implements ExpectInterface
 
     private function snapshotPath(string $name): string
     {
-        if (str_starts_with($name, '/') || 1 === preg_match('~^[a-zA-Z]:[\\\\/]~', $name)) {
+        if (str_starts_with($name, '/') || str_starts_with($name, '\\\\') || 1 === preg_match('~^[a-zA-Z]:[\\\\/]~', $name)) {
             return $name;
         }
 

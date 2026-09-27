@@ -207,6 +207,16 @@ final class ExpectFactoryTest extends TestCase
         (new Expect($this->pageReturning('stable'), null, '/elsewhere'))->toHaveScreenshot('C:\\snapshots\\card.png');
     }
 
+    public function testUncScreenshotPathsAreUsedAsIs(): void
+    {
+        $_SERVER[ScreenshotExpectation::UPDATE_ENV] = 'none';
+
+        $this->expectException(AssertionException::class);
+        $this->expectExceptionMessage('A snapshot doesn\'t exist at \\\\server\\share\\card.png.');
+
+        (new Expect($this->pageReturning('stable'), null, '/elsewhere'))->toHaveScreenshot('\\\\server\\share\\card.png');
+    }
+
     public function testScreenshotsWithoutSnapshotDirectoryResolveInTheWorkingDirectory(): void
     {
         $dir = $this->snapshotDir();

@@ -304,6 +304,18 @@ final class ToHaveScreenshotTest extends FunctionalTestCase
         $this->assertFileDoesNotExist($this->dir.'/card-'.$this->variant().'.png');
     }
 
+    public function testEmptyBaselineFailsThroughTheBridge(): void
+    {
+        $this->card('#818cf8');
+        mkdir($this->dir, 0777, true);
+        file_put_contents($this->dir.'/card-'.$this->variant().'.png', '');
+
+        $this->expectException(AssertionException::class);
+        $this->expectExceptionMessage('is empty');
+
+        $this->expect($this->page->locator('#card'))->toHaveScreenshot('card.png');
+    }
+
     public function testFullPageIsRejectedOnAnElement(): void
     {
         $this->card('#818cf8');
