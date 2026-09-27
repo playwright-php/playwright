@@ -774,7 +774,7 @@ class LocatorHandler extends BaseHandler {
       innerHTML: () => PromiseUtils.wrapValue(locator.innerHTML()),
       inputValue: () => PromiseUtils.wrapValue(locator.inputValue()),
       count: () => PromiseUtils.wrapValue(locator.count()),
-      getAttribute: () => PromiseUtils.wrapValue(locator.getAttribute(command.name)),
+      getAttribute: () => PromiseUtils.wrapValue(locator.getAttribute(command.name, command.options)),
       selectOption: () => PromiseUtils.wrapValues(locator.selectOption(command.values, command.options)),
       screenshot: () => PromiseUtils.wrapBinary(locator.screenshot(command.options)),
       evaluate: () => this.evaluateLocator(locator, command),

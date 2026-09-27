@@ -89,6 +89,23 @@ JS);
         $this->assertSame('Ready', $this->page->locator('p')->textContent());
     }
 
+    public function testLocatorQueryUsesItsExplicitTimeoutInsteadOfThePageDefault(): void
+    {
+        $this->page->setContent('<main></main>');
+        $this->page->evaluate(<<<'JS'
+setTimeout(() => {
+    const element = document.createElement('p');
+    element.dataset.state = 'ready';
+    document.querySelector('main').appendChild(element);
+}, 350);
+JS);
+        $this->page->setDefaultTimeout(100);
+
+        $state = $this->page->locator('p')->getAttribute('data-state', ['timeout' => 1000]);
+
+        $this->assertSame('ready', $state);
+    }
+
     public function testWaitsForElementToBeVisible(): void
     {
         $this->goto('/waiting.html');
