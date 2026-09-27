@@ -414,6 +414,9 @@ final class ScreenshotExpectationTest extends TestCase
 
     public function testUnreadableBaselineIsReported(): void
     {
+        if ('Windows' === \PHP_OS_FAMILY || !function_exists('posix_geteuid')) {
+            $this->markTestSkipped('Needs POSIX file permissions.');
+        }
         if (0 === posix_geteuid()) {
             $this->markTestSkipped('Root reads files whatever their permissions.');
         }
@@ -458,6 +461,61 @@ final class ScreenshotExpectationTest extends TestCase
         $this->expectExceptionMessage(sprintf('Unable to write "%s".', $path));
 
         $this->expectation(new ScreenshotComparison(actual: 'stable'), 'changed')->assert($path, new ToHaveScreenshotOptions(), 5000);
+    }
+
+    /**
+     * @param 'none'|'missing' $mode
+     */
+    #[DataProvider('provideComparingModes')]
+    public function testEmptyBaselineFailsWithoutComparing(string $mode): void
+    {
+        $path = $this->baseline('');
+
+        try {
+            $this->expectation(new ScreenshotComparison(actual: null), $mode)->assert($path, new ToHaveScreenshotOptions(), 5000);
+            $this->fail('An empty baseline must fail the assertion.');
+        } catch (AssertionException $e) {
+            $this->assertSame(sprintf('The snapshot at %s is empty. Run with PLAYWRIGHT_UPDATE_SNAPSHOTS=changed to record it again.', $path), $e->getMessage());
+        }
+
+        $this->assertSame([], $this->calls);
+        $this->assertSame('', file_get_contents($path));
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function provideComparingModes(): iterable
+    {
+        yield 'none' => ['none'];
+        yield 'missing' => ['missing'];
+    }
+
+    #[DataProvider('provideUpdatingModes')]
+    public function testEmptyBaselineIsRecordedAgainWhenUpdating(string $mode): void
+    {
+        $path = $this->baseline('');
+
+        $this->expectation(new ScreenshotComparison(actual: 'stable'), $mode)->assert($path, new ToHaveScreenshotOptions(), 5000);
+
+        $this->assertSame('stable', file_get_contents($path));
+        $this->assertNull($this->calls[0]['expected']);
+    }
+
+    public function testFailureReplacesTheImagesOfThePreviousFailure(): void
+    {
+        $path = $this->baseline('baseline');
+
+        foreach ([new ScreenshotComparison(actual: 'first', diff: 'diff', errorMessage: 'different'), new ScreenshotComparison(actual: 'moving', errorMessage: 'unstable', timedOut: true)] as $result) {
+            try {
+                $this->expectation($result)->assert($path, new ToHaveScreenshotOptions(), 5000);
+                $this->fail('A mismatch must fail the assertion.');
+            } catch (AssertionException) {
+            }
+        }
+
+        $this->assertSame(['card-actual.png', 'card-expected.png'], array_map('basename', glob($this->dir.'/out/*/*') ?: []));
+        $this->assertSame('moving', file_get_contents($this->artifact('card-actual.png')));
     }
 
     public function testUnknownUpdateModeIsRejected(): void

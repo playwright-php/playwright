@@ -57,9 +57,16 @@ final class ScreenshotExpectation
             throw new \RuntimeException(sprintf('Unable to read the snapshot "%s".', $path));
         }
 
+        // An empty file would reach Playwright as "no baseline" and match
+        // anything: it only passes once recorded again.
+        if ('' === $expected && 'changed' !== $mode && 'all' !== $mode) {
+            throw new AssertionException($options->message ?? sprintf('The snapshot at %s is empty. Run with %s=changed to record it again.', $path, self::UPDATE_ENV));
+        }
+
         // "all" records every screenshot, like --update-snapshots=all: no
         // comparison, Playwright returns no image when a comparison matches.
-        if (null === $expected || 'all' === $mode) {
+        // "changed" records an empty baseline the same way.
+        if (null === $expected || '' === $expected || 'all' === $mode) {
             $this->record($path, $mode, null === $expected, ($this->compare)(null, $payload), $options);
 
             return;
@@ -130,6 +137,8 @@ final class ScreenshotExpectation
      */
     private function writeArtifacts(string $path, string $expected, ScreenshotComparison $result): array
     {
+        $this->removeArtifacts($path);
+
         $stem = $this->artifactStem($path);
         $extension = '.'.$this->imageType($path);
 
