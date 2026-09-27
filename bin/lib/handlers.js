@@ -378,6 +378,7 @@ class PageHandler extends BaseHandler {
       opener: () => this.getOpener(page, command),
       consoleMessages: () => this.consoleMessages(page, command),
       clearConsoleMessages: () => page.clearConsoleMessages(),
+      pageErrors: () => this.pageErrors(page, command),
       clearPageErrors: () => page.clearPageErrors(),
       content: async () => ({ content: await page.content() }),
       setContent: () => page.setContent(command.html, command.options),
@@ -529,6 +530,18 @@ class PageHandler extends BaseHandler {
     const filter = command.options?.filter;
     const messages = await page.consoleMessages(typeof filter === 'string' ? { filter } : {});
     return { messages: messages.map(message => this.serializeConsoleMessage(message)) };
+  }
+
+  async pageErrors(page, command) {
+    // An empty PHP options bag is [], so its .filter is Array#filter.
+    const filter = command.options?.filter;
+    const errors = await page.pageErrors(typeof filter === 'string' ? { filter } : {});
+    // Error.message and Error.stack are not enumerable and would be lost in JSON.
+    return { errors: errors.map(error => ({
+      name: error.name,
+      message: error.message,
+      stack: error.stack ?? null,
+    })) };
   }
 
   async unrouteAll(page, pageId, options) {

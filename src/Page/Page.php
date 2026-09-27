@@ -57,6 +57,7 @@ use Playwright\Page\Options\EmulateMediaOptions;
 use Playwright\Page\Options\FrameQueryOptions;
 use Playwright\Page\Options\GotoOptions;
 use Playwright\Page\Options\NavigationHistoryOptions;
+use Playwright\Page\Options\PageErrorsOptions;
 use Playwright\Page\Options\PdfOptions;
 use Playwright\Page\Options\ScreenshotOptions;
 use Playwright\Page\Options\ScriptTagOptions;
@@ -71,6 +72,8 @@ use Playwright\Page\Options\WaitForRequestOptions;
 use Playwright\Page\Options\WaitForResponseOptions;
 use Playwright\Page\Options\WaitForSelectorOptions;
 use Playwright\Page\Options\WaitForUrlOptions;
+use Playwright\PageError\PageError;
+use Playwright\PageError\PageErrorInterface;
 use Playwright\Regex;
 use Playwright\Screencast\Screencast;
 use Playwright\Screencast\ScreencastInterface;
@@ -583,6 +586,37 @@ final class Page implements PageInterface, EventDispatcherInterface
         $this->sendCommand('clearConsoleMessages');
 
         return $this;
+    }
+
+    /**
+     * @param array{filter?: 'all'|'since-navigation'|null}|PageErrorsOptions $options
+     *
+     * @return list<PageErrorInterface>
+     */
+    public function pageErrors(array|PageErrorsOptions $options = []): array
+    {
+        $options = PageErrorsOptions::from($options)->toArray();
+        $response = $this->sendCommand('pageErrors', ['options' => $options]);
+        $errors = $response['errors'] ?? null;
+        if (!is_array($errors) || !array_is_list($errors)) {
+            throw new ProtocolErrorException('Invalid pageErrors response from transport', 0);
+        }
+
+        $result = [];
+        foreach ($errors as $error) {
+            if (!is_array($error)
+                || !is_string($error['name'] ?? null)
+                || !is_string($error['message'] ?? null)
+                || !array_key_exists('stack', $error)
+                || (null !== $error['stack'] && !is_string($error['stack']))
+            ) {
+                throw new ProtocolErrorException('Invalid pageErrors entry from transport', 0);
+            }
+
+            $result[] = new PageError($error['name'], $error['message'], $error['stack']);
+        }
+
+        return $result;
     }
 
     public function clearPageErrors(): self
