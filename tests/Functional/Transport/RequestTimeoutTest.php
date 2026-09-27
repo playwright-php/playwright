@@ -26,6 +26,33 @@ use Symfony\Component\Process\ExecutableFinder;
 #[CoversClass(JsonRpcTransport::class)]
 final class RequestTimeoutTest extends FunctionalTestCase
 {
+    public function testCommandWithoutANativeTimeoutUsesTheTransportDeadline(): void
+    {
+        $node = (new ExecutableFinder())->find('node');
+        if (null === $node) {
+            $this->markTestSkipped('Node.js executable not found.');
+        }
+
+        $config = new PlaywrightConfig(nodePath: $node, timeoutMs: 2000);
+        $playwright = PlaywrightFactory::create($config);
+        $browser = $playwright->chromium()->launch();
+
+        try {
+            $page = $browser->newPage();
+            $start = microtime(true);
+
+            try {
+                $page->evaluate('new Promise(resolve => setTimeout(resolve, 3000))');
+                $this->fail('Expected a TimeoutException');
+            } catch (TimeoutException) {
+                $this->assertLessThan(2.8, microtime(true) - $start);
+            }
+        } finally {
+            $browser->close();
+            $playwright->close();
+        }
+    }
+
     public function testDefaultOperationTimeoutIsNotCutByTheTransportDeadline(): void
     {
         $node = (new ExecutableFinder())->find('node');

@@ -199,7 +199,11 @@ final class JsonRpcTransport implements TransportInterface
     private function extractOperationTimeoutMs(array $message): ?int
     {
         $options = $message['options'] ?? null;
-        $timeout = \is_array($options) && isset($options['timeout']) ? $options['timeout'] : ($message['timeout'] ?? null);
+        if (\is_array($options)) {
+            $timeout = $options['timeout'] ?? 0;
+        } else {
+            $timeout = $message['timeout'] ?? null;
+        }
 
         return is_numeric($timeout) && $timeout >= 0 ? (int) $timeout : null;
     }
@@ -214,7 +218,10 @@ final class JsonRpcTransport implements TransportInterface
             ? (int) ($configuredTimeout * 1000)
             : 0;
         $operationTimeoutMs = $this->extractOperationTimeoutMs($message);
-        if (null === $operationTimeoutMs || 0 === $operationTimeoutMs) {
+        if (null === $operationTimeoutMs) {
+            return $configuredTimeoutMs;
+        }
+        if (0 === $operationTimeoutMs) {
             return 0;
         }
 

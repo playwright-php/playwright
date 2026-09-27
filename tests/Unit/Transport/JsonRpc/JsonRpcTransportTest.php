@@ -349,18 +349,18 @@ final class JsonRpcTransportTest extends TestCase
         $this->assertSame([], (new \ReflectionProperty($transport, 'pendingCallbacks'))->getValue($transport));
     }
 
-    public function testSendWithoutAnExplicitOperationTimeoutDisablesTheTransportDeadline(): void
+    public function testSendWithoutANativeOperationTimeoutUsesTheConfiguredDeadline(): void
     {
         $transport = $this->createConnectedTransport(['command' => ['node', 'server.js'], 'timeout' => 45]);
 
         $client = $this->createMock(JsonRpcClient::class);
         $client->expects($this->once())
             ->method('sendRaw')
-            ->with($this->anything(), 0.0)
+            ->with($this->anything(), 45000.0)
             ->willReturn([]);
         $this->injectClient($transport, $client);
 
-        $transport->send(['action' => 'launch']);
+        $transport->send(['action' => 'page.evaluate', 'expression' => 'new Promise(() => {})']);
     }
 
     public function testSendDisablesTheTransportDeadlineForAnUnlimitedOperation(): void
