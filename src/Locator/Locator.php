@@ -827,7 +827,7 @@ final class Locator implements \Stringable, LocatorInterface
     {
         $timeout = $options['timeout'] ?? $default;
 
-        return is_int($timeout) && $timeout > 0 ? $timeout : $default;
+        return is_int($timeout) && $timeout >= 0 ? $timeout : $default;
     }
 
     /**
@@ -849,15 +849,19 @@ final class Locator implements \Stringable, LocatorInterface
      */
     private function waitForCondition(callable $condition, int $timeoutMs, string $message): void
     {
-        $deadline = hrtime(true) + ($timeoutMs * 1_000_000);
+        $deadline = $timeoutMs > 0 ? hrtime(true) + ($timeoutMs * 1_000_000) : null;
 
-        while (hrtime(true) < $deadline) {
-            $remainingTimeoutMs = max(1, (int) ceil(($deadline - hrtime(true)) / 1_000_000));
+        while (null === $deadline || hrtime(true) < $deadline) {
+            $remainingTimeoutMs = null === $deadline
+                ? 0
+                : max(1, (int) ceil(($deadline - hrtime(true)) / 1_000_000));
             if ($condition($remainingTimeoutMs)) {
                 return;
             }
 
-            $remainingMicroseconds = (int) ceil(($deadline - hrtime(true)) / 1000);
+            $remainingMicroseconds = null === $deadline
+                ? 100000
+                : (int) ceil(($deadline - hrtime(true)) / 1000);
             if ($remainingMicroseconds > 0) {
                 usleep(min(100000, $remainingMicroseconds));
             }

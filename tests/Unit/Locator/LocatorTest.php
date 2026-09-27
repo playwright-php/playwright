@@ -868,6 +868,18 @@ final class LocatorTest extends TestCase
         $this->locator->waitForEnabled(['timeout' => 1000]);
     }
 
+    public function testUnlimitedWaitPassesZeroToTheNativeQuery(): void
+    {
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static fn (array $payload): bool => 'locator.isEnabled' === $payload['action']
+                && ['timeout' => 0.0] === $payload['options']))
+            ->willReturn(['value' => true]);
+
+        $this->locator->waitForEnabled(['timeout' => 0]);
+    }
+
     public function testFilterWithHasText(): void
     {
         $this->useItemsLocator();
