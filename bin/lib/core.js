@@ -77,6 +77,7 @@ class ErrorHandler {
     return {
       requestId,
       error: message,
+      errorName: error.name,
       stack: process.env.PLAYWRIGHT_DEBUG === 'true' ? error.stack : undefined,
       command: command?.action,
     };

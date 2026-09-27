@@ -358,7 +358,7 @@ class ContextHandler extends BaseHandler {
         requestId,
         error: error.message
       });
-      return { popupPageId: null };
+      throw error;
     }
   }
 }
@@ -727,7 +727,7 @@ class PageHandler extends BaseHandler {
         requestId,
         error: error.message
       });
-      return { popupPageId: null };
+      throw error;
     }
   }
 }

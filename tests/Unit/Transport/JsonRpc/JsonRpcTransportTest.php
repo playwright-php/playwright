@@ -16,7 +16,9 @@ namespace Playwright\Tests\Unit\Transport\JsonRpc;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Playwright\Exception\DisconnectedException;
 use Playwright\Exception\NetworkException;
+use Playwright\Exception\TimeoutException;
 use Playwright\Tests\Mocks\TestLogger;
 use Playwright\Transport\JsonRpc\JsonRpcClient;
 use Playwright\Transport\JsonRpc\JsonRpcTransport;
@@ -246,6 +248,71 @@ final class JsonRpcTransportTest extends TestCase
     private function injectClient(JsonRpcTransport $transport, JsonRpcClient $client): void
     {
         (new \ReflectionProperty($transport, 'client'))->setValue($transport, $client);
+    }
+
+    public function testCallbackSetupFailurePreservesTheErrorAndReleasesTheCallback(): void
+    {
+        $transport = $this->createConnectedTransport(['command' => ['node', 'server.js']]);
+        $transport->storePendingCallback('popup', fn () => $this->fail('The action must not run after setup fails.'));
+        $client = $this->createMock(JsonRpcClient::class);
+        $client->expects($this->once())->method('sendRaw')->willReturn([
+            'error' => ['name' => 'TargetClosedError', 'message' => 'The popup owner has closed'],
+        ]);
+        $this->injectClient($transport, $client);
+
+        try {
+            $transport->send(['action' => 'page.waitForPopup', 'requestId' => 'popup']);
+            $this->fail('Expected the setup error.');
+        } catch (DisconnectedException $e) {
+            $this->assertSame('The popup owner has closed', $e->getMessage());
+            $this->assertSame('page.waitForPopup', $e->getContext()['method']);
+        }
+
+        $this->assertSame([], (new \ReflectionProperty($transport, 'pendingCallbacks'))->getValue($transport));
+    }
+
+    public function testCallbackContinuationPreservesTheTimeoutAndReleasesTheCallback(): void
+    {
+        $transport = $this->createConnectedTransport(['command' => ['node', 'server.js']]);
+        $executed = false;
+        $transport->storePendingCallback('popup', static function () use (&$executed): void { $executed = true; });
+        $client = $this->createMock(JsonRpcClient::class);
+        $client->expects($this->exactly(2))->method('sendRaw')->willReturnOnConsecutiveCalls(
+            ['type' => 'callback', 'callbackType' => 'readyForAction', 'requestId' => 'popup'],
+            ['error' => 'Timeout 100ms exceeded while waiting for popup', 'errorName' => 'TimeoutError'],
+        );
+        $this->injectClient($transport, $client);
+
+        try {
+            $transport->send(['action' => 'context.waitForPopup', 'requestId' => 'popup']);
+            $this->fail('Expected the native timeout.');
+        } catch (TimeoutException $e) {
+            $this->assertSame('Timeout 100ms exceeded while waiting for popup', $e->getMessage());
+        }
+
+        $this->assertTrue($executed);
+        $this->assertSame([], (new \ReflectionProperty($transport, 'pendingCallbacks'))->getValue($transport));
+    }
+
+    public function testThrowingCallbackIsReleasedAndItsExceptionIsPreserved(): void
+    {
+        $transport = $this->createConnectedTransport(['command' => ['node', 'server.js']]);
+        $failure = new \RuntimeException('Action failed');
+        $transport->storePendingCallback('popup', static fn () => throw $failure);
+        $client = $this->createMock(JsonRpcClient::class);
+        $client->expects($this->once())->method('sendRaw')->willReturn([
+            'type' => 'callback', 'callbackType' => 'readyForAction', 'requestId' => 'popup',
+        ]);
+        $this->injectClient($transport, $client);
+
+        try {
+            $transport->send(['action' => 'page.waitForPopup', 'requestId' => 'popup']);
+            $this->fail('Expected the action failure.');
+        } catch (\RuntimeException $e) {
+            $this->assertSame($failure, $e);
+        }
+
+        $this->assertSame([], (new \ReflectionProperty($transport, 'pendingCallbacks'))->getValue($transport));
     }
 
     public function testSendPassesTheConfiguredTimeoutPerRequest(): void
