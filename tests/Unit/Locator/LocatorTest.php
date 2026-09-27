@@ -781,6 +781,9 @@ final class LocatorTest extends TestCase
                 ++$callCount;
 
                 if ('locator.textContent' === $payload['action']) {
+                    $this->assertGreaterThan(0, $payload['options']['timeout']);
+                    $this->assertLessThanOrEqual(30000, $payload['options']['timeout']);
+
                     return ['value' => 1 === $callCount ? 'Loading...' : 'Success: Data loaded'];
                 }
 
@@ -854,7 +857,9 @@ final class LocatorTest extends TestCase
         $this->transport
             ->expects($this->once())
             ->method('send')
-            ->with($this->callback(static fn (array $payload): bool => 'locator.isEnabled' === $payload['action']))
+            ->with($this->callback(static fn (array $payload): bool => 'locator.isEnabled' === $payload['action']
+                && $payload['options']['timeout'] > 0
+                && $payload['options']['timeout'] <= 1000))
             ->willThrowException(new TimeoutException('JSON-RPC request locator.isEnabled timed out'));
 
         $this->expectException(TimeoutException::class);

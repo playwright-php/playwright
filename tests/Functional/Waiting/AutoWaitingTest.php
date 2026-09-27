@@ -73,6 +73,22 @@ final class AutoWaitingTest extends FunctionalTestCase
         $this->assertTrue($button->isEnabled());
     }
 
+    public function testCustomWaitsUseTheirOwnTimeoutInsteadOfThePageDefault(): void
+    {
+        $this->page->setContent('<button disabled>Wait</button><p>Loading</p>');
+        $this->page->evaluate(<<<'JS'
+setTimeout(() => document.querySelector('button').disabled = false, 350);
+setTimeout(() => document.querySelector('p').textContent = 'Ready', 700);
+JS);
+        $this->page->setDefaultTimeout(100);
+
+        $this->page->locator('button')->waitForEnabled(['timeout' => 1000]);
+        $this->page->locator('p')->waitForText('Ready', ['timeout' => 1000]);
+
+        $this->assertTrue($this->page->locator('button')->isEnabled());
+        $this->assertSame('Ready', $this->page->locator('p')->textContent());
+    }
+
     public function testWaitsForElementToBeVisible(): void
     {
         $this->goto('/waiting.html');

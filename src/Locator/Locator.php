@@ -844,20 +844,33 @@ final class Locator implements \Stringable, LocatorInterface
         return $options;
     }
 
+    /**
+     * @param callable(int): bool $condition
+     */
     private function waitForCondition(callable $condition, int $timeoutMs, string $message): void
     {
-        $start = microtime(true);
-        $timeoutSeconds = $timeoutMs / 1000;
+        $deadline = hrtime(true) + ($timeoutMs * 1_000_000);
 
-        while ((microtime(true) - $start) < $timeoutSeconds) {
-            if ($condition()) {
+        while (hrtime(true) < $deadline) {
+            $remainingTimeoutMs = max(1, (int) ceil(($deadline - hrtime(true)) / 1_000_000));
+            if ($condition($remainingTimeoutMs)) {
                 return;
             }
 
-            usleep(100000);
+            $remainingMicroseconds = (int) ceil(($deadline - hrtime(true)) / 1000);
+            if ($remainingMicroseconds > 0) {
+                usleep(min(100000, $remainingMicroseconds));
+            }
         }
 
         throw new TimeoutException(sprintf('%s (timeout: %dms)', $message, $timeoutMs));
+    }
+
+    private function isEnabledWithTimeout(int $timeoutMs): bool
+    {
+        $response = $this->sendCommand('locator.isEnabled', ['options' => ['timeout' => (float) $timeoutMs]]);
+
+        return true === $response['value'];
     }
 
     /**
@@ -899,7 +912,7 @@ final class Locator implements \Stringable, LocatorInterface
     {
         $timeout = $this->extractTimeout($options);
         $this->waitForCondition(
-            fn () => $this->isEnabled(),
+            fn (int $remainingTimeoutMs) => $this->isEnabledWithTimeout($remainingTimeoutMs),
             $timeout,
             'Element not enabled'
         );
@@ -912,7 +925,7 @@ final class Locator implements \Stringable, LocatorInterface
     {
         $timeout = $this->extractTimeout($options);
         $this->waitForCondition(
-            fn () => str_contains($this->textContent() ?? '', $text),
+            fn (int $remainingTimeoutMs) => str_contains($this->textContent(['timeout' => $remainingTimeoutMs]) ?? '', $text),
             $timeout,
             sprintf('Element does not contain text: %s', $text)
         );
