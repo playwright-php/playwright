@@ -16,6 +16,7 @@ namespace Playwright\Tests\Unit\Transport\JsonRpc;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Playwright\Event\EventDispatcherInterface;
 use Playwright\Exception\DisconnectedException;
 use Playwright\Exception\NetworkException;
 use Playwright\Exception\TimeoutException;
@@ -222,6 +223,39 @@ final class JsonRpcTransportTest extends TestCase
         $transport->__destruct();
 
         $this->assertFalse($transport->isConnected());
+    }
+
+    public function testEventsAreDispatchedToTheRegisteredDispatcher(): void
+    {
+        $transport = new JsonRpcTransport(processLauncher: $this->processLauncher, logger: $this->logger);
+
+        $dispatcher = $this->createMock(EventDispatcherInterface::class);
+        $dispatcher->expects($this->once())->method('dispatchEvent')->with('console', ['text' => 'hi']);
+        $transport->addEventDispatcher('page_1', $dispatcher);
+
+        $this->handleEvent($transport, ['objectId' => 'page_1', 'event' => 'console', 'params' => ['text' => 'hi']]);
+    }
+
+    public function testRemovedDispatcherNoLongerReceivesEvents(): void
+    {
+        $transport = new JsonRpcTransport(processLauncher: $this->processLauncher, logger: $this->logger);
+
+        $dispatcher = $this->createMock(EventDispatcherInterface::class);
+        $dispatcher->expects($this->never())->method('dispatchEvent');
+        $transport->addEventDispatcher('page_1', $dispatcher);
+        $transport->removeEventDispatcher('page_1');
+
+        $this->handleEvent($transport, ['objectId' => 'page_1', 'event' => 'console', 'params' => []]);
+
+        $this->assertFalse($this->logger->hasWarningRecords());
+    }
+
+    /**
+     * @param array<string, mixed> $event
+     */
+    private function handleEvent(JsonRpcTransport $transport, array $event): void
+    {
+        (new \ReflectionMethod($transport, 'handleEvent'))->invoke($transport, $event);
     }
 
     /**

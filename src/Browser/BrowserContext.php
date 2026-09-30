@@ -145,6 +145,7 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
             $pageId = $params['pageId'] ?? null;
             if (is_string($pageId)) {
                 unset($this->pages[$pageId]);
+                $this->removeEventDispatcher($pageId);
             }
 
             return;
@@ -237,10 +238,46 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
             $this->saveAutoTrace();
         }
 
-        $this->transport->send([
-            'action' => 'context.close',
-            'contextId' => $this->contextId,
-        ]);
+        try {
+            $this->transport->send([
+                'action' => 'context.close',
+                'contextId' => $this->contextId,
+            ]);
+        } finally {
+            foreach (array_keys($this->pages) as $pageId) {
+                $this->removeEventDispatcher($pageId);
+            }
+            $this->removeEventDispatcher($this->contextId);
+            $this->pages = [];
+            $this->routeHandlers = [];
+
+            if ($this->browser instanceof Browser) {
+                $this->browser->forgetContext($this);
+            }
+        }
+    }
+
+    /**
+     * @internal called by Page::waitForPopup()
+     */
+    public function registerPage(PageInterface $page): void
+    {
+        $this->pages[$page->getPageIdForTransport()] = $page;
+    }
+
+    /**
+     * @internal called by Page::close()
+     */
+    public function forgetPage(PageInterface $page): void
+    {
+        unset($this->pages[$page->getPageIdForTransport()]);
+    }
+
+    private function removeEventDispatcher(string $id): void
+    {
+        if (method_exists($this->transport, 'removeEventDispatcher')) {
+            $this->transport->removeEventDispatcher($id);
+        }
     }
 
     public function isClosed(): bool
