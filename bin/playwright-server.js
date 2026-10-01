@@ -128,7 +128,8 @@ class PlaywrightServer extends BaseHandler {
       fulfill: () => this.fulfillRoute(route, command.options),
       abort: () => route.abort(command.errorCode),
       redirectNavigationRequest: () => this.redirectNavigationRequest(route, info, command),
-      continue: () => this.continueRoute(route, info, command)
+      continue: () => this.continueRoute(route, info, command),
+      fallback: () => route.fallback(command.options || undefined)
     });
     logger.info(`ROUTE ${method.toUpperCase()}`, { routeId: command.routeId });
     await ErrorHandler.safeExecute(() => this.executeWithRegistry(registry, method), { method, routeId: command.routeId });

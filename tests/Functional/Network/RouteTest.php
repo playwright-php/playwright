@@ -98,6 +98,45 @@ final class RouteTest extends FunctionalTestCase
         $this->assertTrue(true);
     }
 
+    public function testFallbackPassesRequestToNetwork(): void
+    {
+        $this->goto('/index.html');
+        $this->page->route('**/api/echo', static function (Route $route): void {
+            $route->fallback();
+        });
+
+        $result = $this->page->evaluate('async () => (await fetch("/api/echo")).json()');
+
+        $this->assertSame('GET', $result['method'] ?? null);
+    }
+
+    public function testFallbackPassesRequestToContextRoute(): void
+    {
+        $this->goto('/index.html');
+        $this->context->route('**/api/echo', static function (Route $route): void {
+            $route->fulfill(['status' => 200, 'body' => 'from context']);
+        });
+        $this->page->route('**/api/echo', static function (Route $route): void {
+            $route->fallback();
+        });
+
+        $result = $this->page->evaluate('async () => (await fetch("/api/echo")).text()');
+
+        $this->assertSame('from context', $result);
+    }
+
+    public function testFallbackOverridesRequestHeaders(): void
+    {
+        $this->goto('/index.html');
+        $this->page->route('**/api/echo', static function (Route $route): void {
+            $route->fallback(['headers' => ['x-playwright-php' => 'from fallback']]);
+        });
+
+        $result = $this->page->evaluate('async () => (await fetch("/api/echo")).json()');
+
+        $this->assertSame('from fallback', $result['requestHeader'] ?? null);
+    }
+
     public function testCanMatchRoutePattern(): void
     {
         $this->goto('/network.html');
