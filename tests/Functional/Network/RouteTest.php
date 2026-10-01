@@ -298,6 +298,99 @@ final class RouteTest extends FunctionalTestCase
         $this->assertSame(['from page', 'from context'], $result);
     }
 
+    public function testNewestContextRouteAnswersAndOlderContextRouteNeverRuns(): void
+    {
+        $this->goto('/index.html');
+        $calls = [];
+        $this->context->route('**/api/data.json', static function (Route $route) use (&$calls): void {
+            $calls[] = 'older';
+            $route->fulfill(['status' => 200, 'body' => 'older']);
+        });
+        $this->context->route('**/api/data.json', static function (Route $route) use (&$calls): void {
+            $calls[] = 'newer';
+            $route->fulfill(['status' => 200, 'body' => 'newer']);
+        });
+
+        $result = $this->page->evaluate('async () => (await fetch("/api/data.json")).text()');
+
+        $this->assertSame('newer', $result);
+        $this->assertSame(['newer'], $calls);
+    }
+
+    public function testFallbackPassesRequestToOlderContextRoute(): void
+    {
+        $this->goto('/index.html');
+        $calls = [];
+        $this->context->route('**/api/data.json', static function (Route $route) use (&$calls): void {
+            $calls[] = 'older';
+            $route->fulfill(['status' => 200, 'body' => 'older']);
+        });
+        $this->context->route('**/api/data.json', static function (Route $route) use (&$calls): void {
+            $calls[] = 'newer';
+            $route->fallback();
+        });
+
+        $result = $this->page->evaluate('async () => (await fetch("/api/data.json")).text()');
+
+        $this->assertSame('older', $result);
+        $this->assertSame(['newer', 'older'], $calls);
+    }
+
+    public function testContextRouteFallbackPassesRequestToNetwork(): void
+    {
+        $this->goto('/index.html');
+        $calls = [];
+        $this->context->route('**/api/echo', static function (Route $route) use (&$calls): void {
+            $calls[] = 'older';
+            $route->fallback();
+        });
+        $this->context->route('**/api/echo', static function (Route $route) use (&$calls): void {
+            $calls[] = 'newer';
+            $route->fallback(['headers' => ['x-playwright-php' => 'from context']]);
+        });
+
+        $result = $this->page->evaluate('async () => (await fetch("/api/echo")).json()');
+
+        $this->assertSame('from context', $result['requestHeader'] ?? null);
+        $this->assertSame(['newer', 'older'], $calls);
+    }
+
+    public function testContextRouteSeesHeadersSetByPageRouteFallback(): void
+    {
+        $this->goto('/index.html');
+        $seen = null;
+        // Braces are Playwright glob syntax that fnmatch() does not understand.
+        $this->context->route('**/api/{echo,other}', static function (Route $route) use (&$seen): void {
+            $seen = $route->request()->headers()['x-playwright-php'] ?? null;
+            $route->fulfill(['status' => 200, 'body' => 'from context']);
+        });
+        $this->page->route('**/api/echo', static function (Route $route): void {
+            $route->fallback(['headers' => ['x-playwright-php' => 'from page']]);
+        });
+
+        $result = $this->page->evaluate('async () => (await fetch("/api/echo")).text()');
+
+        $this->assertSame('from context', $result);
+        $this->assertSame('from page', $seen);
+    }
+
+    public function testContextUnrouteWithHandlerKeepsOtherHandlersOnTheSameUrl(): void
+    {
+        $this->goto('/index.html');
+        $this->context->route('**/api/data.json', static function (Route $route): void {
+            $route->fulfill(['status' => 200, 'body' => 'kept']);
+        });
+        $removed = static function (Route $route): void {
+            $route->fulfill(['status' => 200, 'body' => 'removed']);
+        };
+        $this->context->route('**/api/data.json', $removed);
+
+        $this->context->unroute('**/api/data.json', $removed);
+        $result = $this->page->evaluate('async () => (await fetch("/api/data.json")).text()');
+
+        $this->assertSame('kept', $result);
+    }
+
     public function testCanMatchRoutePattern(): void
     {
         $this->goto('/network.html');

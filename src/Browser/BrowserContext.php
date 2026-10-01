@@ -41,7 +41,7 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
     private array $pages = [];
 
     /**
-     * @var array<array{url: string, handler: callable}>
+     * @var array<string, array{url: string, handler: callable}>
      */
     private array $routeHandlers = [];
 
@@ -117,19 +117,16 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
             if (!is_array($params['request'])) {
                 throw new ProtocolErrorException('Invalid request data in route event', 0);
             }
+            $handlerId = $params['handlerId'] ?? null;
+            if (null !== $handlerId && !is_string($handlerId)) {
+                throw new ProtocolErrorException('Invalid handlerId in route event', 0);
+            }
             $route = new Route(
                 $this->transport,
                 $params['routeId'],
                 $this->validateTransportArray($params['request'], 'request')
             );
-            foreach ($this->routeHandlers as $handler) {
-                if (fnmatch($handler['url'], $route->request()->url())) {
-                    $handler['handler']($route);
-
-                    return;
-                }
-            }
-            $route->continue();
+            $this->dispatchRoute($route, $handlerId);
         }
 
         if (in_array($eventName, ['page', 'popup', 'pageCreated'], true)) {
@@ -555,21 +552,38 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
 
     public function route(string $url, callable $handler): void
     {
-        $this->transport->send([
-            'action' => 'context.route',
-            'contextId' => $this->contextId,
-            'url' => $url,
-        ]);
-        $this->routeHandlers[] = ['url' => $url, 'handler' => $handler];
+        // Registered before the command is sent: a request already in flight
+        // can be routed while the server is still answering it.
+        $handlerId = uniqid('handler_', true);
+        $this->routeHandlers[$handlerId] = ['url' => $url, 'handler' => $handler];
+        try {
+            $this->transport->send([
+                'action' => 'context.route',
+                'contextId' => $this->contextId,
+                'url' => $url,
+                'handlerId' => $handlerId,
+            ]);
+        } catch (\Throwable $e) {
+            unset($this->routeHandlers[$handlerId]);
+
+            throw $e;
+        }
     }
 
     public function unroute(string $url, ?callable $handler = null): void
     {
-        $this->routeHandlers = array_filter($this->routeHandlers, fn ($h) => $h['url'] !== $url);
+        $handlerIds = [];
+        foreach ($this->routeHandlers as $handlerId => $registration) {
+            if ($registration['url'] === $url && (null === $handler || $registration['handler'] === $handler)) {
+                $handlerIds[] = $handlerId;
+                unset($this->routeHandlers[$handlerId]);
+            }
+        }
         $this->transport->send([
             'action' => 'context.unroute',
             'contextId' => $this->contextId,
             'url' => $url,
+            'handlerIds' => $handlerIds,
         ]);
     }
 
@@ -700,6 +714,22 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
                 throw new \InvalidArgumentException('HTTP header values must be strings without line breaks.');
             }
         }
+    }
+
+    /**
+     * A route event carries the registration whose native route matched, so
+     * Playwright's own order (newest first, then fallback) decides who answers.
+     */
+    private function dispatchRoute(Route $route, ?string $handlerId): void
+    {
+        $registration = null === $handlerId ? null : ($this->routeHandlers[$handlerId] ?? null);
+        if (null === $registration) {
+            $route->fallback();
+
+            return;
+        }
+
+        $registration['handler']($route);
     }
 
     /**

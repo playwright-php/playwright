@@ -482,22 +482,17 @@ final class BrowserContextTest extends TestCase
         $this->context->setOffline(true);
     }
 
-    public function testRoute(): void
+    public function testRouteSendsItsHandlerIdWithTheCommand(): void
     {
-        $handler = function ($route) {
-            $route->fulfill(['body' => 'mocked']);
-        };
+        $sent = [];
+        $context = new BrowserContext($this->createRecordingTransport($sent), 'context_1', $this->config);
 
-        $this->mockTransport
-            ->expects($this->once())
-            ->method('send')
-            ->with([
-                'action' => 'context.route',
-                'contextId' => 'context_1',
-                'url' => '**/*.api',
-            ]);
+        $context->route('**/*.api', static function (): void {});
 
-        $this->context->route('**/*.api', $handler);
+        $this->assertSame('context.route', $sent[0]['action']);
+        $this->assertSame('context_1', $sent[0]['contextId']);
+        $this->assertSame('**/*.api', $sent[0]['url']);
+        $this->assertIsString($sent[0]['handlerId']);
     }
 
     public function testUnroute(): void
@@ -509,9 +504,92 @@ final class BrowserContextTest extends TestCase
                 'action' => 'context.unroute',
                 'contextId' => 'context_1',
                 'url' => '**/*.api',
+                'handlerIds' => [],
             ]);
 
         $this->context->unroute('**/*.api');
+    }
+
+    public function testRouteEventRunsOnlyTheHandlerThatRegisteredIt(): void
+    {
+        $sent = [];
+        $context = new BrowserContext($this->createRecordingTransport($sent), 'context_1', $this->config);
+        $calls = [];
+        $context->route('**/api/**', static function () use (&$calls): void {
+            $calls[] = 'first';
+        });
+        $context->route('**/api/**', static function () use (&$calls): void {
+            $calls[] = 'second';
+        });
+
+        $context->dispatchEvent('route', [
+            'routeId' => 'route_1',
+            'handlerId' => $sent[1]['handlerId'],
+            'request' => ['url' => 'https://example.com/api/data'],
+        ]);
+
+        $this->assertSame(['second'], $calls);
+    }
+
+    public function testRouteEventForAnUnroutedHandlerFallsBack(): void
+    {
+        $sent = [];
+        $transport = $this->createRecordingTransport($sent);
+        $context = new BrowserContext($transport, 'context_1', $this->config);
+        $called = false;
+        $handler = static function () use (&$called): void {
+            $called = true;
+        };
+        $context->route('**/api/**', $handler);
+        $context->unroute('**/api/**', $handler);
+
+        $transport->expects($this->once())
+            ->method('sendAsync')
+            ->with(['action' => 'route.fallback', 'routeId' => 'route_1', 'options' => null]);
+
+        $context->dispatchEvent('route', [
+            'routeId' => 'route_1',
+            'handlerId' => $sent[0]['handlerId'],
+            'request' => ['url' => 'https://example.com/api/data'],
+        ]);
+
+        $this->assertFalse($called);
+    }
+
+    public function testRouteEventWithoutHandlerIdFallsBack(): void
+    {
+        $sent = [];
+        $transport = $this->createRecordingTransport($sent);
+        $context = new BrowserContext($transport, 'context_1', $this->config);
+        $called = false;
+        $context->route('**/api/**', static function () use (&$called): void {
+            $called = true;
+        });
+
+        $transport->expects($this->once())
+            ->method('sendAsync')
+            ->with(['action' => 'route.fallback', 'routeId' => 'route_1', 'options' => null]);
+
+        $context->dispatchEvent('route', [
+            'routeId' => 'route_1',
+            'request' => ['url' => 'https://example.com/api/data'],
+        ]);
+
+        $this->assertFalse($called);
+    }
+
+    public function testUnrouteWithHandlerSendsOnlyItsRegistrations(): void
+    {
+        $sent = [];
+        $context = new BrowserContext($this->createRecordingTransport($sent), 'context_1', $this->config);
+        $removed = static function (): void {};
+        $context->route('**/api/**', static function (): void {});
+        $context->route('**/api/**', $removed);
+        $context->route('**/other/**', $removed);
+
+        $context->unroute('**/api/**', $removed);
+
+        $this->assertSame([$sent[1]['handlerId']], $sent[3]['handlerIds']);
     }
 
     public function testUnrouteAll(): void
