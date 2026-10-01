@@ -211,6 +211,93 @@ final class RouteTest extends FunctionalTestCase
         $this->assertSame('kept', $result);
     }
 
+    public function testUnrouteWithoutHandlerRemovesEveryRouteOnThatUrl(): void
+    {
+        $this->goto('/index.html');
+        $this->page->route('**/api/data.json', static function (Route $route): void {
+            $route->fulfill(['status' => 200, 'body' => 'first']);
+        });
+        $this->page->route('**/api/data.json', static function (Route $route): void {
+            $route->fulfill(['status' => 200, 'body' => 'second']);
+        });
+        $this->page->route('**/api/other', static function (Route $route): void {
+            $route->fulfill(['status' => 200, 'body' => 'other']);
+        });
+
+        $this->page->unroute('**/api/data.json');
+        $status = $this->page->evaluate('async () => (await fetch("/api/data.json")).status');
+        $other = $this->page->evaluate('async () => (await fetch("/api/other")).text()');
+
+        $this->assertSame(404, $status);
+        $this->assertSame('other', $other);
+    }
+
+    public function testRouteAddedAfterUnrouteAnswersAlone(): void
+    {
+        $this->goto('/index.html');
+        $calls = [];
+        $first = static function (Route $route) use (&$calls): void {
+            $calls[] = 'A';
+            $route->fulfill(['status' => 200, 'body' => 'A']);
+        };
+        $this->page->route('**/api/data.json', $first);
+        $this->page->unroute('**/api/data.json', $first);
+        $this->page->route('**/api/data.json', static function (Route $route) use (&$calls): void {
+            $calls[] = 'B';
+            $route->fulfill(['status' => 200, 'body' => 'B']);
+        });
+
+        $result = $this->page->evaluate('async () => (await fetch("/api/data.json")).text()');
+
+        $this->assertSame('B', $result);
+        $this->assertSame(['B'], $calls);
+    }
+
+    public function testRouteAddedAfterUnrouteAllAnswersAlone(): void
+    {
+        $this->goto('/index.html');
+        $calls = [];
+        $this->page->route('**/api/data.json', static function (Route $route) use (&$calls): void {
+            $calls[] = 'A';
+            $route->fulfill(['status' => 200, 'body' => 'A']);
+        });
+        $this->page->unrouteAll();
+        $this->page->route('**/api/data.json', static function (Route $route) use (&$calls): void {
+            $calls[] = 'B';
+            $route->fulfill(['status' => 200, 'body' => 'B']);
+        });
+
+        $result = $this->page->evaluate('async () => (await fetch("/api/data.json")).text()');
+
+        $this->assertSame('B', $result);
+        $this->assertSame(['B'], $calls);
+    }
+
+    public function testPageAndContextRoutesInFlightTogetherAnswerTheirOwnRequests(): void
+    {
+        $this->goto('/index.html');
+        // Neither request is answered until both are waiting on the server.
+        $held = [];
+        $answerBoth = static function () use (&$held): void {
+            if (2 === \count($held)) {
+                $held['page']->fulfill(['status' => 200, 'body' => 'from page']);
+                $held['context']->fulfill(['status' => 200, 'body' => 'from context']);
+            }
+        };
+        $this->page->route('**/api/data.json', static function (Route $route) use (&$held, $answerBoth): void {
+            $held['page'] = $route;
+            $answerBoth();
+        });
+        $this->context->route('**/api/other', static function (Route $route) use (&$held, $answerBoth): void {
+            $held['context'] = $route;
+            $answerBoth();
+        });
+
+        $result = $this->page->evaluate('async () => Promise.all(["/api/data.json", "/api/other"].map(async url => (await fetch(url)).text()))');
+
+        $this->assertSame(['from page', 'from context'], $result);
+    }
+
     public function testCanMatchRoutePattern(): void
     {
         $this->goto('/network.html');

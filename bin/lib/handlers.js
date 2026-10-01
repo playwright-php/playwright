@@ -243,7 +243,7 @@ class ContextHandler extends BaseHandler {
 
   async unrouteAll(context, contextId, options) {
     await context.unrouteAll(options || {});
-    RouteUtils.forgetRoutes(this.routes, contextId);
+    RouteUtils.forgetRoutes(this.routes, this.routeHandlers, contextId);
   }
 
   setThrottling(command) {
@@ -295,14 +295,11 @@ class ContextHandler extends BaseHandler {
       if (mappedContextId === contextId) {
         this.pageContexts.delete(pageId);
         this.pages.delete(pageId);
+        RouteUtils.forgetRoutes(this.routes, this.routeHandlers, pageId);
       }
     }
 
-    for (const [routeId, info] of this.routes.entries()) {
-      if (info?.contextId === contextId) {
-        this.routes.delete(routeId);
-      }
-    }
+    RouteUtils.forgetRoutes(this.routes, this.routeHandlers, contextId);
   }
 
   async waitForPopup(context, command) {
@@ -402,8 +399,8 @@ class PageHandler extends BaseHandler {
       addScriptTag: () => page.addScriptTag(command.options),
       addStyleTag: () => page.addStyleTag(command.options).then(() => ({ success: true })),
       handleDialog: () => this.handleDialog(command),
-      route: () => RouteUtils.setupRoute(page, command.pageId, command.url, this.generateId, this.routes, this.extractRequestData, this.sendFramedResponse, () => `route_${++this.routeCounter.value}`, command.handlerId),
-      unroute: () => RouteUtils.unroute(page, command.handlerIds || []),
+      route: () => RouteUtils.setupRoute(page, command.pageId, command.url, this.generateId, this.routes, this.extractRequestData, this.sendFramedResponse, this.routeHandlers, command.handlerId),
+      unroute: () => RouteUtils.unroute(page, command.pageId, this.routeHandlers, command.handlerIds || []),
       unrouteAll: () => this.unrouteAll(page, command.pageId, command.options),
       goBack: () => this.followNavigationRedirects(command.pageId, page, () => page.goBack(command.options)),
       goForward: () => this.followNavigationRedirects(command.pageId, page, () => page.goForward(command.options)),
@@ -424,7 +421,7 @@ class PageHandler extends BaseHandler {
   async closePage(pageId) {
     const page = this.pages.get(pageId);
     if (page) { await page.close(); this.pages.delete(pageId); }
-    RouteUtils.forgetRoutes(this.routes, pageId);
+    RouteUtils.forgetRoutes(this.routes, this.routeHandlers, pageId);
   }
 
   async getVideo(page) {
@@ -536,7 +533,7 @@ class PageHandler extends BaseHandler {
 
   async unrouteAll(page, pageId, options) {
     await page.unrouteAll(options || {});
-    RouteUtils.forgetRoutes(this.routes, pageId);
+    RouteUtils.forgetRoutes(this.routes, this.routeHandlers, pageId);
   }
 
   async querySelector(page, command) {

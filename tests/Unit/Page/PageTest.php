@@ -23,6 +23,7 @@ use Playwright\Browser\BrowserContextInterface;
 use Playwright\Clock\ClockInterface;
 use Playwright\Configuration\PlaywrightConfig;
 use Playwright\Console\ConsoleMessage;
+use Playwright\Exception\PlaywrightException;
 use Playwright\Exception\ProtocolErrorException;
 use Playwright\Exception\RuntimeException;
 use Playwright\Exception\TimeoutException;
@@ -699,6 +700,67 @@ class PageTest extends TestCase
         ]);
 
         $this->assertFalse($called);
+    }
+
+    public function testRouteEventAfterUnrouteAllFallsBack(): void
+    {
+        $sent = $this->recordSentCommands();
+        $called = false;
+        $this->page->route('**/api/**', static function () use (&$called): void {
+            $called = true;
+        });
+        $this->page->unrouteAll();
+
+        $this->transport->expects($this->once())
+            ->method('sendAsync')
+            ->with(['action' => 'route.fallback', 'routeId' => 'route_1', 'options' => null]);
+
+        $this->page->dispatchEvent('route', [
+            'routeId' => 'route_1',
+            'handlerId' => $sent[0]['handlerId'],
+            'request' => ['url' => 'https://example.com/api/data'],
+        ]);
+
+        $this->assertFalse($called);
+    }
+
+    public function testRouteEventWithoutHandlerIdFallsBack(): void
+    {
+        $this->recordSentCommands();
+        $called = false;
+        $this->page->route('**/api/**', static function () use (&$called): void {
+            $called = true;
+        });
+
+        $this->transport->expects($this->once())
+            ->method('sendAsync')
+            ->with(['action' => 'route.fallback', 'routeId' => 'route_1', 'options' => null]);
+
+        $this->page->dispatchEvent('route', [
+            'routeId' => 'route_1',
+            'request' => ['url' => 'https://example.com/api/data'],
+        ]);
+
+        $this->assertFalse($called);
+    }
+
+    public function testRouteThatTheServerRejectsIsNotKept(): void
+    {
+        $sent = [];
+        $this->transport->method('send')->willReturnCallback(static function (array $payload) use (&$sent): array {
+            $sent[] = $payload;
+
+            return 'page.route' === $payload['action'] ? ['error' => 'Invalid url'] : [];
+        });
+
+        try {
+            $this->page->route('**/api/**', static function (): void {});
+            $this->fail('route() should rethrow the server error');
+        } catch (PlaywrightException) {
+        }
+        $this->page->unroute('**/api/**');
+
+        $this->assertSame([], $sent[1]['handlerIds']);
     }
 
     public function testUnrouteWithHandlerSendsOnlyItsRegistrations(): void

@@ -188,7 +188,8 @@ final class Page implements PageInterface, EventDispatcherInterface
                 $this->eventHandler->publicEmit('close', []);
                 break;
             case 'route':
-                if (is_string($params['routeId']) && is_array($params['request'])) {
+                $handlerId = $params['handlerId'] ?? null;
+                if (is_string($params['routeId']) && is_array($params['request']) && (null === $handlerId || is_string($handlerId))) {
                     $route = $this->createRoute(
                         $this->pageId,
                         $params['routeId'],
@@ -197,7 +198,7 @@ final class Page implements PageInterface, EventDispatcherInterface
                 } else {
                     break;
                 }
-                $this->dispatchRoute($route, $params['handlerId'] ?? null);
+                $this->dispatchRoute($route, $handlerId);
                 $this->eventHandler->publicEmit('route', [$route]);
                 break;
             default:
@@ -1207,7 +1208,13 @@ final class Page implements PageInterface, EventDispatcherInterface
         // can be routed while the server is still answering it.
         $handlerId = uniqid('handler_', true);
         $this->routeHandlers[$handlerId] = ['url' => $url, 'handler' => $handler];
-        $this->sendCommand('route', ['url' => $url, 'handlerId' => $handlerId]);
+        try {
+            $this->sendCommand('route', ['url' => $url, 'handlerId' => $handlerId]);
+        } catch (\Throwable $e) {
+            unset($this->routeHandlers[$handlerId]);
+
+            throw $e;
+        }
     }
 
     public function unroute(string $url, ?callable $handler = null): void
@@ -1350,9 +1357,9 @@ final class Page implements PageInterface, EventDispatcherInterface
      * A route event carries the registration whose native route matched, so
      * Playwright's own order (newest first, then fallback) decides who answers.
      */
-    private function dispatchRoute(Route $route, mixed $handlerId): void
+    private function dispatchRoute(Route $route, ?string $handlerId): void
     {
-        $registration = \is_string($handlerId) ? ($this->routeHandlers[$handlerId] ?? null) : null;
+        $registration = null === $handlerId ? null : ($this->routeHandlers[$handlerId] ?? null);
         if (null === $registration) {
             $route->fallback();
 
