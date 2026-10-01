@@ -185,11 +185,12 @@ final class Page implements PageInterface, EventDispatcherInterface
                 break;
             case 'close':
                 $this->isClosed = true;
+                $this->routeHandlers = [];
                 $this->eventHandler->publicEmit('close', []);
                 break;
             case 'route':
-                $handlerId = $params['handlerId'] ?? null;
-                if (is_string($params['routeId']) && is_array($params['request']) && (null === $handlerId || is_string($handlerId))) {
+                $handlerId = is_string($params['handlerId'] ?? null) ? $params['handlerId'] : null;
+                if (is_string($params['routeId']) && is_array($params['request'])) {
                     $route = $this->createRoute(
                         $this->pageId,
                         $params['routeId'],
@@ -647,10 +648,12 @@ final class Page implements PageInterface, EventDispatcherInterface
         $this->sendCommand('close');
 
         $this->isClosed = true;
+        $this->routeHandlers = [];
 
         if (method_exists($this->transport, 'removeEventDispatcher')) {
             $this->transport->removeEventDispatcher($this->pageId);
         }
+
         if ($this->context instanceof BrowserContext) {
             $this->context->forgetPage($this);
         }

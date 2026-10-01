@@ -244,12 +244,12 @@ final class RouteTest extends FunctionalTestCase
         $this->page->unroute('**/api/data.json', $first);
         $this->page->route('**/api/data.json', static function (Route $route) use (&$calls): void {
             $calls[] = 'B';
-            $route->fulfill(['status' => 200, 'body' => 'B']);
+            $route->fallback();
         });
 
-        $result = $this->page->evaluate('async () => (await fetch("/api/data.json")).text()');
+        $status = $this->page->evaluate('async () => (await fetch("/api/data.json")).status');
 
-        $this->assertSame('B', $result);
+        $this->assertSame(404, $status);
         $this->assertSame(['B'], $calls);
     }
 
@@ -264,38 +264,54 @@ final class RouteTest extends FunctionalTestCase
         $this->page->unrouteAll();
         $this->page->route('**/api/data.json', static function (Route $route) use (&$calls): void {
             $calls[] = 'B';
-            $route->fulfill(['status' => 200, 'body' => 'B']);
+            $route->fallback();
         });
 
-        $result = $this->page->evaluate('async () => (await fetch("/api/data.json")).text()');
+        $status = $this->page->evaluate('async () => (await fetch("/api/data.json")).status');
 
-        $this->assertSame('B', $result);
+        $this->assertSame(404, $status);
         $this->assertSame(['B'], $calls);
     }
 
-    public function testPageAndContextRoutesInFlightTogetherAnswerTheirOwnRequests(): void
+    public function testContextRouteAddedAfterUnrouteAnswersAlone(): void
     {
         $this->goto('/index.html');
-        // Neither request is answered until both are waiting on the server.
-        $held = [];
-        $answerBoth = static function () use (&$held): void {
-            if (2 === \count($held)) {
-                $held['page']->fulfill(['status' => 200, 'body' => 'from page']);
-                $held['context']->fulfill(['status' => 200, 'body' => 'from context']);
-            }
+        $calls = [];
+        $first = static function (Route $route) use (&$calls): void {
+            $calls[] = 'A';
+            $route->fulfill(['status' => 200, 'body' => 'A']);
         };
-        $this->page->route('**/api/data.json', static function (Route $route) use (&$held, $answerBoth): void {
-            $held['page'] = $route;
-            $answerBoth();
-        });
-        $this->context->route('**/api/other', static function (Route $route) use (&$held, $answerBoth): void {
-            $held['context'] = $route;
-            $answerBoth();
+        $this->context->route('**/api/data.json', $first);
+        $this->context->unroute('**/api/data.json', $first);
+        $this->context->route('**/api/data.json', static function (Route $route) use (&$calls): void {
+            $calls[] = 'B';
+            $route->fallback();
         });
 
-        $result = $this->page->evaluate('async () => Promise.all(["/api/data.json", "/api/other"].map(async url => (await fetch(url)).text()))');
+        $status = $this->page->evaluate('async () => (await fetch("/api/data.json")).status');
 
-        $this->assertSame(['from page', 'from context'], $result);
+        $this->assertSame(404, $status);
+        $this->assertSame(['B'], $calls);
+    }
+
+    public function testContextRouteAddedAfterUnrouteAllAnswersAlone(): void
+    {
+        $this->goto('/index.html');
+        $calls = [];
+        $this->context->route('**/api/data.json', static function (Route $route) use (&$calls): void {
+            $calls[] = 'A';
+            $route->fulfill(['status' => 200, 'body' => 'A']);
+        });
+        $this->context->unrouteAll();
+        $this->context->route('**/api/data.json', static function (Route $route) use (&$calls): void {
+            $calls[] = 'B';
+            $route->fallback();
+        });
+
+        $status = $this->page->evaluate('async () => (await fetch("/api/data.json")).status');
+
+        $this->assertSame(404, $status);
+        $this->assertSame(['B'], $calls);
     }
 
     public function testNewestContextRouteAnswersAndOlderContextRouteNeverRuns(): void

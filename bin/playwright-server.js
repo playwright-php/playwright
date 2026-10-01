@@ -194,6 +194,8 @@ class PlaywrightServer extends BaseHandler {
         sendFramedResponse({ objectId: contextId, event: 'page', params: { pageId } });
       });
     });
+    // A context also closes with its browser, which never goes through closeContext().
+    context.once('close', () => RouteUtils.forgetRoutes(this.routes, this.routeHandlers, contextId));
   }
 
   formatEventParams(eventName, eventData) {

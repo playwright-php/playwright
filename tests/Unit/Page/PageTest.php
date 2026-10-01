@@ -776,6 +776,71 @@ class PageTest extends TestCase
         $this->assertSame([$sent[1]['handlerId']], $sent[3]['handlerIds']);
     }
 
+    public function testRouteEventWithAnInvalidHandlerIdFallsBack(): void
+    {
+        $this->recordSentCommands();
+        $called = false;
+        $this->page->route('**/api/**', static function () use (&$called): void {
+            $called = true;
+        });
+
+        $this->transport->expects($this->once())
+            ->method('sendAsync')
+            ->with(['action' => 'route.fallback', 'routeId' => 'route_1', 'options' => null]);
+
+        $this->page->dispatchEvent('route', [
+            'routeId' => 'route_1',
+            'handlerId' => 42,
+            'request' => ['url' => 'https://example.com/api/data'],
+        ]);
+
+        $this->assertFalse($called);
+    }
+
+    public function testRouteEventAfterCloseFallsBack(): void
+    {
+        $sent = $this->recordSentCommands();
+        $called = false;
+        $this->page->route('**/api/**', static function () use (&$called): void {
+            $called = true;
+        });
+        $this->page->close();
+
+        $this->transport->expects($this->once())
+            ->method('sendAsync')
+            ->with(['action' => 'route.fallback', 'routeId' => 'route_1', 'options' => null]);
+
+        $this->page->dispatchEvent('route', [
+            'routeId' => 'route_1',
+            'handlerId' => $sent[0]['handlerId'],
+            'request' => ['url' => 'https://example.com/api/data'],
+        ]);
+
+        $this->assertFalse($called);
+    }
+
+    public function testRouteEventAfterCloseEventFallsBack(): void
+    {
+        $sent = $this->recordSentCommands();
+        $called = false;
+        $this->page->route('**/api/**', static function () use (&$called): void {
+            $called = true;
+        });
+        $this->page->dispatchEvent('close', []);
+
+        $this->transport->expects($this->once())
+            ->method('sendAsync')
+            ->with(['action' => 'route.fallback', 'routeId' => 'route_1', 'options' => null]);
+
+        $this->page->dispatchEvent('route', [
+            'routeId' => 'route_1',
+            'handlerId' => $sent[0]['handlerId'],
+            'request' => ['url' => 'https://example.com/api/data'],
+        ]);
+
+        $this->assertFalse($called);
+    }
+
     public function testMainFrame(): void
     {
         $page = $this->createPage();

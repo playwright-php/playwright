@@ -117,10 +117,7 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
             if (!is_array($params['request'])) {
                 throw new ProtocolErrorException('Invalid request data in route event', 0);
             }
-            $handlerId = $params['handlerId'] ?? null;
-            if (null !== $handlerId && !is_string($handlerId)) {
-                throw new ProtocolErrorException('Invalid handlerId in route event', 0);
-            }
+            $handlerId = is_string($params['handlerId'] ?? null) ? $params['handlerId'] : null;
             $route = new Route(
                 $this->transport,
                 $params['routeId'],
@@ -557,12 +554,16 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
         $handlerId = uniqid('handler_', true);
         $this->routeHandlers[$handlerId] = ['url' => $url, 'handler' => $handler];
         try {
-            $this->transport->send([
+            $response = $this->transport->send([
                 'action' => 'context.route',
                 'contextId' => $this->contextId,
                 'url' => $url,
                 'handlerId' => $handlerId,
             ]);
+            if (isset($response['error'])) {
+                $errorMsg = is_string($response['error']) ? $response['error'] : 'Unknown transport error';
+                throw new TransportException('Transport error in route: '.$errorMsg);
+            }
         } catch (\Throwable $e) {
             unset($this->routeHandlers[$handlerId]);
 
