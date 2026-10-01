@@ -402,8 +402,8 @@ class PageHandler extends BaseHandler {
       addScriptTag: () => page.addScriptTag(command.options),
       addStyleTag: () => page.addStyleTag(command.options).then(() => ({ success: true })),
       handleDialog: () => this.handleDialog(command),
-      route: () => RouteUtils.setupRoute(page, command.pageId, command.url, this.generateId, this.routes, this.extractRequestData, this.sendFramedResponse, () => `route_${++this.routeCounter.value}`),
-      unroute: () => page.unroute(command.url),
+      route: () => RouteUtils.setupRoute(page, command.pageId, command.url, this.generateId, this.routes, this.extractRequestData, this.sendFramedResponse, () => `route_${++this.routeCounter.value}`, command.handlerId),
+      unroute: () => RouteUtils.unroute(page, command.handlerIds || []),
       unrouteAll: () => this.unrouteAll(page, command.pageId, command.options),
       goBack: () => this.followNavigationRedirects(command.pageId, page, () => page.goBack(command.options)),
       goForward: () => this.followNavigationRedirects(command.pageId, page, () => page.goForward(command.options)),
@@ -424,6 +424,7 @@ class PageHandler extends BaseHandler {
   async closePage(pageId) {
     const page = this.pages.get(pageId);
     if (page) { await page.close(); this.pages.delete(pageId); }
+    RouteUtils.forgetRoutes(this.routes, pageId);
   }
 
   async getVideo(page) {

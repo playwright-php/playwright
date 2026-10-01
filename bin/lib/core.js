@@ -336,17 +336,33 @@ class FrameUtils {
   }
 }
 
+// Playwright removes a single registration only when unroute() gets the very
+// callback route() was given, so each one is kept under the PHP handlerId.
+const routeHandlers = new Map();
+
 class RouteUtils {
-  static async setupRoute(owner, ownerId, url, generateId, routes, extractRequestData, sendFramedResponse, routeIdFactory = null) {
-    await owner.route(url, async (route) => {
+  static async setupRoute(owner, ownerId, url, generateId, routes, extractRequestData, sendFramedResponse, routeIdFactory = null, handlerId = null) {
+    const callback = async (route) => {
       const routeId = typeof routeIdFactory === 'function' ? routeIdFactory() : generateId('route');
       routes.set(routeId, { route, contextId: ownerId });
       const req = route.request();
       const requestData = extractRequestData(req);
       logger.info('ROUTE SETUP', { url: requestData.url || req.url(), method: requestData.method || req.method(), ownerId });
-      sendFramedResponse({ objectId: ownerId, event: 'route', params: { routeId, request: requestData } });
-    });
+      const params = handlerId ? { routeId, handlerId, request: requestData } : { routeId, request: requestData };
+      sendFramedResponse({ objectId: ownerId, event: 'route', params });
+    };
+    await owner.route(url, callback);
+    if (handlerId) routeHandlers.set(handlerId, { ownerId, url, callback });
     return { success: true };
+  }
+
+  static async unroute(owner, handlerIds) {
+    for (const handlerId of handlerIds) {
+      const handler = routeHandlers.get(handlerId);
+      if (!handler) continue;
+      routeHandlers.delete(handlerId);
+      await owner.unroute(handler.url, handler.callback);
+    }
   }
 
   // unrouteAll drops the handlers inside Playwright, but the pending Route
@@ -354,6 +370,9 @@ class RouteUtils {
   static forgetRoutes(routes, ownerId) {
     for (const [routeId, info] of routes.entries()) {
       if (info?.contextId === ownerId) routes.delete(routeId);
+    }
+    for (const [handlerId, handler] of routeHandlers.entries()) {
+      if (handler.ownerId === ownerId) routeHandlers.delete(handlerId);
     }
   }
 }
