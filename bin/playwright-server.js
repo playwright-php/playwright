@@ -455,15 +455,18 @@ process.stdin.on('data', ErrorHandler.wrapHandler(async (chunk) => {
     for (const messageContent of decoded.messages) {
       if (!messageContent.trim()) continue;
       let command;
-      try {
-        command = JSON.parse(messageContent);
-        const result = await server.handleCommand(command);
-        if (result) sendFramedResponse(result);
-      } catch (error) {
+      const fail = (error) => {
         logger.error('SERVER ERROR', { error: error.message, stack: error.stack, command: messageContent });
         const errorResponse = { error: error.message, parseError: true };
         if (command?.requestId) errorResponse.requestId = command.requestId;
         sendFramedResponse(errorResponse);
+      };
+      try {
+        command = JSON.parse(messageContent);
+        // Not awaited, so a slow command cannot hold back the rest of the chunk.
+        server.handleCommand(command).then((result) => { if (result) sendFramedResponse(result); }, fail);
+      } catch (error) {
+        fail(error);
       }
     }
   } catch (error) {
