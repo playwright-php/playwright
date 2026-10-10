@@ -199,7 +199,7 @@ class BaseHandler {
     return { handleId };
   }
   async executeWithRegistry(registry, method, ...args) { return await registry.execute(method, ...args); }
-  async followNavigationRedirects(pageId, page, action) {
+  async followNavigationRedirects(pageId, page, action, settlesOnRedirect = false) {
     let nextAction = action;
     let redirectCount = 0;
     let result;
@@ -208,8 +208,10 @@ class BaseHandler {
       this.navigationRedirects.delete(pageId);
 
       try {
-        // from Playwright 1.64, an action whose navigation ends in the redirect's 204 never settles
-        result = await Promise.race([nextAction(), this.navigationRedirects.fulfilled(pageId)]);
+        // from Playwright 1.64 only goto() settles on the redirect's 204; a goto() to the same url before it does fails with net::ERR_ABORTED
+        result = await (settlesOnRedirect
+          ? nextAction()
+          : Promise.race([nextAction(), this.navigationRedirects.fulfilled(pageId)]));
       } catch (error) {
         if (!this.navigationRedirects.has(pageId)) throw error;
       }
@@ -222,6 +224,7 @@ class BaseHandler {
         throw new Error(`Too many navigation redirects for page ${pageId}`);
       }
       nextAction = () => page.goto(target);
+      settlesOnRedirect = true;
     }
   }
 }

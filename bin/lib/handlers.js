@@ -440,7 +440,8 @@ class PageHandler extends BaseHandler {
     const gotoResponse = await this.followNavigationRedirects(
       command.pageId,
       page,
-      () => page.goto(command.url, command.options)
+      () => page.goto(command.url, command.options),
+      true
     );
     return { response: this.serializeResponse(gotoResponse) };
   }
