@@ -199,8 +199,14 @@ final class Page implements PageInterface, EventDispatcherInterface
                 } else {
                     break;
                 }
-                $this->dispatchRoute($route, $handlerId);
-                $this->eventHandler->publicEmit('route', [$route]);
+                try {
+                    $this->dispatchRoute($route, $handlerId);
+                    $this->eventHandler->publicEmit('route', [$route]);
+                } catch (\Throwable $e) {
+                    $route->abortUnlessHandled();
+
+                    throw $e;
+                }
                 break;
             default:
                 $this->eventHandler->publicEmit($eventName, $params);

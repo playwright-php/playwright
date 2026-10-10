@@ -20,6 +20,8 @@ final class Route implements RouteInterface
 {
     private RequestInterface $request;
 
+    private bool $handled = false;
+
     /**
      * @param array<string, mixed> $requestData
      */
@@ -38,6 +40,8 @@ final class Route implements RouteInterface
 
     public function abort(string $errorCode = 'failed'): void
     {
+        $this->handled = true;
+
         $this->transport->sendAsync([
             'action' => 'route.abort',
             'routeId' => $this->routeId,
@@ -47,6 +51,8 @@ final class Route implements RouteInterface
 
     public function continue(?array $options = null): void
     {
+        $this->handled = true;
+
         $this->transport->sendAsync([
             'action' => 'route.continue',
             'routeId' => $this->routeId,
@@ -61,6 +67,8 @@ final class Route implements RouteInterface
      */
     public function redirectNavigationRequest(string $url, array $options = []): void
     {
+        $this->handled = true;
+
         $this->transport->sendAsync([
             'action' => 'route.redirectNavigationRequest',
             'routeId' => $this->routeId,
@@ -71,6 +79,8 @@ final class Route implements RouteInterface
 
     public function fulfill(array $options): void
     {
+        $this->handled = true;
+
         $this->transport->sendAsync([
             'action' => 'route.fulfill',
             'routeId' => $this->routeId,
@@ -80,11 +90,25 @@ final class Route implements RouteInterface
 
     public function fallback(?array $options = null): void
     {
+        $this->handled = true;
+
         $this->transport->sendAsync([
             'action' => 'route.fallback',
             'routeId' => $this->routeId,
             'options' => $options,
         ]);
+    }
+
+    /**
+     * A handler that throws must not leave its request hanging in the browser.
+     *
+     * @internal
+     */
+    public function abortUnlessHandled(): void
+    {
+        if (!$this->handled) {
+            $this->abort('aborted');
+        }
     }
 
     public function fetch(?array $options = null): ResponseInterface

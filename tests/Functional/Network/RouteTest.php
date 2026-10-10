@@ -613,4 +613,69 @@ final class RouteTest extends FunctionalTestCase
         $cookies = $this->context->cookies([$baseUrl]);
         $this->assertSame('yes', array_column($cookies, 'value', 'name')['redirected'] ?? null);
     }
+
+    public function testRouteHandlerExceptionIsThrownOnceTheNavigationSettles(): void
+    {
+        $url = $this->getBaseUrl().'/throws';
+        $this->page->route('**/throws', $this->throwingOnceHandler());
+
+        try {
+            $this->page->goto($url);
+            $this->fail('The route handler exception was not thrown.');
+        } catch (\RuntimeException $e) {
+            $this->assertSame('handler failed', $e->getMessage());
+        }
+
+        $this->page->goto($url);
+
+        $this->assertSame('recovered', $this->page->locator('body')->textContent());
+    }
+
+    public function testRouteHandlerExceptionIsThrownOnceTheClickSettles(): void
+    {
+        $this->goto('/index.html');
+        $this->page->evaluate("document.body.innerHTML = '<a href=\"/throws\">go</a>'");
+        $this->page->route('**/throws', $this->throwingOnceHandler());
+
+        try {
+            $this->page->locator('a')->click();
+            $this->fail('The route handler exception was not thrown.');
+        } catch (\RuntimeException $e) {
+            $this->assertSame('handler failed', $e->getMessage());
+        }
+
+        $this->page->goto($this->getBaseUrl().'/throws');
+
+        $this->assertSame('recovered', $this->page->locator('body')->textContent());
+    }
+
+    public function testContextRouteHandlerExceptionIsThrownOnceTheNavigationSettles(): void
+    {
+        $url = $this->getBaseUrl().'/throws';
+        $this->context->route('**/throws', $this->throwingOnceHandler());
+
+        try {
+            $this->page->goto($url);
+            $this->fail('The route handler exception was not thrown.');
+        } catch (\RuntimeException $e) {
+            $this->assertSame('handler failed', $e->getMessage());
+        }
+
+        $this->page->goto($url);
+
+        $this->assertSame('recovered', $this->page->locator('body')->textContent());
+    }
+
+    private function throwingOnceHandler(): \Closure
+    {
+        $calls = 0;
+
+        return static function (Route $route) use (&$calls): void {
+            if (1 === ++$calls) {
+                throw new \RuntimeException('handler failed');
+            }
+
+            $route->fulfill(['status' => 200, 'contentType' => 'text/html', 'body' => 'recovered']);
+        };
+    }
 }
