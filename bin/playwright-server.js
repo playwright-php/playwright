@@ -1,5 +1,5 @@
 const {chromium, firefox, webkit, request} = require('playwright');
-const { logger, ErrorHandler, LspFraming, sendFramedResponse, CommandRegistry, BaseHandler } = require('./lib/core');
+const { logger, ErrorHandler, LspFraming, sendFramedResponse, CommandRegistry, NavigationRedirects, BaseHandler } = require('./lib/core');
 const { APIRequestHandler, ContextHandler, PageHandler, LocatorHandler, InteractionHandler, FrameHandler, JSHandleHandler, SelectorsHandler, VideoHandler } = require('./lib/handlers');
 const { globalCoordinator } = require('./lib/coordination');
 
@@ -20,7 +20,7 @@ class PlaywrightServer extends BaseHandler {
     this.dialogs = new Map();
     this.elementHandles = new Map();
     this.contextThrottling = new Map();
-    this.navigationRedirects = new Map();
+    this.navigationRedirects = new NavigationRedirects();
     this.servers = new Map();
     this.videos = new Map();
     this.apiContexts = new Map();
@@ -148,6 +148,7 @@ class PlaywrightServer extends BaseHandler {
     if (!this.pages.has(info.contextId)) throw new Error('Navigation redirects require a page route');
     this.navigationRedirects.set(info.contextId, command.url);
     await route.fulfill({ status: 204, headers: command.options?.headers });
+    this.navigationRedirects.markFulfilled(info.contextId);
   }
 
   async continueRoute(route, info, command) {

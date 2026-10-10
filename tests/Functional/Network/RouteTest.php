@@ -221,6 +221,20 @@ final class RouteTest extends FunctionalTestCase
         $this->assertSame($baseUrl.'/page-2.html', $this->page->url());
     }
 
+    public function testCanRedirectNavigationRequestAfterFormSubmit(): void
+    {
+        $baseUrl = $this->getBaseUrl();
+        $this->goto('/index.html');
+        $this->page->evaluate("document.body.innerHTML = '<form method=\"post\" action=\"/login\"><button>Log in</button></form>'");
+        $this->page->route('**/login', static function (Route $route) use ($baseUrl): void {
+            $route->redirectNavigationRequest($baseUrl.'/page-2.html');
+        });
+
+        $this->page->locator('button')->click();
+
+        $this->assertSame($baseUrl.'/page-2.html', $this->page->url());
+    }
+
     public function testCanRedirectNavigationRequestAfterReload(): void
     {
         $baseUrl = $this->getBaseUrl();

@@ -167,6 +167,15 @@ class CommandRegistry {
   }
 }
 
+class NavigationRedirects extends Map {
+  #waiters = new Map();
+  fulfilled(pageId) { return new Promise(resolve => this.#waiters.set(pageId, resolve)); }
+  markFulfilled(pageId) {
+    this.#waiters.get(pageId)?.();
+    this.#waiters.delete(pageId);
+  }
+}
+
 class BaseHandler {
   constructor(deps = {}) { Object.assign(this, deps); }
   validateResource(resourceMap, resourceId, resourceType) {
@@ -199,7 +208,8 @@ class BaseHandler {
       this.navigationRedirects.delete(pageId);
 
       try {
-        result = await nextAction();
+        // from Playwright 1.64, an action whose navigation ends in the redirect's 204 never settles
+        result = await Promise.race([nextAction(), this.navigationRedirects.fulfilled(pageId)]);
       } catch (error) {
         if (!this.navigationRedirects.has(pageId)) throw error;
       }
@@ -330,5 +340,5 @@ const logger = new Logger();
 
 module.exports = {
   logger, ErrorHandler, LspFraming, sendFramedResponse,
-  CommandRegistry, BaseHandler, PromiseUtils, FrameUtils, RouteUtils,
+  CommandRegistry, NavigationRedirects, BaseHandler, PromiseUtils, FrameUtils, RouteUtils,
 };
