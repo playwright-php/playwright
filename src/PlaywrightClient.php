@@ -176,6 +176,10 @@ class PlaywrightClient
             $builder->withChannel($this->config->channel);
         }
 
+        if (null !== $this->config->executablePath) {
+            $builder->withExecutablePath($this->config->executablePath);
+        }
+
         if (null !== $this->config->proxy) {
             $builder->withProxy($this->config->proxy);
         }

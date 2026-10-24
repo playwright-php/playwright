@@ -32,6 +32,7 @@ class PlaywrightConfigBuilderTest extends TestCase
             'PLAYWRIGHT_BROWSERS_PATH',
             'PW_BROWSER',
             'PW_CHANNEL',
+            'PW_EXECUTABLE_PATH',
             'PW_HEADLESS',
             'PW_TIMEOUT_MS',
             'PW_SLOWMO_MS',
@@ -101,6 +102,7 @@ class PlaywrightConfigBuilderTest extends TestCase
             ->withNodePath('/usr/local/bin/node')
             ->withMinNodeVersion('20.0.0')
             ->withChannel('stable')
+            ->withExecutablePath('/usr/bin/chromium')
             ->withDownloadsDir('/tmp/downloads')
             ->withVideosDir('/tmp/videos')
             ->withLogger($logger)
@@ -113,6 +115,7 @@ class PlaywrightConfigBuilderTest extends TestCase
         $this->assertEquals('/usr/local/bin/node', $config->nodePath);
         $this->assertEquals('20.0.0', $config->minNodeVersion);
         $this->assertEquals('stable', $config->channel);
+        $this->assertEquals('/usr/bin/chromium', $config->executablePath);
         $this->assertEquals('/tmp/downloads', $config->downloadsDir);
         $this->assertEquals('/tmp/videos', $config->videosDir);
         $this->assertSame($logger, $config->logger);
@@ -239,6 +242,7 @@ class PlaywrightConfigBuilderTest extends TestCase
         putenv('PLAYWRIGHT_BROWSERS_PATH=/env/ms-playwright');
         putenv('PW_BROWSER=firefox');
         putenv('PW_CHANNEL=nightly');
+        putenv('PW_EXECUTABLE_PATH=/env/chromium');
         putenv('PW_HEADLESS=false');
         putenv('PW_TIMEOUT_MS=60000');
         putenv('PW_SLOWMO_MS=500');
@@ -258,6 +262,7 @@ class PlaywrightConfigBuilderTest extends TestCase
         $this->assertEquals('/env/ms-playwright', $config->env['PLAYWRIGHT_BROWSERS_PATH'] ?? null);
         $this->assertEquals(BrowserType::FIREFOX, $config->browser);
         $this->assertEquals('nightly', $config->channel);
+        $this->assertEquals('/env/chromium', $config->executablePath);
         $this->assertFalse($config->headless);
         $this->assertEquals(60000, $config->timeoutMs);
         $this->assertEquals(500, $config->slowMoMs);
@@ -329,12 +334,14 @@ class PlaywrightConfigBuilderTest extends TestCase
     {
         $config = PlaywrightConfigBuilder::create()
             ->withChannel('')
+            ->withExecutablePath('')
             ->withDownloadsDir('')
             ->withVideosDir('')
             ->withTracing(true, '')
             ->build();
 
         $this->assertNull($config->channel);
+        $this->assertNull($config->executablePath);
         $this->assertNull($config->downloadsDir);
         $this->assertNull($config->videosDir);
         $this->assertNull($config->traceDir);

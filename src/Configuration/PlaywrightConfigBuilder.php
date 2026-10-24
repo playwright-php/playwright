@@ -36,6 +36,8 @@ final class PlaywrightConfigBuilder
 
     private ?string $channel = null;
 
+    private ?string $executablePath = null;
+
     private bool $headless = true;
 
     private int $timeoutMs = 30_000;
@@ -105,6 +107,9 @@ final class PlaywrightConfigBuilder
         if ($channel = $get('PW_CHANNEL')) {
             $b->withChannel($channel);
         }
+        if ($executablePath = $get('PW_EXECUTABLE_PATH')) {
+            $b->withExecutablePath($executablePath);
+        }
         if (($headless = $get('PW_HEADLESS')) !== null) {
             $b->withHeadless(self::strToBool($headless));
         }
@@ -162,6 +167,13 @@ final class PlaywrightConfigBuilder
     public function withChannel(?string $channel): self
     {
         $this->channel = $channel ?: null;
+
+        return $this;
+    }
+
+    public function withExecutablePath(?string $executablePath): self
+    {
+        $this->executablePath = $executablePath ?: null;
 
         return $this;
     }
@@ -309,7 +321,8 @@ final class PlaywrightConfigBuilder
             traceScreenshots: $this->traceScreenshots,
             traceSnapshots: $this->traceSnapshots,
             proxy: $this->proxy,
-            logger: $this->logger
+            logger: $this->logger,
+            executablePath: $this->executablePath,
         );
     }
 

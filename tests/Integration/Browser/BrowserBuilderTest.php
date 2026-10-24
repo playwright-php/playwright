@@ -191,6 +191,20 @@ class BrowserBuilderTest extends TestCase
     }
 
     #[Test]
+    public function itSendsTheExecutablePathInTheLaunchPayload(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static function (array $message): bool {
+                return 'launch' === $message['action']
+                    && '/usr/bin/chromium' === $message['options']['executablePath'];
+            }))
+            ->willReturn(['browserId' => 'b', 'defaultContextId' => 'c', 'version' => '1.0']);
+
+        $this->builder->withExecutablePath('/usr/bin/chromium')->launch();
+    }
+
+    #[Test]
     public function itSendsTheFullProxyArrayInTheLaunchPayload(): void
     {
         $proxy = [

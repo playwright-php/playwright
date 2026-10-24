@@ -101,6 +101,28 @@ vendor/bin/playwright-install chrome
 `PW_CHANNEL=chrome` provides the same launch choice when configuration is built
 with `PlaywrightConfigBuilder::fromEnv()`.
 
+## Launch a browser from a custom path
+
+An executable path launches a browser binary that Playwright does not manage,
+such as a Chromium-based browser installed on the machine. Brave on macOS:
+
+```php
+$config = PlaywrightConfigBuilder::create()
+    ->withExecutablePath('/Applications/Brave Browser.app/Contents/MacOS/Brave Browser')
+    ->build();
+
+$playwright = PlaywrightFactory::create($config);
+$browser = $playwright->chromium()->launch();
+```
+
+The binary must match the launched browser type. Firefox and WebKit still need
+Playwright's patched builds, so in practice this is for Chromium-based
+browsers. Playwright does not guarantee that versions other than its bundled
+one work.
+
+`PW_EXECUTABLE_PATH` provides the same launch choice when configuration is
+built with `PlaywrightConfigBuilder::fromEnv()`.
+
 ## Keep the browser cache consistent
 
 Set `PLAYWRIGHT_BROWSERS_PATH` during installation and at runtime when managed

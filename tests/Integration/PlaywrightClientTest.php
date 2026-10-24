@@ -149,6 +149,26 @@ class PlaywrightClientTest extends TestCase
     }
 
     #[Test]
+    public function itAppliesExecutablePathFromTheConfig(): void
+    {
+        $transport = $this->createMock(TransportInterface::class);
+        $transport->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static function (array $message): bool {
+                return 'launch' === $message['action']
+                    && '/usr/bin/chromium' === $message['options']['executablePath'];
+            }))
+            ->willReturn(['browserId' => 'b', 'defaultContextId' => 'c', 'version' => '1.0']);
+
+        $config = new PlaywrightConfig(
+            nodePath: '/usr/bin/node',
+            executablePath: '/usr/bin/chromium',
+        );
+
+        (new PlaywrightClient($transport, new NullLogger(), $config))->chromium()->launch();
+    }
+
+    #[Test]
     public function itLeavesUnsetConfigOptionsOutOfTheLaunchPayload(): void
     {
         $transport = $this->createMock(TransportInterface::class);
@@ -157,6 +177,7 @@ class PlaywrightClientTest extends TestCase
             ->with($this->callback(static function (array $message): bool {
                 return 'launch' === $message['action']
                     && !array_key_exists('channel', $message['options'])
+                    && !array_key_exists('executablePath', $message['options'])
                     && !array_key_exists('proxy', $message['options'])
                     && !array_key_exists('downloadsPath', $message['options']);
             }))
