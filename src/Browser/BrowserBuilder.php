@@ -57,6 +57,16 @@ final class BrowserBuilder
     }
 
     /**
+     * Launches the browser binary at this path instead of the bundled one.
+     */
+    public function withExecutablePath(string $path): self
+    {
+        $this->launchOptions['executablePath'] = $path;
+
+        return $this;
+    }
+
+    /**
      * @param array{server: string, username?: string, password?: string, bypass?: string} $proxy
      */
     public function withProxy(array $proxy): self
