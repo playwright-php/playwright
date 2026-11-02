@@ -224,13 +224,19 @@ final class BrowserBuilder
             throw new PlaywrightException('Invalid version returned from transport');
         }
 
+        $pageIds = $response['pageIds'] ?? [];
+        if (!is_array($pageIds)) {
+            throw new PlaywrightException('Invalid pageIds returned from transport');
+        }
+
         return new Browser(
             $this->transport,
             $response['browserId'],
             $response['defaultContextId'],
             $response['version'],
             $this->config,
-            $this->toBrowserType()
+            $this->toBrowserType(),
+            array_values(array_filter($pageIds, 'is_string'))
         );
     }
 

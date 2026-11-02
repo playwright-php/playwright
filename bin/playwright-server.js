@@ -184,13 +184,18 @@ class PlaywrightServer extends BaseHandler {
         for (const existing of this.pages.values()) {
           if (existing === newPage) return;
         }
-        const pageId = this.generateId('page');
-        this.pages.set(pageId, newPage);
-        this.pageContexts.set(pageId, contextId);
-        this.setupPageEventListeners(newPage, pageId);
+        const pageId = this.registerPage(newPage, contextId);
         sendFramedResponse({ objectId: contextId, event: 'page', params: { pageId } });
       });
     });
+  }
+
+  registerPage(page, contextId) {
+    const pageId = this.generateId('page');
+    this.pages.set(pageId, page);
+    this.pageContexts.set(pageId, contextId);
+    this.setupPageEventListeners(page, pageId);
+    return pageId;
   }
 
   formatEventParams(eventName, eventData) {
@@ -417,11 +422,14 @@ class PlaywrightServer extends BaseHandler {
       const attached = await chromium.connectOverCDP(endpointURL, options || {});
       const browserId = this.generateId('browser');
       this.browsers.set(browserId, attached);
-      const context = await attached.newContext();
+      // A context from newContext() is disposed on disconnect and takes its pages with it.
+      // The browser's own context outlives this client, so a later client finds the same pages.
+      const context = attached.contexts()[0] ?? await attached.newContext();
       const contextId = this.generateId('context');
       this.contexts.set(contextId, { context, browserId, id: contextId });
+      const pageIds = context.pages().map((page) => this.registerPage(page, contextId));
       this.registerContextPopups(context, contextId);
-      return { browserId, defaultContextId: contextId, version: attached.version() };
+      return { browserId, defaultContextId: contextId, version: attached.version(), pageIds };
     } catch (error) {
       logger.error('connectOverCDP error', { message: error.message });
       throw error;

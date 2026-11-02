@@ -95,16 +95,28 @@ final class BrowserBuilderConnectTest extends TestCase
         $this->assertSame(['headers' => ['authorization' => 'Bearer t0ken']], $sent[0]['options']);
     }
 
+    public function testConnectOverCdpExposesThePagesTheContextAlreadyHolds(): void
+    {
+        $logger = new TestLogger();
+        $sent = [];
+
+        $browser = $this->builder($logger, $sent, ['page_1', 'page_2'])->connectOverCDP(self::CDP_ENDPOINT);
+
+        $this->assertCount(2, $browser->context()->pages());
+        $this->assertCount(1, $sent);
+    }
+
     /**
      * @param array<int, array<string, mixed>> $sent
+     * @param list<string>                     $pageIds
      */
-    private function builder(TestLogger $logger, array &$sent): BrowserBuilder
+    private function builder(TestLogger $logger, array &$sent, array $pageIds = []): BrowserBuilder
     {
         $transport = $this->createMock(TransportInterface::class);
-        $transport->method('send')->willReturnCallback(function (array $payload) use (&$sent): array {
+        $transport->method('send')->willReturnCallback(function (array $payload) use (&$sent, $pageIds): array {
             $sent[] = $payload;
 
-            return ['browserId' => 'b1', 'defaultContextId' => 'ctx1', 'version' => '1.0'];
+            return ['browserId' => 'b1', 'defaultContextId' => 'ctx1', 'version' => '1.0', 'pageIds' => $pageIds];
         });
 
         return new BrowserBuilder('chromium', $transport, $logger, new PlaywrightConfig());

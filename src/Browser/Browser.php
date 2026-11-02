@@ -30,6 +30,9 @@ final class Browser implements BrowserInterface
 
     private bool $isConnected = true;
 
+    /**
+     * @param list<string> $existingPageIds Pages the default context already holds on the server
+     */
     public function __construct(
         private readonly TransportInterface $transport,
         private readonly string $browserId,
@@ -37,8 +40,9 @@ final class Browser implements BrowserInterface
         private readonly string $version,
         private readonly PlaywrightConfig $config,
         private readonly BrowserType $browserType = BrowserType::CHROMIUM,
+        array $existingPageIds = [],
     ) {
-        $this->defaultContext = new BrowserContext($this->transport, $this->defaultContextId, $this->config, $this);
+        $this->defaultContext = new BrowserContext($this->transport, $this->defaultContextId, $this->config, $this, $existingPageIds);
         $this->contexts[] = $this->defaultContext;
     }
 

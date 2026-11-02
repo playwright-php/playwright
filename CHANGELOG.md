@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Fixed
+- `connectOverCDP()` reuses the browser's existing context and lists its open pages, so a disconnect no longer destroys them (#99)
+
 ## [1.5.0] - 2026-09-20
 
 ### Added
