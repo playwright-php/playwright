@@ -65,17 +65,25 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
 
     private ?APIRequestContextInterface $apiRequestContext = null;
 
+    /**
+     * @param list<string> $existingPageIds Pages this context already holds on the server
+     */
     public function __construct(
         private readonly TransportInterface $transport,
         private readonly string $contextId,
         private readonly PlaywrightConfig $config,
         private readonly ?BrowserInterface $browser = null,
+        array $existingPageIds = [],
     ) {
         if (method_exists($this->transport, 'addEventDispatcher')) {
             $this->transport->addEventDispatcher($this->contextId, $this);
         }
 
         $this->clock = new Clock($this->transport, $this->contextId);
+
+        foreach ($existingPageIds as $pageId) {
+            $this->pages[$pageId] = new Page($this->transport, $this, $pageId, $this->config);
+        }
 
         if ($this->config->tracingEnabled) {
             $this->transport->send([

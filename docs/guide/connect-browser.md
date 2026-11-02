@@ -93,8 +93,8 @@ $playwright = PlaywrightFactory::create();
 $cdpEndpoint = getenv('CDP_ENDPOINT') ?: 'http://127.0.0.1:9222';
 
 $browser = $playwright->chromium()->connectOverCDP($cdpEndpoint);
-$context = $browser->newContext();
-$page = $context->newPage();
+$context = $browser->context();
+$page = $context->pages()[0] ?? $context->newPage();
 $page->goto('https://example.com');
 
 echo $page->title().PHP_EOL;
@@ -102,6 +102,8 @@ echo $page->title().PHP_EOL;
 $browser->close();
 $playwright->close();
 ```
+
+`$browser->context()` is the browser's existing context, and `pages()` lists the pages already open in it. Closing the client disconnects from the browser and leaves those pages open, so a later client finds them. A context from `$browser->newContext()` is destroyed with its pages on disconnect.
 
 ## Troubleshooting
 
