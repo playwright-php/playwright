@@ -318,12 +318,9 @@ class PlaywrightServer extends BaseHandler {
 
   cleanupBrowserResources(browserId) {
     for (const [contextId, contextInfo] of this.contexts.entries()) {
-      if (contextInfo.browserId === browserId) this.contexts.delete(contextId);
-    }
-    for (const [pageId, page] of this.pages.entries()) {
-      try {
-        if (page.context().browser() === this.browsers.get(browserId)) this.pages.delete(pageId);
-      } catch { this.pages.delete(pageId); }
+      if (contextInfo.browserId === browserId) {
+        this.contextHandler.cleanupContextResources(contextId);
+      }
     }
   }
 
