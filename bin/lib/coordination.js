@@ -20,6 +20,7 @@ class AsyncCommandCoordinator {
         this.commandSequences.set(requestId, {
             phases,
             currentPhase: 0,
+            executing: false,
             phaseData: {},
             startTime: Date.now(),
             requestId
@@ -46,6 +47,7 @@ class AsyncCommandCoordinator {
             currentPhase: sequence.currentPhase 
         });
         
+        sequence.executing = true;
         try {
             const result = await phase.handler(sequence.phaseData);
 
@@ -76,7 +78,7 @@ class AsyncCommandCoordinator {
                         elapsed: Date.now() - sequence.startTime 
                     });
 
-                    this.commandSequences.delete(requestId);
+                    this.removeSequence(requestId);
                     return { completed: true, result: sequence.phaseData };
                 } else {
                     logger.info('Advancing to next phase', { 
@@ -94,8 +96,10 @@ class AsyncCommandCoordinator {
                 error: error.message 
             });
             
-            this.commandSequences.delete(requestId);
+            this.removeSequence(requestId);
             throw error;
+        } finally {
+            sequence.executing = false;
         }
     }
 
@@ -118,7 +122,7 @@ class AsyncCommandCoordinator {
         
         if (sequence.currentPhase >= sequence.phases.length) {
             // All phases complete
-            this.commandSequences.delete(requestId);
+            this.removeSequence(requestId);
             return { completed: true, result: sequence.phaseData };
         } else {
             // Continue to next phase
@@ -162,13 +166,31 @@ class AsyncCommandCoordinator {
     cleanupTimedOutSequences(maxAge = 60000) {
         const now = Date.now();
         for (const [requestId, sequence] of this.commandSequences.entries()) {
-            if (now - sequence.startTime > maxAge) {
+            const timeout = sequence.phaseData.timeout;
+            // Native handlers own their timeout and listener cleanup. Do not
+            // discard a running phase or impose a limit on an unlimited wait.
+            if (sequence.executing || timeout === 0) continue;
+
+            // Allow the operation's full budget, then a grace period for PHP
+            // to finish its callback and collect the result (including errors).
+            const expiryAge = typeof timeout === 'number' && Number.isFinite(timeout) && timeout > 0
+                ? timeout + maxAge
+                : maxAge;
+            if (now - sequence.startTime > expiryAge) {
                 logger.warn('Cleaning up timed out sequence', { 
                     requestId, 
                     elapsed: now - sequence.startTime 
                 });
-                this.commandSequences.delete(requestId);
+                this.removeSequence(requestId);
             }
+        }
+    }
+
+    removeSequence(requestId) {
+        this.commandSequences.delete(requestId);
+        if (this.commandSequences.size === 0 && this.cleanupInterval !== null) {
+            clearInterval(this.cleanupInterval);
+            this.cleanupInterval = null;
         }
     }
 
@@ -183,12 +205,6 @@ class AsyncCommandCoordinator {
         if (this.cleanupInterval === null) {
             this.cleanupInterval = setInterval(() => {
                 this.cleanupTimedOutSequences();
-                
-                // Stop interval when no sequences are active
-                if (this.commandSequences.size === 0) {
-                    clearInterval(this.cleanupInterval);
-                    this.cleanupInterval = null;
-                }
             }, 60000);
         }
     }
