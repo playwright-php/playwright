@@ -1,5 +1,5 @@
 const {chromium, firefox, webkit, request} = require('playwright');
-const { logger, ErrorHandler, LspFraming, sendFramedResponse, CommandRegistry, NavigationRedirects, BaseHandler } = require('./lib/core');
+const { logger, ErrorHandler, LspFraming, sendFramedResponse, CommandRegistry, NavigationRedirects, BaseHandler, RouteUtils } = require('./lib/core');
 const { APIRequestHandler, ContextHandler, PageHandler, LocatorHandler, InteractionHandler, FrameHandler, JSHandleHandler, SelectorsHandler, VideoHandler } = require('./lib/handlers');
 const { globalCoordinator } = require('./lib/coordination');
 
@@ -17,6 +17,7 @@ class PlaywrightServer extends BaseHandler {
     this.pageContexts = new Map();
     this.responses = new Map();
     this.routes = new Map();
+    this.routeHandlers = new Map();
     this.dialogs = new Map();
     this.elementHandles = new Map();
     this.contextThrottling = new Map();
@@ -32,12 +33,11 @@ class PlaywrightServer extends BaseHandler {
       contexts: this.contexts, contextThrottling: this.contextThrottling, pages: this.pages,
       apiContexts: this.apiContexts, apiRequest: request,
       pageContexts: this.pageContexts, dialogs: this.dialogs, elementHandles: this.elementHandles,
-      responses: this.responses, routes: this.routes, videos: this.videos, generateId: this.generateId.bind(this),
+      responses: this.responses, routes: this.routes, routeHandlers: this.routeHandlers, videos: this.videos, generateId: this.generateId.bind(this),
       navigationRedirects: this.navigationRedirects,
       extractRequestData: this.extractRequestData.bind(this), serializeResponse: this.serializeResponse.bind(this),
       serializeConsoleMessage: this.serializeConsoleMessage.bind(this),
       sendFramedResponse,
-      routeCounter: { value: this.counters.route },
       setupPageEventListeners: this.setupPageEventListeners.bind(this)
     };
     this.apiRequestHandler = new APIRequestHandler(deps);
@@ -128,7 +128,8 @@ class PlaywrightServer extends BaseHandler {
       fulfill: () => this.fulfillRoute(route, command.options),
       abort: () => route.abort(command.errorCode),
       redirectNavigationRequest: () => this.redirectNavigationRequest(route, info, command),
-      continue: () => this.continueRoute(route, info, command)
+      continue: () => this.continueRoute(route, info, command),
+      fallback: () => route.fallback(command.options || undefined)
     });
     logger.info(`ROUTE ${method.toUpperCase()}`, { routeId: command.routeId });
     await ErrorHandler.safeExecute(() => this.executeWithRegistry(registry, method), { method, routeId: command.routeId });
@@ -174,6 +175,7 @@ class PlaywrightServer extends BaseHandler {
         sendFramedResponse({ objectId: pageId, event: eventName, params });
       }));
     });
+    page.once('close', () => RouteUtils.forgetRoutes(this.routes, this.routeHandlers, pageId));
   }
 
   // Pages opened by the browser itself (window.open(), target="_blank", ...) never go through
@@ -192,6 +194,8 @@ class PlaywrightServer extends BaseHandler {
         sendFramedResponse({ objectId: contextId, event: 'page', params: { pageId } });
       });
     });
+    // A context also closes with its browser, which never goes through closeContext().
+    context.once('close', () => RouteUtils.forgetRoutes(this.routes, this.routeHandlers, contextId));
   }
 
   formatEventParams(eventName, eventData) {

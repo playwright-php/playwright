@@ -31,5 +31,10 @@ interface PageEventHandlerInterface
 
     public function onRequestFailed(callable $handler): void;
 
+    /**
+     * Observes routed requests only: the handler registered with route()
+     * answers each one before these listeners run, so they must not
+     * fulfill, abort, continue or fall back the route themselves.
+     */
     public function onRoute(callable $handler): void;
 }

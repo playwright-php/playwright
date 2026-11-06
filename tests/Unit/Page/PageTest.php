@@ -23,6 +23,7 @@ use Playwright\Browser\BrowserContextInterface;
 use Playwright\Clock\ClockInterface;
 use Playwright\Configuration\PlaywrightConfig;
 use Playwright\Console\ConsoleMessage;
+use Playwright\Exception\PlaywrightException;
 use Playwright\Exception\ProtocolErrorException;
 use Playwright\Exception\RuntimeException;
 use Playwright\Exception\TimeoutException;
@@ -649,12 +650,195 @@ class PageTest extends TestCase
             ->method('send')
             ->with([
                 'url' => '**/api/**',
+                'handlerIds' => [],
                 'action' => 'page.unroute',
                 'pageId' => 'page-id',
             ])
             ->willReturn([]);
 
         $page->unroute('**/api/**');
+    }
+
+    public function testRouteEventRunsOnlyTheHandlerThatRegisteredIt(): void
+    {
+        $sent = $this->recordSentCommands();
+        $calls = [];
+        $this->page->route('**/api/**', static function () use (&$calls): void {
+            $calls[] = 'first';
+        });
+        $this->page->route('**/api/**', static function () use (&$calls): void {
+            $calls[] = 'second';
+        });
+
+        $this->page->dispatchEvent('route', [
+            'routeId' => 'route_1',
+            'handlerId' => $sent[1]['handlerId'],
+            'request' => ['url' => 'https://example.com/api/data'],
+        ]);
+
+        $this->assertSame(['second'], $calls);
+    }
+
+    public function testRouteEventForAnUnroutedHandlerFallsBack(): void
+    {
+        $sent = $this->recordSentCommands();
+        $called = false;
+        $handler = static function () use (&$called): void {
+            $called = true;
+        };
+        $this->page->route('**/api/**', $handler);
+        $this->page->unroute('**/api/**', $handler);
+
+        $this->transport->expects($this->once())
+            ->method('sendAsync')
+            ->with(['action' => 'route.fallback', 'routeId' => 'route_1', 'options' => null]);
+
+        $this->page->dispatchEvent('route', [
+            'routeId' => 'route_1',
+            'handlerId' => $sent[0]['handlerId'],
+            'request' => ['url' => 'https://example.com/api/data'],
+        ]);
+
+        $this->assertFalse($called);
+    }
+
+    public function testRouteEventAfterUnrouteAllFallsBack(): void
+    {
+        $sent = $this->recordSentCommands();
+        $called = false;
+        $this->page->route('**/api/**', static function () use (&$called): void {
+            $called = true;
+        });
+        $this->page->unrouteAll();
+
+        $this->transport->expects($this->once())
+            ->method('sendAsync')
+            ->with(['action' => 'route.fallback', 'routeId' => 'route_1', 'options' => null]);
+
+        $this->page->dispatchEvent('route', [
+            'routeId' => 'route_1',
+            'handlerId' => $sent[0]['handlerId'],
+            'request' => ['url' => 'https://example.com/api/data'],
+        ]);
+
+        $this->assertFalse($called);
+    }
+
+    public function testRouteEventWithoutHandlerIdFallsBack(): void
+    {
+        $this->recordSentCommands();
+        $called = false;
+        $this->page->route('**/api/**', static function () use (&$called): void {
+            $called = true;
+        });
+
+        $this->transport->expects($this->once())
+            ->method('sendAsync')
+            ->with(['action' => 'route.fallback', 'routeId' => 'route_1', 'options' => null]);
+
+        $this->page->dispatchEvent('route', [
+            'routeId' => 'route_1',
+            'request' => ['url' => 'https://example.com/api/data'],
+        ]);
+
+        $this->assertFalse($called);
+    }
+
+    public function testRouteThatTheServerRejectsIsNotKept(): void
+    {
+        $sent = [];
+        $this->transport->method('send')->willReturnCallback(static function (array $payload) use (&$sent): array {
+            $sent[] = $payload;
+
+            return 'page.route' === $payload['action'] ? ['error' => 'Invalid url'] : [];
+        });
+
+        try {
+            $this->page->route('**/api/**', static function (): void {});
+            $this->fail('route() should rethrow the server error');
+        } catch (PlaywrightException) {
+        }
+        $this->page->unroute('**/api/**');
+
+        $this->assertSame([], $sent[1]['handlerIds']);
+    }
+
+    public function testUnrouteWithHandlerSendsOnlyItsRegistrations(): void
+    {
+        $sent = $this->recordSentCommands();
+        $removed = static function (): void {};
+        $this->page->route('**/api/**', static function (): void {});
+        $this->page->route('**/api/**', $removed);
+        $this->page->route('**/other/**', $removed);
+
+        $this->page->unroute('**/api/**', $removed);
+
+        $this->assertSame([$sent[1]['handlerId']], $sent[3]['handlerIds']);
+    }
+
+    public function testRouteEventWithAnInvalidHandlerIdFallsBack(): void
+    {
+        $this->recordSentCommands();
+        $called = false;
+        $this->page->route('**/api/**', static function () use (&$called): void {
+            $called = true;
+        });
+
+        $this->transport->expects($this->once())
+            ->method('sendAsync')
+            ->with(['action' => 'route.fallback', 'routeId' => 'route_1', 'options' => null]);
+
+        $this->page->dispatchEvent('route', [
+            'routeId' => 'route_1',
+            'handlerId' => 42,
+            'request' => ['url' => 'https://example.com/api/data'],
+        ]);
+
+        $this->assertFalse($called);
+    }
+
+    public function testRouteEventAfterCloseFallsBack(): void
+    {
+        $sent = $this->recordSentCommands();
+        $called = false;
+        $this->page->route('**/api/**', static function () use (&$called): void {
+            $called = true;
+        });
+        $this->page->close();
+
+        $this->transport->expects($this->once())
+            ->method('sendAsync')
+            ->with(['action' => 'route.fallback', 'routeId' => 'route_1', 'options' => null]);
+
+        $this->page->dispatchEvent('route', [
+            'routeId' => 'route_1',
+            'handlerId' => $sent[0]['handlerId'],
+            'request' => ['url' => 'https://example.com/api/data'],
+        ]);
+
+        $this->assertFalse($called);
+    }
+
+    public function testRouteEventAfterCloseEventFallsBack(): void
+    {
+        $sent = $this->recordSentCommands();
+        $called = false;
+        $this->page->route('**/api/**', static function () use (&$called): void {
+            $called = true;
+        });
+        $this->page->dispatchEvent('close', []);
+
+        $this->transport->expects($this->once())
+            ->method('sendAsync')
+            ->with(['action' => 'route.fallback', 'routeId' => 'route_1', 'options' => null]);
+
+        $this->page->dispatchEvent('route', [
+            'routeId' => 'route_1',
+            'handlerId' => $sent[0]['handlerId'],
+            'request' => ['url' => 'https://example.com/api/data'],
+        ]);
+
+        $this->assertFalse($called);
     }
 
     public function testMainFrame(): void
@@ -1233,6 +1417,21 @@ class PageTest extends TestCase
         $frame = $this->page->frame(['name' => 'one']);
         $this->assertInstanceOf(FrameInterface::class, $frame);
         $this->assertSame($this->page, $frame->page());
+    }
+
+    /**
+     * @return \ArrayObject<int, array<string, mixed>>
+     */
+    private function recordSentCommands(): \ArrayObject
+    {
+        $sent = new \ArrayObject();
+        $this->transport->method('send')->willReturnCallback(static function (array $payload) use ($sent): array {
+            $sent[] = $payload;
+
+            return [];
+        });
+
+        return $sent;
     }
 
     private function createPage(string $pageId = 'page-1'): Page

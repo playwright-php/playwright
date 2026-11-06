@@ -109,6 +109,11 @@ final class Page implements PageInterface, EventDispatcherInterface
      */
     private array $handledDialogs = [];
 
+    /**
+     * @var array<string, array{url: string, handler: callable}>
+     */
+    private array $routeHandlers = [];
+
     public function __construct(
         private readonly TransportInterface $transport,
         private readonly BrowserContextInterface $context,
@@ -180,9 +185,11 @@ final class Page implements PageInterface, EventDispatcherInterface
                 break;
             case 'close':
                 $this->isClosed = true;
+                $this->routeHandlers = [];
                 $this->eventHandler->publicEmit('close', []);
                 break;
             case 'route':
+                $handlerId = is_string($params['handlerId'] ?? null) ? $params['handlerId'] : null;
                 if (is_string($params['routeId']) && is_array($params['request'])) {
                     $route = $this->createRoute(
                         $this->pageId,
@@ -192,6 +199,7 @@ final class Page implements PageInterface, EventDispatcherInterface
                 } else {
                     break;
                 }
+                $this->dispatchRoute($route, $handlerId);
                 $this->eventHandler->publicEmit('route', [$route]);
                 break;
             default:
@@ -640,10 +648,12 @@ final class Page implements PageInterface, EventDispatcherInterface
         $this->sendCommand('close');
 
         $this->isClosed = true;
+        $this->routeHandlers = [];
 
         if (method_exists($this->transport, 'removeEventDispatcher')) {
             $this->transport->removeEventDispatcher($this->pageId);
         }
+
         if ($this->context instanceof BrowserContext) {
             $this->context->forgetPage($this);
         }
@@ -1197,13 +1207,29 @@ final class Page implements PageInterface, EventDispatcherInterface
 
     public function route(string $url, callable $handler): void
     {
-        $this->eventHandler->onRoute($handler);
-        $this->sendCommand('route', ['url' => $url]);
+        // Registered before the command is sent: a request already in flight
+        // can be routed while the server is still answering it.
+        $handlerId = uniqid('handler_', true);
+        $this->routeHandlers[$handlerId] = ['url' => $url, 'handler' => $handler];
+        try {
+            $this->sendCommand('route', ['url' => $url, 'handlerId' => $handlerId]);
+        } catch (\Throwable $e) {
+            unset($this->routeHandlers[$handlerId]);
+
+            throw $e;
+        }
     }
 
     public function unroute(string $url, ?callable $handler = null): void
     {
-        $this->sendCommand('unroute', ['url' => $url]);
+        $handlerIds = [];
+        foreach ($this->routeHandlers as $handlerId => $registration) {
+            if ($registration['url'] === $url && (null === $handler || $registration['handler'] === $handler)) {
+                $handlerIds[] = $handlerId;
+                unset($this->routeHandlers[$handlerId]);
+            }
+        }
+        $this->sendCommand('unroute', ['url' => $url, 'handlerIds' => $handlerIds]);
     }
 
     /**
@@ -1211,6 +1237,7 @@ final class Page implements PageInterface, EventDispatcherInterface
      */
     public function unrouteAll(array $options = []): void
     {
+        $this->routeHandlers = [];
         $this->sendCommand('unrouteAll', ['options' => $options]);
     }
 
@@ -1327,6 +1354,22 @@ final class Page implements PageInterface, EventDispatcherInterface
     private function createRequest(mixed $data): Request
     {
         return new Request($this->validateRequestData($data), $this->transport, null, $this->pageId);
+    }
+
+    /**
+     * A route event carries the registration whose native route matched, so
+     * Playwright's own order (newest first, then fallback) decides who answers.
+     */
+    private function dispatchRoute(Route $route, ?string $handlerId): void
+    {
+        $registration = null === $handlerId ? null : ($this->routeHandlers[$handlerId] ?? null);
+        if (null === $registration) {
+            $route->fallback();
+
+            return;
+        }
+
+        $registration['handler']($route);
     }
 
     /**
