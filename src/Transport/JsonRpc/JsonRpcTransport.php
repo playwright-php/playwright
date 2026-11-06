@@ -36,6 +36,81 @@ final class JsonRpcTransport implements TransportInterface
      */
     private const OPERATION_TIMEOUT_GRACE_MS = 5000;
 
+    /**
+     * Commands whose native Playwright timeout owns the deadline when omitted.
+     *
+     * @var list<string>
+     */
+    private const NATIVE_TIMEOUT_ACTIONS = [
+        'api.fetch',
+        'connect',
+        'connectOverCDP',
+        'context.waitForEvent',
+        'context.waitForPopup',
+        'fileChooser.setFiles',
+        'frame.dragAndDrop',
+        'frame.goto',
+        'frame.setContent',
+        'frame.waitForFunction',
+        'frame.waitForLoadState',
+        'frame.waitForNavigation',
+        'frame.waitForURL',
+        'launch',
+        'launchServer',
+        'locator.ariaSnapshot',
+        'locator.boundingBox',
+        'locator.blur',
+        'locator.check',
+        'locator.clear',
+        'locator.click',
+        'locator.dblclick',
+        'locator.dispatchEvent',
+        'locator.dragAndDrop',
+        'locator.drop',
+        'locator.fill',
+        'locator.focus',
+        'locator.getAttribute',
+        'locator.hover',
+        'locator.innerHTML',
+        'locator.innerText',
+        'locator.inputValue',
+        'locator.isChecked',
+        'locator.isDisabled',
+        'locator.isEditable',
+        'locator.isEnabled',
+        'locator.press',
+        'locator.pressSequentially',
+        'locator.screenshot',
+        'locator.scrollIntoViewIfNeeded',
+        'locator.selectOption',
+        'locator.selectText',
+        'locator.setChecked',
+        'locator.setInputFiles',
+        'locator.tap',
+        'locator.textContent',
+        'locator.type',
+        'locator.uncheck',
+        'locator.waitFor',
+        'locator.waitForFunction',
+        'page.ariaSnapshot',
+        'page.dragAndDrop',
+        'page.goBack',
+        'page.goForward',
+        'page.goto',
+        'page.reload',
+        'page.screenshot',
+        'page.setContent',
+        'page.waitForFunction',
+        'page.waitForLoadState',
+        'page.waitForPopup',
+        'page.waitForRequest',
+        'page.waitForResponse',
+        'page.waitForSelector',
+        'page.waitForURL',
+        'route.fetch',
+        'worker.waitForEvent',
+    ];
+
     private ?Process $process = null;
     private ?JsonRpcClient $client = null;
     private bool $connected = false;
@@ -172,19 +247,7 @@ final class JsonRpcTransport implements TransportInterface
         $this->ensureConnected();
 
         try {
-            $timeout = $this->config['timeout'] ?? null;
-            $timeoutMs = null;
-            if (null !== $timeout) {
-                if (!is_numeric($timeout)) {
-                    throw new NetworkException('Invalid timeout: must be numeric');
-                }
-                $timeoutMs = (int) ($timeout * 1000);
-            }
-
-            $operationTimeoutMs = $this->extractOperationTimeoutMs($message);
-            if (null !== $operationTimeoutMs) {
-                $timeoutMs = max($timeoutMs ?? 30000, $operationTimeoutMs + self::OPERATION_TIMEOUT_GRACE_MS);
-            }
+            $timeoutMs = $this->resolveRequestTimeoutMs($message);
 
             if (null === $this->client) {
                 throw new NetworkException('JSON-RPC client not available');
@@ -210,10 +273,41 @@ final class JsonRpcTransport implements TransportInterface
      */
     private function extractOperationTimeoutMs(array $message): ?int
     {
-        $options = $message['options'] ?? null;
-        $timeout = \is_array($options) && isset($options['timeout']) ? $options['timeout'] : ($message['timeout'] ?? null);
+        $action = $message['action'] ?? null;
+        if (!is_string($action) || !in_array($action, self::NATIVE_TIMEOUT_ACTIONS, true)) {
+            return null;
+        }
 
-        return is_numeric($timeout) && $timeout > 0 ? (int) $timeout : null;
+        $options = $message['options'] ?? null;
+        if (\is_array($options)) {
+            $timeout = $options['timeout'] ?? 0;
+        } else {
+            $timeout = $message['timeout'] ?? null;
+        }
+
+        return is_numeric($timeout) && $timeout >= 0 ? (int) $timeout : null;
+    }
+
+    /**
+     * @param array<string, mixed> $message
+     */
+    private function resolveRequestTimeoutMs(array $message): int
+    {
+        $configuredTimeout = $this->config['timeout'] ?? 30.0;
+        $configuredTimeoutMs = is_int($configuredTimeout) || is_float($configuredTimeout)
+            ? (int) ($configuredTimeout * 1000)
+            : 0;
+        $operationTimeoutMs = $this->extractOperationTimeoutMs($message);
+
+        if (null === $operationTimeoutMs) {
+            return $configuredTimeoutMs;
+        }
+
+        if (0 === $operationTimeoutMs) {
+            return 0;
+        }
+
+        return max($configuredTimeoutMs, $operationTimeoutMs + self::OPERATION_TIMEOUT_GRACE_MS);
     }
 
     /**

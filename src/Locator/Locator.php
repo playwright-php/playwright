@@ -110,12 +110,12 @@ final class Locator implements \Stringable, LocatorInterface
 
     /**
      * @param array<string, mixed>|ClickOptions $options
+     * @param int|null                          $waitForActionableTimeout Native action timeout override in milliseconds
      */
-    public function click(array|ClickOptions $options = [], int $waitForActionableTimeout = 30000): void
+    public function click(array|ClickOptions $options = [], ?int $waitForActionableTimeout = null): void
     {
-        $options = ClickOptions::from($options);
-        $this->waitForActionable(['timeout' => $waitForActionableTimeout]);
-        $this->sendCommand('locator.click', ['options' => $options->toArray()]);
+        $options = $this->withActionTimeout(ClickOptions::from($options)->toArray(), $waitForActionableTimeout);
+        $this->sendCommand('locator.click', ['options' => $options]);
     }
 
     /**
@@ -496,12 +496,12 @@ final class Locator implements \Stringable, LocatorInterface
 
     /**
      * @param array<string, mixed>|FillOptions $options
+     * @param int|null                         $waitForActionableTimeout Native action timeout override in milliseconds
      */
-    public function fill(string $value, array|FillOptions $options = [], int $waitForActionableTimeout = 30000): void
+    public function fill(string $value, array|FillOptions $options = [], ?int $waitForActionableTimeout = null): void
     {
-        $options = FillOptions::from($options);
-        $this->waitForActionable(['timeout' => $waitForActionableTimeout]);
-        $this->sendCommand('locator.fill', ['value' => $value, 'options' => $options->toArray()]);
+        $options = $this->withActionTimeout(FillOptions::from($options)->toArray(), $waitForActionableTimeout);
+        $this->sendCommand('locator.fill', ['value' => $value, 'options' => $options]);
     }
 
     /**
@@ -570,17 +570,17 @@ final class Locator implements \Stringable, LocatorInterface
      * - timeout: int - Maximum time in milliseconds
      *
      * @param array<string, mixed>|DragToOptions $options
+     * @param int|null                           $waitForActionableTimeout Native action timeout override in milliseconds
      */
-    public function dragTo(LocatorInterface $target, array|DragToOptions $options = [], int $waitForActionableTimeout = 30000): void
+    public function dragTo(LocatorInterface $target, array|DragToOptions $options = [], ?int $waitForActionableTimeout = null): void
     {
-        $options = DragToOptions::from($options);
-        $this->waitForActionable(['timeout' => $waitForActionableTimeout]);
+        $options = $this->withActionTimeout(DragToOptions::from($options)->toArray(), $waitForActionableTimeout);
 
         $targetSelector = $target->getSelector();
 
         $this->sendCommand('locator.dragAndDrop', [
             'target' => $targetSelector,
-            'options' => $options->toArray(),
+            'options' => $options,
         ]);
 
         $this->transport->processEvents();
@@ -823,43 +823,58 @@ final class Locator implements \Stringable, LocatorInterface
     /**
      * @param array<string, mixed> $options
      */
-    private function waitForActionable(array $options = []): void
-    {
-        $timeout = $this->extractTimeout($options);
-        $this->waitForCondition(
-            fn () => $this->isVisible() && $this->isEnabled(),
-            $timeout,
-            'Element not actionable'
-        );
-    }
-
-    /**
-     * @param array<string, mixed> $options
-     */
     private function extractTimeout(array $options, int $default = 30000): int
     {
         $timeout = $options['timeout'] ?? $default;
 
-        return is_int($timeout) && $timeout > 0 ? $timeout : $default;
+        return is_int($timeout) && $timeout >= 0 ? $timeout : $default;
     }
 
+    /**
+     * @param array<string, mixed> $options
+     *
+     * @return array<string, mixed>
+     */
+    private function withActionTimeout(array $options, ?int $timeout): array
+    {
+        if (null !== $timeout) {
+            $options['timeout'] = (float) $timeout;
+        }
+
+        return $options;
+    }
+
+    /**
+     * @param callable(int): bool $condition
+     */
     private function waitForCondition(callable $condition, int $timeoutMs, string $message): void
     {
-        $start = microtime(true);
-        $timeoutSeconds = $timeoutMs / 1000;
+        $deadline = $timeoutMs > 0 ? hrtime(true) + ($timeoutMs * 1_000_000) : null;
 
-        while ((microtime(true) - $start) < $timeoutSeconds) {
-            try {
-                if ($condition()) {
-                    return;
-                }
-            } catch (PlaywrightException $e) {
+        while (null === $deadline || hrtime(true) < $deadline) {
+            $remainingTimeoutMs = null === $deadline
+                ? 0
+                : max(1, (int) ceil(($deadline - hrtime(true)) / 1_000_000));
+            if ($condition($remainingTimeoutMs)) {
+                return;
             }
 
-            usleep(100000);
+            $remainingMicroseconds = null === $deadline
+                ? 100000
+                : (int) ceil(($deadline - hrtime(true)) / 1000);
+            if ($remainingMicroseconds > 0) {
+                usleep(min(100000, $remainingMicroseconds));
+            }
         }
 
         throw new TimeoutException(sprintf('%s (timeout: %dms)', $message, $timeoutMs));
+    }
+
+    private function isEnabledWithTimeout(int $timeoutMs): bool
+    {
+        $response = $this->sendCommand('locator.isEnabled', ['options' => ['timeout' => (float) $timeoutMs]]);
+
+        return true === $response['value'];
     }
 
     /**
@@ -867,12 +882,7 @@ final class Locator implements \Stringable, LocatorInterface
      */
     public function waitForAttached(array $options = []): void
     {
-        $timeout = $this->extractTimeout($options);
-        $this->waitForCondition(
-            fn () => $this->isAttached(),
-            $timeout,
-            'Element not attached'
-        );
+        $this->waitFor([...$options, 'state' => 'attached']);
     }
 
     /**
@@ -880,12 +890,7 @@ final class Locator implements \Stringable, LocatorInterface
      */
     public function waitForDetached(array $options = []): void
     {
-        $timeout = $this->extractTimeout($options);
-        $this->waitForCondition(
-            fn () => !$this->isAttached(),
-            $timeout,
-            'Element still attached'
-        );
+        $this->waitFor([...$options, 'state' => 'detached']);
     }
 
     /**
@@ -893,12 +898,7 @@ final class Locator implements \Stringable, LocatorInterface
      */
     public function waitForVisible(array $options = []): void
     {
-        $timeout = $this->extractTimeout($options);
-        $this->waitForCondition(
-            fn () => $this->isVisible(),
-            $timeout,
-            'Element not visible'
-        );
+        $this->waitFor([...$options, 'state' => 'visible']);
     }
 
     /**
@@ -906,12 +906,7 @@ final class Locator implements \Stringable, LocatorInterface
      */
     public function waitForHidden(array $options = []): void
     {
-        $timeout = $this->extractTimeout($options);
-        $this->waitForCondition(
-            fn () => $this->isHidden(),
-            $timeout,
-            'Element still visible'
-        );
+        $this->waitFor([...$options, 'state' => 'hidden']);
     }
 
     /**
@@ -921,7 +916,7 @@ final class Locator implements \Stringable, LocatorInterface
     {
         $timeout = $this->extractTimeout($options);
         $this->waitForCondition(
-            fn () => $this->isEnabled(),
+            fn (int $remainingTimeoutMs) => $this->isEnabledWithTimeout($remainingTimeoutMs),
             $timeout,
             'Element not enabled'
         );
@@ -934,7 +929,7 @@ final class Locator implements \Stringable, LocatorInterface
     {
         $timeout = $this->extractTimeout($options);
         $this->waitForCondition(
-            fn () => str_contains($this->textContent() ?? '', $text),
+            fn (int $remainingTimeoutMs) => str_contains($this->textContent(['timeout' => $remainingTimeoutMs]) ?? '', $text),
             $timeout,
             sprintf('Element does not contain text: %s', $text)
         );

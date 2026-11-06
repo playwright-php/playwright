@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace Playwright\Tests\Unit\Transport\JsonRpc;
 
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Playwright\Event\EventDispatcherInterface;
 use Playwright\Exception\DisconnectedException;
@@ -349,7 +350,34 @@ final class JsonRpcTransportTest extends TestCase
         $this->assertSame([], (new \ReflectionProperty($transport, 'pendingCallbacks'))->getValue($transport));
     }
 
-    public function testSendPassesTheConfiguredTimeoutPerRequest(): void
+    /**
+     * @return iterable<string, array{array{timeout?: int|null}, float}>
+     */
+    public static function transportTimeouts(): iterable
+    {
+        yield 'omitted' => [[], 30000.0];
+        yield 'null' => [['timeout' => null], 30000.0];
+        yield 'unlimited' => [['timeout' => 0], 0.0];
+    }
+
+    /**
+     * @param array{timeout?: int|null} $config
+     */
+    #[DataProvider('transportTimeouts')]
+    public function testDefaultTransportTimeoutIsPreservedUnlessExplicitlyDisabled(array $config, float $expectedTimeout): void
+    {
+        $transport = $this->createConnectedTransport(['command' => ['node', 'server.js']] + $config);
+        $client = $this->createMock(JsonRpcClient::class);
+        $client->expects($this->once())
+            ->method('sendRaw')
+            ->with($this->anything(), $expectedTimeout)
+            ->willReturn([]);
+        $this->injectClient($transport, $client);
+
+        $transport->send(['action' => 'page.evaluate', 'expression' => 'new Promise(() => {})']);
+    }
+
+    public function testSendWithoutANativeOperationTimeoutUsesTheConfiguredDeadline(): void
     {
         $transport = $this->createConnectedTransport(['command' => ['node', 'server.js'], 'timeout' => 45]);
 
@@ -360,12 +388,81 @@ final class JsonRpcTransportTest extends TestCase
             ->willReturn([]);
         $this->injectClient($transport, $client);
 
-        $transport->send(['action' => 'launch']);
+        $transport->send(['action' => 'page.evaluate', 'expression' => 'new Promise(() => {})']);
+    }
+
+    public function testSendWithNonTimeoutOptionsUsesTheConfiguredDeadline(): void
+    {
+        $transport = $this->createConnectedTransport(['command' => ['node', 'server.js'], 'timeout' => 45]);
+
+        $client = $this->createMock(JsonRpcClient::class);
+        $client->expects($this->once())
+            ->method('sendRaw')
+            ->with($this->anything(), 45000.0)
+            ->willReturn([]);
+        $this->injectClient($transport, $client);
+
+        $transport->send([
+            'action' => 'page.addScriptTag',
+            'options' => ['url' => 'https://example.com/script.js'],
+        ]);
+    }
+
+    public function testSendLetsANativeDefaultTimeoutOwnTheDeadline(): void
+    {
+        $transport = $this->createConnectedTransport(['command' => ['node', 'server.js'], 'timeout' => 30]);
+
+        $client = $this->createMock(JsonRpcClient::class);
+        $client->expects($this->once())
+            ->method('sendRaw')
+            ->with($this->anything(), 0.0)
+            ->willReturn([]);
+        $this->injectClient($transport, $client);
+
+        $transport->send([
+            'action' => 'locator.click',
+            'options' => [],
+        ]);
+    }
+
+    public function testSendDoesNotTreatConfigurationCommandsAsTimedOperations(): void
+    {
+        $transport = $this->createConnectedTransport(['command' => ['node', 'server.js'], 'timeout' => 30]);
+
+        $client = $this->createMock(JsonRpcClient::class);
+        $client->expects($this->once())
+            ->method('sendRaw')
+            ->with($this->anything(), 30000.0)
+            ->willReturn([]);
+        $this->injectClient($transport, $client);
+
+        $transport->send([
+            'action' => 'page.setDefaultTimeout',
+            'timeout' => 60000,
+        ]);
+    }
+
+    public function testSendDisablesTheTransportDeadlineForAnUnlimitedOperation(): void
+    {
+        $transport = $this->createConnectedTransport(['command' => ['node', 'server.js'], 'timeout' => 30]);
+
+        $client = $this->createMock(JsonRpcClient::class);
+        $client->expects($this->once())
+            ->method('sendRaw')
+            ->with($this->anything(), 0.0)
+            ->willReturn([]);
+        $this->injectClient($transport, $client);
+
+        $transport->send([
+            'action' => 'locator.click',
+            'pageId' => 'page_1',
+            'options' => ['timeout' => 0],
+        ]);
     }
 
     public function testSendExtendsTheDeadlineForAnOperationTimeout(): void
     {
-        $transport = $this->createConnectedTransport(['command' => ['node', 'server.js'], 'timeout' => 30]);
+        $transport = $this->createConnectedTransport(['command' => ['node', 'server.js']]);
 
         $client = $this->createMock(JsonRpcClient::class);
         $client->expects($this->once())
