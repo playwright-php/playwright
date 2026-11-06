@@ -343,7 +343,7 @@ class PlaywrightServer extends BaseHandler {
       
     } catch (error) {
       logger.error('Callback continuation failed', { requestId, error: error.message });
-      return { error: error.message };
+      throw error;
     }
   }
 

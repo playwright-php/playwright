@@ -26,6 +26,10 @@ class PopupCoordinator {
                         ? src.waitForEvent('popup', { timeout })
                         : src.waitForEvent('page', { timeout });
 
+                    // PHP may still be running the action when this rejects. Observe
+                    // it now; awaiting the original promise below still throws it.
+                    popupPromise.catch(() => {});
+
                     return {
                         popupPromise,
                         listenerId: generateId(isPage ? 'popup_listener' : 'context_popup_listener'),
@@ -65,7 +69,7 @@ class PopupCoordinator {
                         return { popupPageId, popup };
                     } catch (error) {
                         logger.error(`${isPage ? 'Popup' : 'Context popup'} wait failed`, { requestId, error: error.message });
-                        return { popupPageId: null };
+                        throw error;
                     }
                 },
                 waitForCallback: false

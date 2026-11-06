@@ -16,6 +16,7 @@ namespace Playwright\Transport\JsonRpc;
 
 use Playwright\Event\EventDispatcherInterface;
 use Playwright\Exception\NetworkException;
+use Playwright\Transport\ErrorMapper;
 use Playwright\Transport\TransportInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -376,34 +377,46 @@ final class JsonRpcTransport implements TransportInterface
             throw new NetworkException('JSON-RPC client not available');
         }
         $client = $this->client;
-        $response = $client->sendRaw($message, $timeoutMs);
+        try {
+            $response = $client->sendRaw($message, $timeoutMs);
 
-        $this->logger->debug('Callback command response received', [
-            'requestId' => $requestId,
-            'response' => $response,
-        ]);
-
-        if (isset($response['type']) && 'callback' === $response['type']) {
-            $this->logger->info('Server requested callback', [
+            $this->logger->debug('Callback command response received', [
                 'requestId' => $requestId,
-                'callbackType' => $response['callbackType'] ?? 'unknown',
+                'response' => $response,
             ]);
 
-            $this->executeCallback($response);
+            if (isset($response['type']) && 'callback' === $response['type']) {
+                $this->logger->info('Server requested callback', [
+                    'requestId' => $requestId,
+                    'callbackType' => $response['callbackType'] ?? 'unknown',
+                ]);
 
-            $continueMessage = [
-                'action' => 'callback.continue',
-                'requestId' => $requestId,
-                'callbackResult' => ['executed' => true],
-            ];
+                $this->executeCallback($response);
 
-            $finalResponse = $client->sendRaw($continueMessage, $timeoutMs);
+                $continueMessage = [
+                    'action' => 'callback.continue',
+                    'requestId' => $requestId,
+                    'callbackResult' => ['executed' => true],
+                ];
+
+                $response = $client->sendRaw($continueMessage, $timeoutMs);
+            }
+
+            if (isset($response['error'])) {
+                $error = $response['error'];
+                $errorData = [
+                    'name' => is_array($error) ? ($error['name'] ?? null) : ($response['errorName'] ?? null),
+                    'message' => is_array($error) ? ($error['message'] ?? null) : $error,
+                    'stack' => is_array($error) ? ($error['stack'] ?? null) : ($response['stack'] ?? null),
+                    'code' => is_array($error) ? ($error['code'] ?? null) : null,
+                ];
+                throw ErrorMapper::toException($errorData, is_string($message['action'] ?? null) ? $message['action'] : null, $message, $timeoutMs);
+            }
+
+            return $response;
+        } finally {
             unset($this->pendingCallbacks[$requestId]);
-
-            return $finalResponse;
         }
-
-        return $response;
     }
 
     /**
