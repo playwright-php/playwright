@@ -19,6 +19,8 @@ use Playwright\Selector\SelectorsInterface;
 
 final class Playwright
 {
+    private const SUPPORTED_LAUNCH_OPTIONS = ['headless', 'slowMo', 'args', 'context'];
+
     private static ?PlaywrightClient $client = null;
 
     /**
@@ -70,6 +72,8 @@ final class Playwright
      */
     private static function launch(string $browserType, array $options): BrowserContextInterface
     {
+        self::validateLaunchOptions($options);
+
         $client = self::client();
 
         $builder = match ($browserType) {
@@ -111,6 +115,26 @@ final class Playwright
         }
 
         return empty($typedOptions) ? $browser->context() : $browser->newContext($typedOptions);
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    private static function validateLaunchOptions(array $options): void
+    {
+        $unsupportedOptions = array_diff(array_keys($options), self::SUPPORTED_LAUNCH_OPTIONS);
+
+        if ([] === $unsupportedOptions) {
+            return;
+        }
+
+        $message = sprintf(
+            'Unsupported launch option(s): %s. Supported options: %s. Use PlaywrightFactory::create() for other launch options.',
+            implode(', ', $unsupportedOptions),
+            implode(', ', self::SUPPORTED_LAUNCH_OPTIONS),
+        );
+
+        throw new \InvalidArgumentException($message);
     }
 
     private static function client(): PlaywrightClient
