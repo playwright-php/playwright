@@ -249,7 +249,7 @@ class PlaywrightServer extends BaseHandler {
       const received = req.existingResponse ? req.existingResponse() : null;
       if (received) existingResponse = this.serializeResponse(received);
     } catch {}
-    return { url: req.url(), method: req.method(), headers: req.headers(), postData: postData ?? null, postDataBuffer, resourceType: req.resourceType ? req.resourceType() : 'document', response: existingResponse };
+    return { url: req.url(), method: req.method(), headers: req.headers(), postData: postData ?? null, postDataBuffer, resourceType: req.resourceType ? req.resourceType() : 'document', response: existingResponse, isNavigationRequest: req.isNavigationRequest ? req.isNavigationRequest() : false };
   }
 
   serializeResponse(response) {
