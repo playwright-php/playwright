@@ -403,7 +403,7 @@ class PlaywrightServer extends BaseHandler {
       const browserId = this.generateId('browser');
       this.browsers.set(browserId, attached);
       // Create a fresh context to align with launch return shape
-      const context = await attached.newContext();
+      const context = await attached.newContext(command.contextOptions || {});
       const contextId = this.generateId('context');
       this.contexts.set(contextId, { context, browserId, id: contextId });
       this.registerContextPopups(context, contextId);
