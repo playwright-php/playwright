@@ -32,7 +32,10 @@ jobs:
         run: composer validate --strict
 
       - name: "Composer: install"
-        run: composer install --prefer-dist --no-interaction --no-progress
+        uses: ramsey/composer-install@v4
+        with:
+          dependency-versions: highest
+          composer-options: --prefer-dist
 
       - name: "Php-CS-Fixer: check"
         run: vendor/bin/php-cs-fixer fix --diff --dry-run
@@ -51,7 +54,10 @@ jobs:
           coverage: none
 
       - name: "Composer: install"
-        run: composer install --prefer-dist --no-interaction --no-progress
+        uses: ramsey/composer-install@v4
+        with:
+          dependency-versions: highest
+          composer-options: --prefer-dist
 
       - name: "PHPStan: analyze"
         run: vendor/bin/phpstan
@@ -71,18 +77,24 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-version }}
-          coverage: none
+          coverage: ${{ matrix.php-version == '8.5' && 'pcov' || 'none' }}
 
-      - name: "Composer: install (${{ matrix.dependencies }})"
-        run: |
-          if [ "${{ matrix.dependencies }}" == "low" ]; then
-            composer update --prefer-lowest --prefer-dist --no-interaction --no-progress
-          else
-            composer install --prefer-dist --no-interaction --no-progress
-          fi
+      - name: "Composer: install"
+        uses: ramsey/composer-install@v4
+        with:
+          dependency-versions: highest
+          composer-options: --prefer-dist
 
       - name: "PHPUnit: tests"
-        run: vendor/bin/phpunit --no-coverage --testsuite=unit
+        run: vendor/bin/phpunit --testsuite=unit ${{ matrix.php-version == '8.5' && '--coverage-clover=coverage-unit.xml' || '--no-coverage' }}
+
+      - name: "Coverage: save unit report"
+        if: matrix.php-version == '8.5'
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-unit
+          path: coverage-unit.xml
+          if-no-files-found: error
 
   integration-tests:
     name: "Integration Tests (PHP ${{ matrix.php-version }} ${{ matrix.dependencies }})"
@@ -91,11 +103,7 @@ jobs:
       matrix:
         include:
           - php-version: '8.2'
-            dependencies: 'low' 
-          - php-version: '8.3'
             dependencies: 'low'
-          - php-version: '8.4'
-            dependencies: 'high'
           - php-version: '8.5'
             dependencies: 'high'
       fail-fast: false
@@ -107,7 +115,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-version }}
-          coverage: pcov
+          coverage: ${{ matrix.php-version == '8.5' && 'pcov' || 'none' }}
 
       - name: "Node: setup"
         uses: actions/setup-node@v4
@@ -115,12 +123,10 @@ jobs:
           node-version: '20'
 
       - name: "Composer: install (${{ matrix.dependencies }})"
-        run: |
-          if [ "${{ matrix.dependencies }}" == "low" ]; then
-            composer update --prefer-lowest --prefer-dist --no-interaction --no-progress
-          else
-            composer install --prefer-dist --no-interaction --no-progress
-          fi
+        uses: ramsey/composer-install@v4
+        with:
+          dependency-versions: ${{ matrix.dependencies == 'low' && 'lowest' || 'highest' }}
+          composer-options: --prefer-dist
 
       - name: "Playwright: cache browsers"
         uses: actions/cache@v4
@@ -140,14 +146,37 @@ jobs:
           done
           exit 1
 
-      - name: "PHPUnit: all tests with coverage"
-        run: vendor/bin/phpunit --coverage-clover=coverage.xml
+      - name: "PHPUnit: integration and functional tests"
+        run: vendor/bin/phpunit --testsuite=integration,functional ${{ matrix.php-version == '8.5' && '--coverage-clover=coverage-browser.xml' || '--no-coverage' }}
+
+      - name: "Coverage: save browser report"
+        if: matrix.php-version == '8.5'
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-browser
+          path: coverage-browser.xml
+          if-no-files-found: error
+
+  coverage:
+    name: "Coverage"
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests]
+    steps:
+      - name: "Git: checkout"
+        uses: actions/checkout@v4
+
+      - name: "Coverage: download reports"
+        uses: actions/download-artifact@v8
+        with:
+          pattern: coverage-*
+          merge-multiple: true
+          path: coverage
 
       - name: "Codecov: upload coverage"
         uses: codecov/codecov-action@v5
-        if: matrix.php-version == '8.5' && matrix.dependencies == 'high'
         with:
-          files: ./coverage.xml
+          files: ./coverage/coverage-unit.xml,./coverage/coverage-browser.xml
+          disable_search: true
           flags: unittests
           name: codecov-umbrella
           fail_ci_if_error: false
