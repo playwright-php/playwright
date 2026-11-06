@@ -167,6 +167,33 @@ class CommandRegistry {
   }
 }
 
+class NavigationRedirects extends Map {
+  #waiters = new Map();
+
+  async runUntilFulfilled(pageId, action) {
+    let fulfill;
+    const fulfilled = new Promise(resolve => { fulfill = resolve; });
+    this.#waiters.set(pageId, fulfill);
+
+    try {
+      return await Promise.race([action(), fulfilled]);
+    } finally {
+      this.#forgetWaiter(pageId, fulfill);
+    }
+  }
+
+  markFulfilled(pageId) {
+    this.#waiters.get(pageId)?.();
+    this.#waiters.delete(pageId);
+  }
+
+  #forgetWaiter(pageId, fulfill) {
+    if (this.#waiters.get(pageId) !== fulfill) return;
+
+    this.#waiters.delete(pageId);
+  }
+}
+
 class BaseHandler {
   constructor(deps = {}) { Object.assign(this, deps); }
   validateResource(resourceMap, resourceId, resourceType) {
@@ -190,7 +217,7 @@ class BaseHandler {
     return { handleId };
   }
   async executeWithRegistry(registry, method, ...args) { return await registry.execute(method, ...args); }
-  async followNavigationRedirects(pageId, page, action) {
+  async followNavigationRedirects(pageId, page, action, settlesOnRedirect = false) {
     let nextAction = action;
     let redirectCount = 0;
     let result;
@@ -199,7 +226,10 @@ class BaseHandler {
       this.navigationRedirects.delete(pageId);
 
       try {
-        result = await nextAction();
+        // from Playwright 1.64 only goto() settles on the redirect's 204; a goto() to the same url before it does fails with net::ERR_ABORTED
+        result = await (settlesOnRedirect
+          ? nextAction()
+          : this.navigationRedirects.runUntilFulfilled(pageId, nextAction));
       } catch (error) {
         if (!this.navigationRedirects.has(pageId)) throw error;
       }
@@ -212,6 +242,7 @@ class BaseHandler {
         throw new Error(`Too many navigation redirects for page ${pageId}`);
       }
       nextAction = () => page.goto(target);
+      settlesOnRedirect = true;
     }
   }
 }
@@ -330,5 +361,5 @@ const logger = new Logger();
 
 module.exports = {
   logger, ErrorHandler, LspFraming, sendFramedResponse,
-  CommandRegistry, BaseHandler, PromiseUtils, FrameUtils, RouteUtils,
+  CommandRegistry, NavigationRedirects, BaseHandler, PromiseUtils, FrameUtils, RouteUtils,
 };
