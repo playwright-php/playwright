@@ -293,14 +293,16 @@ final class JsonRpcTransport implements TransportInterface
      */
     private function resolveRequestTimeoutMs(array $message): int
     {
-        $configuredTimeout = $this->config['timeout'] ?? null;
+        $configuredTimeout = $this->config['timeout'] ?? 30.0;
         $configuredTimeoutMs = is_int($configuredTimeout) || is_float($configuredTimeout)
             ? (int) ($configuredTimeout * 1000)
             : 0;
         $operationTimeoutMs = $this->extractOperationTimeoutMs($message);
+
         if (null === $operationTimeoutMs) {
             return $configuredTimeoutMs;
         }
+
         if (0 === $operationTimeoutMs) {
             return 0;
         }

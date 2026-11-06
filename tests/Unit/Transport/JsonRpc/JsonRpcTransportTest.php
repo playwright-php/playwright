@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace Playwright\Tests\Unit\Transport\JsonRpc;
 
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Playwright\Event\EventDispatcherInterface;
 use Playwright\Exception\DisconnectedException;
@@ -347,6 +348,33 @@ final class JsonRpcTransportTest extends TestCase
         }
 
         $this->assertSame([], (new \ReflectionProperty($transport, 'pendingCallbacks'))->getValue($transport));
+    }
+
+    /**
+     * @return iterable<string, array{array{timeout?: int|null}, float}>
+     */
+    public static function transportTimeouts(): iterable
+    {
+        yield 'omitted' => [[], 30000.0];
+        yield 'null' => [['timeout' => null], 30000.0];
+        yield 'unlimited' => [['timeout' => 0], 0.0];
+    }
+
+    /**
+     * @param array{timeout?: int|null} $config
+     */
+    #[DataProvider('transportTimeouts')]
+    public function testDefaultTransportTimeoutIsPreservedUnlessExplicitlyDisabled(array $config, float $expectedTimeout): void
+    {
+        $transport = $this->createConnectedTransport(['command' => ['node', 'server.js']] + $config);
+        $client = $this->createMock(JsonRpcClient::class);
+        $client->expects($this->once())
+            ->method('sendRaw')
+            ->with($this->anything(), $expectedTimeout)
+            ->willReturn([]);
+        $this->injectClient($transport, $client);
+
+        $transport->send(['action' => 'page.evaluate', 'expression' => 'new Promise(() => {})']);
     }
 
     public function testSendWithoutANativeOperationTimeoutUsesTheConfiguredDeadline(): void
