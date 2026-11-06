@@ -98,6 +98,13 @@ final class BrowserBuilder
 
     public function launch(): BrowserInterface
     {
+        if (null !== $this->config->wsEndpoint) {
+            return $this->connect($this->config->wsEndpoint, [
+                'timeout' => $this->config->timeoutMs,
+                'slowMo' => $this->launchOptions['slowMo'] ?? 0,
+            ]);
+        }
+
         // Launch options can carry proxy credentials, so never log them raw.
         $this->logger->info('Launching browser', [
             'browser' => $this->browserType,
@@ -158,6 +165,7 @@ final class BrowserBuilder
             'browser' => $this->browserType,
             'wsEndpoint' => $wsEndpoint,
             'options' => $options,
+            'contextOptions' => $this->config->toContextOptions(),
         ]);
 
         if (isset($response['error'])) {

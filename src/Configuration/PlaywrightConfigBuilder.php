@@ -272,7 +272,8 @@ final class PlaywrightConfigBuilder
 
     public function withWsEndpoint(?string $wsEndpoint): self
     {
-        $this->wsEndpoint = null !== $wsEndpoint && '' !== trim($wsEndpoint) ? $wsEndpoint : null;
+        $wsEndpoint = null !== $wsEndpoint ? trim($wsEndpoint) : null;
+        $this->wsEndpoint = '' !== $wsEndpoint ? $wsEndpoint : null;
 
         return $this;
     }

@@ -57,8 +57,8 @@ final class PlaywrightConfig
 
         public readonly ?array $proxy = null,
 
-        public readonly ?string $wsEndpoint = null,
         public readonly ?LoggerInterface $logger = null,
+        public readonly ?string $wsEndpoint = null,
     ) {
     }
 

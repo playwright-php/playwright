@@ -68,6 +68,51 @@ Run:
 REMOTE_WS_ENDPOINT='ws://127.0.0.1:PORT/ID' php your-script.php
 ```
 
+### Configure a remote endpoint
+
+Set `wsEndpoint` to make `launch()` connect to a remote Playwright browser instead of starting a local browser:
+
+```php
+use Playwright\Configuration\PlaywrightConfig;
+use Playwright\PlaywrightFactory;
+
+$config = new PlaywrightConfig(wsEndpoint: 'ws://127.0.0.1:3000/');
+$playwright = PlaywrightFactory::create($config);
+$builder = $playwright->chromium();
+$browser = $builder->launch();
+$context = $browser->context();
+$page = $context->newPage();
+$page->goto('https://example.com');
+
+echo $page->title().PHP_EOL;
+
+$browser->close();
+$playwright->close();
+```
+
+The builder also accepts `withWsEndpoint($endpoint)`. To read the endpoint from the environment, use `PlaywrightConfigBuilder::fromEnv()->build()`: `PW_WS_ENDPOINT` takes precedence over `PLAYWRIGHT_WS_ENDPOINT`, and an empty `PW_WS_ENDPOINT` falls back to the latter. Setting either variable alone does not change `PlaywrightFactory::create()`; pass the resulting configuration to the factory.
+
+```bash
+PW_WS_ENDPOINT='ws://playwright:3000/' php your-script.php
+```
+
+The browser type must match the server. Local launch settings such as `headless`, `channel`, `args` and `proxy` do not configure an already running remote browser. `timeoutMs` and `slowMoMs` apply to the connection, and context settings still apply. An explicit `connect($endpoint, $options)` call uses its own endpoint and options.
+
+### Run the browser in a separate container
+
+For example, start a Playwright 1.64.1 server with its matching browser image:
+
+```bash
+docker run --rm --init --ipc=host -p 3000:3000 \
+    --workdir /home/pwuser --user pwuser \
+    mcr.microsoft.com/playwright:v1.64.1-noble \
+    /bin/sh -c "npx -y playwright@1.64.1 run-server --port 3000 --host 0.0.0.0"
+```
+
+Connect to `ws://127.0.0.1:3000/` from the host, or use the container's service name from another container on the same network. The PHP container still needs Node.js and the Playwright npm package for the bridge; browser binaries and their system dependencies only need to be installed in the browser container. Check the bridge's version with `node -p 'require("./vendor/playwright-php/playwright/bin/node_modules/playwright/package.json").version'` from your project root and use a server with the same major and minor version, as required by [Playwright's connection protocol](https://playwright.dev/docs/api/class-browsertype#browser-type-connect).
+
+URLs opened by the browser must be reachable from its container. `localhost` refers to that container, so use your application's service name or an address reachable from it. See the [Playwright Docker guide](https://playwright.dev/docs/docker#remote-connection) for server and network setup.
+
 ## Connect over CDP (Chromium only)
 
 Use this when you already have Chrome/Chromium running with remote debugging.
