@@ -32,7 +32,10 @@ jobs:
         run: composer validate --strict
 
       - name: "Composer: install"
-        run: composer install --prefer-dist --no-interaction --no-progress
+        uses: ramsey/composer-install@v4
+        with:
+          dependency-versions: highest
+          composer-options: --prefer-dist
 
       - name: "Php-CS-Fixer: check"
         run: vendor/bin/php-cs-fixer fix --diff --dry-run
@@ -51,7 +54,10 @@ jobs:
           coverage: none
 
       - name: "Composer: install"
-        run: composer install --prefer-dist --no-interaction --no-progress
+        uses: ramsey/composer-install@v4
+        with:
+          dependency-versions: highest
+          composer-options: --prefer-dist
 
       - name: "PHPStan: analyze"
         run: vendor/bin/phpstan
@@ -74,7 +80,10 @@ jobs:
           coverage: ${{ matrix.php-version == '8.5' && 'pcov' || 'none' }}
 
       - name: "Composer: install"
-        run: composer install --prefer-dist --no-interaction --no-progress
+        uses: ramsey/composer-install@v4
+        with:
+          dependency-versions: highest
+          composer-options: --prefer-dist
 
       - name: "PHPUnit: tests"
         run: vendor/bin/phpunit --testsuite=unit ${{ matrix.php-version == '8.5' && '--coverage-clover=coverage-unit.xml' || '--no-coverage' }}
@@ -114,12 +123,10 @@ jobs:
           node-version: '20'
 
       - name: "Composer: install (${{ matrix.dependencies }})"
-        run: |
-          if [ "${{ matrix.dependencies }}" == "low" ]; then
-            composer update --prefer-lowest --prefer-dist --no-interaction --no-progress
-          else
-            composer install --prefer-dist --no-interaction --no-progress
-          fi
+        uses: ramsey/composer-install@v4
+        with:
+          dependency-versions: ${{ matrix.dependencies == 'low' && 'lowest' || 'highest' }}
+          composer-options: --prefer-dist
 
       - name: "Playwright: cache browsers"
         uses: actions/cache@v4

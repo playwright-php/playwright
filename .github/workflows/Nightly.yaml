@@ -52,12 +52,10 @@ jobs:
           node-version: '20'
 
       - name: "Composer: install (${{ matrix.configuration.dependencies }})"
-        run: |
-          if [ "${{ matrix.configuration.dependencies }}" == "low" ]; then
-            composer update --prefer-lowest --prefer-dist --no-interaction --no-progress
-          else
-            composer install --prefer-dist --no-interaction --no-progress
-          fi
+        uses: ramsey/composer-install@v4
+        with:
+          dependency-versions: ${{ matrix.configuration.dependencies == 'low' && 'lowest' || 'highest' }}
+          composer-options: --prefer-dist
 
       # The floor is derived from the declaration, never written twice: raising
       # bin/package.json is enough to move what this job tests.
