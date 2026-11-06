@@ -16,10 +16,19 @@ concurrency:
 
 jobs:
   browser-suite:
-    name: "Browser suite (Playwright ${{ matrix.playwright }})"
+    name: "Browser suite (PHP ${{ matrix.configuration.php-version }} ${{ matrix.configuration.dependencies }}, Playwright ${{ matrix.playwright }})"
     runs-on: ubuntu-latest
     strategy:
       matrix:
+        configuration:
+          - php-version: '8.2'
+            dependencies: 'low'
+          - php-version: '8.3'
+            dependencies: 'low'
+          - php-version: '8.4'
+            dependencies: 'high'
+          - php-version: '8.5'
+            dependencies: 'high'
         # floor:  the exact minimum bin/package.json declares, so a release that
         #         raises the real requirement without raising the range is caught.
         # latest: whatever the declared range resolves to today, so an upstream
@@ -31,10 +40,10 @@ jobs:
       - name: "Git: checkout"
         uses: actions/checkout@v4
 
-      - name: "PHP: setup 8.4"
+      - name: "PHP: setup ${{ matrix.configuration.php-version }}"
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.4'
+          php-version: ${{ matrix.configuration.php-version }}
           coverage: none
 
       - name: "Node: setup"
@@ -42,8 +51,13 @@ jobs:
         with:
           node-version: '20'
 
-      - name: "Composer: install"
-        run: composer install --prefer-dist --no-interaction --no-progress
+      - name: "Composer: install (${{ matrix.configuration.dependencies }})"
+        run: |
+          if [ "${{ matrix.configuration.dependencies }}" == "low" ]; then
+            composer update --prefer-lowest --prefer-dist --no-interaction --no-progress
+          else
+            composer install --prefer-dist --no-interaction --no-progress
+          fi
 
       # The floor is derived from the declaration, never written twice: raising
       # bin/package.json is enough to move what this job tests.
@@ -111,6 +125,8 @@ jobs:
       - name: "Summary"
         if: always()
         env:
+          PHP_VERSION: ${{ matrix.configuration.php-version }}
+          DEPENDENCIES: ${{ matrix.configuration.dependencies }}
           LEG: ${{ matrix.playwright }}
           RANGE: ${{ steps.resolve.outputs.range }}
           VERSION: ${{ steps.resolve.outputs.version }}
@@ -119,6 +135,8 @@ jobs:
           {
             echo "| | |"
             echo "|---|---|"
+            echo "| PHP | \`$PHP_VERSION\` |"
+            echo "| Dependencies | \`$DEPENDENCIES\` |"
             echo "| Leg | \`$LEG\` |"
             echo "| Declared range | \`$RANGE\` |"
             echo "| Playwright tested | \`${VERSION:-unresolved}\` |"
