@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Fixed
+- Closing a browser context releases it, its pages and their route handlers instead of keeping them for the browser's lifetime
+
 ## [1.5.0] - 2026-09-20
 
 ### Added

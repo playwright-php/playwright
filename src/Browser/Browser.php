@@ -88,6 +88,14 @@ final class Browser implements BrowserInterface
         return $this->contexts;
     }
 
+    /**
+     * @internal called by BrowserContext::close()
+     */
+    public function forgetContext(BrowserContextInterface $context): void
+    {
+        $this->contexts = array_values(array_filter($this->contexts, static fn (BrowserContextInterface $c): bool => $c !== $context));
+    }
+
     public function browserType(): BrowserType
     {
         return $this->browserType;

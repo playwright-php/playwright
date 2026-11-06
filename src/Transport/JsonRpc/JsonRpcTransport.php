@@ -61,6 +61,11 @@ final class JsonRpcTransport implements TransportInterface
         $this->eventDispatchers[$id] = $dispatcher;
     }
 
+    public function removeEventDispatcher(string $id): void
+    {
+        unset($this->eventDispatchers[$id]);
+    }
+
     public function connect(): void
     {
         if ($this->connected) {

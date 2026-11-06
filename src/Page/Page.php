@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace Playwright\Page;
 
 use Playwright\API\APIRequestContextInterface;
+use Playwright\Browser\BrowserContext;
 use Playwright\Browser\BrowserContextInterface;
 use Playwright\Clock\ClockInterface;
 use Playwright\Configuration\PlaywrightConfig;
@@ -639,6 +640,13 @@ final class Page implements PageInterface, EventDispatcherInterface
         $this->sendCommand('close');
 
         $this->isClosed = true;
+
+        if (method_exists($this->transport, 'removeEventDispatcher')) {
+            $this->transport->removeEventDispatcher($this->pageId);
+        }
+        if ($this->context instanceof BrowserContext) {
+            $this->context->forgetPage($this);
+        }
     }
 
     public function isClosed(): bool
@@ -1257,7 +1265,12 @@ final class Page implements PageInterface, EventDispatcherInterface
             throw new TimeoutException('No popup was created within the timeout period');
         }
 
-        return new self($this->transport, $this->context, $popupPageId, $this->config, $this->logger);
+        $popup = new self($this->transport, $this->context, $popupPageId, $this->config, $this->logger);
+        if ($this->context instanceof BrowserContext) {
+            $this->context->registerPage($popup);
+        }
+
+        return $popup;
     }
 
     /**
