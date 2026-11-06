@@ -118,7 +118,11 @@ final class Sanitizer
      */
     private static function sanitizeString(string $string): string
     {
+        $string = self::sanitizeQueryParameters($string);
+
         $patterns = [
+            '/\b(Basic|Bearer) +[A-Za-z0-9._~+\/-]+=*/i' => '$1 [REDACTED]',
+
             '/\b[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/' => '[JWT_TOKEN]',
 
             '/\b[a-z0-9]{32,}\b/i' => '[API_KEY]',
@@ -126,10 +130,6 @@ final class Sanitizer
             '/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/i' => '[UUID]',
 
             '/:([^:@]+)@/' => ':[REDACTED]@',
-
-            '/Basic [A-Za-z0-9+\/]+=*/' => 'Basic [REDACTED]',
-
-            '/Bearer [A-Za-z0-9_\-\.]+/' => 'Bearer [REDACTED]',
         ];
 
         foreach ($patterns as $pattern => $replacement) {
@@ -141,6 +141,27 @@ final class Sanitizer
         }
 
         return $string;
+    }
+
+    private static function sanitizeQueryParameters(string $string): string
+    {
+        $result = preg_replace_callback(
+            '/([?&])([^=&#\s"\'<>]+)=([^&#\s"\'<>]*)/',
+            static function (array $matches): string {
+                if (!self::isSensitiveKey(urldecode($matches[2]))) {
+                    return $matches[0];
+                }
+
+                return $matches[1].$matches[2].'='.self::REPLACEMENT;
+            },
+            $string
+        );
+
+        if (null === $result) {
+            throw new RuntimeException('preg_replace_callback failed');
+        }
+
+        return $result;
     }
 
     /**
@@ -164,6 +185,7 @@ final class Sanitizer
      */
     public static function sanitizeUrl(string $url): string
     {
+        $url = self::sanitizeQueryParameters($url);
         $parsed = parse_url($url);
 
         if (false === $parsed) {

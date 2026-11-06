@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace Playwright\Tests\Unit\Transport;
 
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Playwright\Exception\DisconnectedException;
@@ -164,6 +165,36 @@ class ErrorMapperTest extends TestCase
         $this->assertEquals('john', $sanitizedParams['username']);
         $this->assertEquals('[REDACTED]', $sanitizedParams['password']);
         $this->assertEquals('data', $sanitizedParams['normal']);
+    }
+
+    #[Test]
+    #[DataProvider('provideErrorNames')]
+    public function itRedactsSecretsInsideDiagnosticParameterStrings(string $errorName): void
+    {
+        $params = [
+            'url' => 'https://example.test/?access_token=short-secret&lang=en',
+            'nested' => ['text' => 'Bearer demo+secret/token=='],
+            'headers' => ['Authorization' => 'Bearer demo+secret/token=='],
+        ];
+
+        $exception = ErrorMapper::toException(['name' => $errorName, 'message' => 'Failed'], 'api.fetch', $params, null);
+
+        $this->assertSame([
+            'url' => 'https://example.test/?access_token=[REDACTED]&lang=en',
+            'nested' => ['text' => 'Bearer [REDACTED]'],
+            'headers' => ['Authorization' => '[REDACTED]'],
+        ], $exception->getContext()['params']);
+        $this->assertSame('https://example.test/?access_token=short-secret&lang=en', $params['url']);
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function provideErrorNames(): iterable
+    {
+        yield 'protocol' => ['Error'];
+        yield 'timeout' => ['TimeoutError'];
+        yield 'disconnection' => ['TargetClosedError'];
     }
 
     #[Test]
