@@ -93,7 +93,11 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
             throw new NetworkException('Failed to write to process stdin: '.$e->getMessage(), 0, $e);
         }
 
-        return $this->waitForResponse($requestId, $deadline);
+        try {
+            return $this->waitForResponse($requestId, $deadline);
+        } finally {
+            $this->throwEventHandlerException();
+        }
     }
 
     /**
@@ -114,8 +118,6 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
 
             $response = $this->findResponseForRequest($requestId);
             if (null !== $response) {
-                $this->throwEventHandlerException();
-
                 return $response;
             }
 
