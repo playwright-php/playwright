@@ -123,7 +123,13 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
                 $params['routeId'],
                 $this->validateTransportArray($params['request'], 'request')
             );
-            $this->dispatchRoute($route, $handlerId);
+            try {
+                $this->dispatchRoute($route, $handlerId);
+            } catch (\Throwable $e) {
+                $route->abortUnlessHandled();
+
+                throw $e;
+            }
         }
 
         if (in_array($eventName, ['page', 'popup', 'pageCreated'], true)) {

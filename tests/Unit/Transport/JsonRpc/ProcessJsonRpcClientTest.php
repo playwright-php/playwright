@@ -21,6 +21,7 @@ use Playwright\Exception\NetworkException;
 use Playwright\Tests\Mocks\FixedClock;
 use Playwright\Tests\Mocks\TestLogger;
 use Playwright\Transport\JsonRpc\JsonRpcClientInterface;
+use Playwright\Transport\JsonRpc\LspFraming;
 use Playwright\Transport\JsonRpc\ProcessJsonRpcClient;
 use Playwright\Transport\JsonRpc\ProcessLauncherInterface;
 use Symfony\Component\Process\InputStream;
@@ -143,6 +144,31 @@ final class ProcessJsonRpcClientTest extends TestCase
         $this->expectExceptionMessage('Failed to write to process stdin: Write failed');
 
         $client->send('test.method');
+    }
+
+    public function testTimedOutRequestThrowsItsHandlerExceptionWithoutAffectingTheNextRequest(): void
+    {
+        $failure = new \RuntimeException('Handler failed');
+        $this->client->setEventHandler(function () use ($failure): void {
+            $this->clock->advanceMilliseconds(1001);
+
+            throw $failure;
+        });
+        $this->mockProcess->method('getIncrementalOutput')->willReturnOnConsecutiveCalls(
+            LspFraming::encode('{"event":"route"}'),
+            LspFraming::encode('{"requestId":2,"value":"about:blank"}'),
+        );
+
+        try {
+            $this->client->sendRaw(['action' => 'page.evaluate', 'requestId' => 1]);
+            $this->fail('Expected the handler exception.');
+        } catch (\Throwable $exception) {
+            $this->assertSame($failure, $exception);
+        }
+
+        $response = $this->client->sendRaw(['action' => 'page.url', 'requestId' => 2]);
+
+        $this->assertSame('about:blank', $response['value']);
     }
 
     public function testReadProcessOutputClearsBothProcessBuffers(): void

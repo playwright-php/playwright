@@ -37,6 +37,7 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
     private array $responses = [];
 
     private ?\Closure $eventHandler = null;
+    private ?\Throwable $eventHandlerException = null;
 
     public function __construct(
         private readonly Process $process,
@@ -92,7 +93,11 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
             throw new NetworkException('Failed to write to process stdin: '.$e->getMessage(), 0, $e);
         }
 
-        return $this->waitForResponse($requestId, $deadline);
+        try {
+            return $this->waitForResponse($requestId, $deadline);
+        } finally {
+            $this->throwEventHandlerException();
+        }
     }
 
     /**
@@ -205,7 +210,12 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
             if (isset($data['event'])) {
                 $this->logger->debug('Received event from process', ['event' => $data['event']]);
                 if ($this->eventHandler) {
-                    ($this->eventHandler)($data);
+                    try {
+                        ($this->eventHandler)($data);
+                    } catch (\Throwable $e) {
+                        // unwinding now would abandon the request in flight while the browser carries on with it
+                        $this->eventHandlerException ??= $e;
+                    }
                 }
             }
         } catch (\JsonException $e) {
@@ -219,6 +229,17 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
                 'error' => $e->getMessage(),
             ]);
         }
+    }
+
+    private function throwEventHandlerException(): void
+    {
+        if (null === $exception = $this->eventHandlerException) {
+            return;
+        }
+
+        $this->eventHandlerException = null;
+
+        throw $exception;
     }
 
     /**
