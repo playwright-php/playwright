@@ -2,9 +2,21 @@
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-11-06
+
 ### Fixed
-- Closing a browser context releases it, its pages and their route handlers instead of keeping them for the browser's lifetime
-- `connectOverCDP()` reuses the browser's existing context and lists its open pages, so a disconnect no longer destroys them (#99)
+- CDP connections reuse the browser's existing context, list its open pages and preserve them across client disconnects (#100, #198)
+- `Request::isNavigationRequest()` distinguishes document navigations from subresources (#124)
+- Locator actions and waits honor requested timeouts and preserve original Playwright errors (#172)
+- Sensitive URL query values and complete authorization credentials are redacted from diagnostic data (#175)
+- Closing a browser removes its page registrations and context mappings from the Node bridge (#176)
+- Popup waits preserve native errors, release pending callbacks and safely handle failures before the PHP callback returns (#177)
+- Pending callbacks retain their command state for the operation timeout and callback grace period, including unlimited waits (#178)
+- Closing contexts and pages releases their PHP registrations and captured route handlers (#181)
+- Route matching, `fallback()` and `unroute($url, $handler)` follow native Playwright behavior, with unique IDs for page and context routes (#182)
+- Commands in one stdin chunk run concurrently, so pending navigation cannot block route responses (#184)
+- Route handler failures abort unhandled requests and preserve the original exception without leaking it into later commands (#185)
+- Navigation redirects complete after clicks, form submissions, reloads and history navigation on Playwright 1.64, and redirect waiters are released (#186)
 
 ## [1.5.0] - 2026-09-20
 
