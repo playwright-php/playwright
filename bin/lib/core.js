@@ -169,9 +169,27 @@ class CommandRegistry {
 
 class NavigationRedirects extends Map {
   #waiters = new Map();
-  fulfilled(pageId) { return new Promise(resolve => this.#waiters.set(pageId, resolve)); }
+
+  async runUntilFulfilled(pageId, action) {
+    let fulfill;
+    const fulfilled = new Promise(resolve => { fulfill = resolve; });
+    this.#waiters.set(pageId, fulfill);
+
+    try {
+      return await Promise.race([action(), fulfilled]);
+    } finally {
+      this.#forgetWaiter(pageId, fulfill);
+    }
+  }
+
   markFulfilled(pageId) {
     this.#waiters.get(pageId)?.();
+    this.#waiters.delete(pageId);
+  }
+
+  #forgetWaiter(pageId, fulfill) {
+    if (this.#waiters.get(pageId) !== fulfill) return;
+
     this.#waiters.delete(pageId);
   }
 }
@@ -211,7 +229,7 @@ class BaseHandler {
         // from Playwright 1.64 only goto() settles on the redirect's 204; a goto() to the same url before it does fails with net::ERR_ABORTED
         result = await (settlesOnRedirect
           ? nextAction()
-          : Promise.race([nextAction(), this.navigationRedirects.fulfilled(pageId)]));
+          : this.navigationRedirects.runUntilFulfilled(pageId, nextAction));
       } catch (error) {
         if (!this.navigationRedirects.has(pageId)) throw error;
       }
