@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace Playwright\Browser;
 
 use Playwright\Configuration\PlaywrightConfig;
+use Playwright\Exception\MissingDependencyException;
 use Playwright\Exception\PlaywrightException;
 use Playwright\Transport\Sanitizer;
 use Playwright\Transport\TransportInterface;
@@ -117,7 +118,8 @@ final class BrowserBuilder
             if (!is_string($response['error'])) {
                 throw new PlaywrightException('Browser launch failed with unknown error');
             }
-            throw new PlaywrightException($response['error']);
+
+            throw MissingDependencyException::fromBrowserLaunch($response['error']) ?? new PlaywrightException($response['error']);
         }
 
         if (!is_string($response['browserId'])) {

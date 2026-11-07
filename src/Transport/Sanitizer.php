@@ -115,8 +115,10 @@ final class Sanitizer
 
     /**
      * Sanitize a string by masking common patterns.
+     *
+     * @internal
      */
-    private static function sanitizeString(string $string): string
+    public static function sanitizeString(string $string): string
     {
         $string = self::sanitizeQueryParameters($string);
 
