@@ -36,6 +36,7 @@ use Playwright\Page\Options\EmulateMediaOptions;
 use Playwright\Page\Options\FrameQueryOptions;
 use Playwright\Page\Options\GotoOptions;
 use Playwright\Page\Options\NavigationHistoryOptions;
+use Playwright\Page\Options\PageErrorsOptions;
 use Playwright\Page\Options\PdfOptions;
 use Playwright\Page\Options\ScreenshotOptions;
 use Playwright\Page\Options\ScriptTagOptions;
@@ -50,6 +51,7 @@ use Playwright\Page\Options\WaitForRequestOptions;
 use Playwright\Page\Options\WaitForResponseOptions;
 use Playwright\Page\Options\WaitForSelectorOptions;
 use Playwright\Page\Options\WaitForUrlOptions;
+use Playwright\PageError\PageErrorInterface;
 use Playwright\Regex;
 use Playwright\Screencast\ScreencastInterface;
 use Playwright\Video\VideoInterface;
@@ -180,6 +182,21 @@ interface PageInterface
      * Discards the recorded console history without touching event listeners.
      */
     public function clearConsoleMessages(): self;
+
+    /**
+     * Returns recorded uncaught JavaScript errors, oldest first, without clearing them.
+     *
+     * Playwright retains up to 200 recent errors. By default, only errors since
+     * the last navigation are returned; use filter 'all' to include earlier ones.
+     * Console messages, including console.error(), are read with consoleMessages().
+     *
+     * @param array{filter?: 'all'|'since-navigation'|null}|PageErrorsOptions $options
+     *
+     * @return list<PageErrorInterface>
+     *
+     * @see https://playwright.dev/docs/api/class-page#page-page-errors
+     */
+    public function pageErrors(array|PageErrorsOptions $options = []): array;
 
     /**
      * Discards the uncaught page errors recorded so far.
