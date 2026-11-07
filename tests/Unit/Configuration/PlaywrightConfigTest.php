@@ -155,6 +155,46 @@ class PlaywrightConfigTest extends TestCase
     }
 
     #[Test]
+    public function itPreservesThePositionalLoggerArgument(): void
+    {
+        $logger = new TestLogger();
+        $config = new PlaywrightConfig(
+            null,
+            '20.0.0',
+            BrowserType::CHROMIUM,
+            null,
+            true,
+            30000,
+            0,
+            [],
+            [],
+            null,
+            null,
+            null,
+            false,
+            null,
+            false,
+            false,
+            null,
+            $logger,
+        );
+
+        $this->assertSame($logger, $config->logger);
+        $this->assertNull($config->wsEndpoint);
+    }
+
+    #[Test]
+    public function itPreservesTheEndpointWhenChangingTheNodePath(): void
+    {
+        $endpoint = 'ws://playwright:3000/browser';
+        $config = new PlaywrightConfig(wsEndpoint: $endpoint);
+        $copy = $config->withNodePath('/custom/node');
+
+        $this->assertSame($endpoint, $copy->wsEndpoint);
+        $this->assertSame($endpoint, $copy->toArray()['wsEndpoint']);
+    }
+
+    #[Test]
     public function itSupportsNodeConfiguration(): void
     {
         $config = new PlaywrightConfig(

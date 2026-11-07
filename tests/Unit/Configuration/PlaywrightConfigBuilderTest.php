@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace Playwright\Tests\Unit\Configuration;
 
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Playwright\Browser\BrowserType;
@@ -45,6 +46,8 @@ class PlaywrightConfigBuilderTest extends TestCase
             'PW_PROXY_USERNAME',
             'PW_PROXY_PASSWORD',
             'PW_PROXY_BYPASS',
+            'PW_WS_ENDPOINT',
+            'PLAYWRIGHT_WS_ENDPOINT',
         ];
 
         foreach ($envVars as $var) {
@@ -87,6 +90,55 @@ class PlaywrightConfigBuilderTest extends TestCase
         $this->assertNull($config->downloadsDir);
         $this->assertNull($config->videosDir);
         $this->assertFalse($config->tracingEnabled);
+        $this->assertNull($config->wsEndpoint);
+    }
+
+    #[Test]
+    #[DataProvider('endpointValues')]
+    public function itNormalizesTheEndpoint(?string $value, ?string $expected): void
+    {
+        $builder = PlaywrightConfigBuilder::create();
+        $builder->withWsEndpoint('ws://previous:3000/');
+        $builder->withWsEndpoint($value);
+        $config = $builder->build();
+
+        $this->assertSame($expected, $config->wsEndpoint);
+    }
+
+    public static function endpointValues(): iterable
+    {
+        yield 'endpoint' => ['ws://playwright:3000/', 'ws://playwright:3000/'];
+        yield 'surrounding whitespace' => ['  ws://playwright:3000/  ', 'ws://playwright:3000/'];
+        yield 'unset' => [null, null];
+        yield 'empty' => ['', null];
+        yield 'whitespace' => ['  ', null];
+    }
+
+    #[Test]
+    #[DataProvider('endpointEnvironment')]
+    public function itReadsTheEndpointFromTheEnvironment(?string $primary, ?string $alias, ?string $expected): void
+    {
+        if (null !== $primary) {
+            putenv('PW_WS_ENDPOINT='.$primary);
+        }
+
+        if (null !== $alias) {
+            putenv('PLAYWRIGHT_WS_ENDPOINT='.$alias);
+        }
+
+        $builder = PlaywrightConfigBuilder::fromEnv();
+        $config = $builder->build();
+
+        $this->assertSame($expected, $config->wsEndpoint);
+    }
+
+    public static function endpointEnvironment(): iterable
+    {
+        yield 'primary' => ['ws://primary:3000/', null, 'ws://primary:3000/'];
+        yield 'alias' => [null, 'ws://alias:3000/', 'ws://alias:3000/'];
+        yield 'primary takes precedence' => ['ws://primary:3000/', 'ws://alias:3000/', 'ws://primary:3000/'];
+        yield 'empty primary falls back' => ['', 'ws://alias:3000/', 'ws://alias:3000/'];
+        yield 'neither' => [null, null, null];
     }
 
     #[Test]

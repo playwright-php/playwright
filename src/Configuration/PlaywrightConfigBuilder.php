@@ -65,6 +65,8 @@ final class PlaywrightConfigBuilder
     /** @var array{server: string, username?: string, password?: string, bypass?: string}|null */
     private ?array $proxy = null;
 
+    private ?string $wsEndpoint = null;
+
     private ?LoggerInterface $logger = null;
 
     public static function create(): self
@@ -131,6 +133,10 @@ final class PlaywrightConfigBuilder
         }
         if ($vd = $get('PW_VIDEOS_DIR')) {
             $b->withVideosDir($vd);
+        }
+
+        if ($wsEndpoint = $get('PW_WS_ENDPOINT') ?? $get('PLAYWRIGHT_WS_ENDPOINT')) {
+            $b->withWsEndpoint($wsEndpoint);
         }
 
         if ($proxy = $get('PW_PROXY_SERVER')) {
@@ -278,6 +284,14 @@ final class PlaywrightConfigBuilder
         return $this;
     }
 
+    public function withWsEndpoint(?string $wsEndpoint): self
+    {
+        $wsEndpoint = null !== $wsEndpoint ? trim($wsEndpoint) : null;
+        $this->wsEndpoint = '' !== $wsEndpoint ? $wsEndpoint : null;
+
+        return $this;
+    }
+
     public function withLogger(?LoggerInterface $logger): self
     {
         $this->logger = $logger;
@@ -325,6 +339,7 @@ final class PlaywrightConfigBuilder
             proxy: $this->proxy,
             logger: $this->logger,
             executablePath: $this->executablePath,
+            wsEndpoint: $this->wsEndpoint,
         );
     }
 

@@ -6,6 +6,7 @@
 - `toHaveScreenshot()` visual regression assertion on pages and locators, with PNG or lossless WebP baselines (#174)
 - Launching a browser from a custom path through `withExecutablePath()` and `PW_EXECUTABLE_PATH` (#191)
 - Read recorded JavaScript errors with `PageInterface::pageErrors()` (#179). Custom `PageInterface` implementations must add this method.
+- Remote browser configuration through `PlaywrightConfig::wsEndpoint`, `withWsEndpoint()` and the `PW_WS_ENDPOINT` / `PLAYWRIGHT_WS_ENDPOINT` environment variables (#195)
 
 ## [1.5.1] - 2026-11-06
 
