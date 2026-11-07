@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Fixed
+- Use `PlaywrightConfig::logger` for page and locator diagnostics, with redacted navigation URLs and command errors (#83)
+
 ## [1.5.1] - 2026-11-06
 
 ### Fixed

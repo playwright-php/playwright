@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace Playwright\Tests\Unit\Page;
 
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -43,6 +44,7 @@ use Playwright\Page\Page;
 use Playwright\Page\PageEventHandlerInterface;
 use Playwright\Regex;
 use Playwright\Screencast\ScreencastInterface;
+use Playwright\Tests\Mocks\TestLogger;
 use Playwright\Transport\TransportInterface;
 use Playwright\Video\VideoInterface;
 use Playwright\WebStorage\WebStorageInterface;
@@ -67,6 +69,58 @@ class PageTest extends TestCase
         $keyboard = $this->page->keyboard();
 
         $this->assertInstanceOf(KeyboardInterface::class, $keyboard);
+    }
+
+    public function testNavigationUsesTheConfiguredLoggerWithoutExposingCredentials(): void
+    {
+        $logger = new TestLogger();
+        $page = new Page($this->transport, $this->context, 'page-id', new PlaywrightConfig(logger: $logger));
+        $url = 'https://example.test/?token=example-navigation-secret';
+        $this->transport->expects($this->once())->method('send')
+            ->with($this->callback(static fn (array $message): bool => $url === $message['url']))
+            ->willReturn([]);
+
+        $page->goto($url);
+
+        $this->assertTrue($logger->hasInfoThatContains('Successfully navigated'));
+        $log = json_encode($logger->records, JSON_THROW_ON_ERROR);
+        $this->assertStringContainsString('token=[REDACTED]', $log);
+        $this->assertStringNotContainsString('example-navigation-secret', $log);
+    }
+
+    #[DataProvider('locatorFactories')]
+    public function testLocatorsLogANativeFailureOnceWithTheConfiguredLogger(callable $createLocator): void
+    {
+        $logger = new TestLogger();
+        $page = new Page($this->transport, $this->context, 'page-id', new PlaywrightConfig(logger: $logger));
+        $message = 'Playwright action failed: Bearer example-locator-secret';
+        $this->transport->expects($this->once())->method('send')->willReturn(['error' => $message]);
+        $locator = $createLocator($page);
+
+        $this->expectException(PlaywrightException::class);
+        $this->expectExceptionMessage($message);
+
+        try {
+            $locator->click();
+        } finally {
+            $errors = array_values(array_filter($logger->records, static fn (array $record): bool => 'error' === $record['level']));
+            $this->assertCount(1, $errors);
+            $this->assertSame('Playwright action failed: Bearer [REDACTED]', $errors[0]['context']['error']);
+        }
+    }
+
+    public static function locatorFactories(): iterable
+    {
+        yield 'nested locator' => [static function (Page $page) {
+            $parent = $page->locator('section');
+
+            return $parent->locator('button');
+        }];
+        yield 'frame locator' => [static function (Page $page) {
+            $frame = $page->frameLocator('iframe');
+
+            return $frame->locator('button');
+        }];
     }
 
     public function testGetMouse(): void
