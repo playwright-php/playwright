@@ -83,8 +83,7 @@ $context->close();
 
 - Choose a browser: `Playwright::chromium()`, `Playwright::firefox()`, or `Playwright::webkit()`.
 - `Playwright::safari()` is an alias of `webkit()`.
-- Common launch options: `headless` (bool), `slowMo` (ms), `args` (array of CLI args), and an optional `context` array
-  with context options.
+- Supported launch options: `headless` (bool), `slowMo` (ms), `args` (array of CLI args), and an optional `context` array with context options.
 
 ```php
 $context = Playwright::webkit([
@@ -94,6 +93,8 @@ $context = Playwright::webkit([
     // 'context' => [ ... context options ... ],
 ]);
 ```
+
+Unknown launch option names throw `InvalidArgumentException`. For options such as `channel` and `proxy`, use [`PlaywrightConfigBuilder` with `PlaywrightFactory`](docs/guide/advanced-recipes.md#browser-configuration-with-playwrightconfigbuilder).
 
 ### Page
 
