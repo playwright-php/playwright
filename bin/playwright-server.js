@@ -287,7 +287,7 @@ class PlaywrightServer extends BaseHandler {
     if (command?.options?.env?.PWDEBUG) process.env.PWDEBUG = String(command.options.env.PWDEBUG);
     if (command.browser === 'chromium' || !command.browser) {
       options.args = [
-        '--no-sandbox', '--disable-dev-shm-usage', '--disable-web-security', '--disable-features=VizDisplayCompositor',
+        '--no-sandbox', '--disable-dev-shm-usage', '--disable-web-security',
         '--disable-background-timer-throttling', '--disable-backgrounding-occluded-windows', '--disable-renderer-backgrounding',
         '--disable-field-trial-config', '--disable-ipc-flooding-protection', '--disable-popup-blocking', ...(options.args || [])
       ];
