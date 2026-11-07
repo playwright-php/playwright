@@ -107,9 +107,11 @@ final class PlaywrightConfigBuilder
         if ($channel = $get('PW_CHANNEL')) {
             $b->withChannel($channel);
         }
-        if ($executablePath = $get('PW_EXECUTABLE_PATH')) {
+
+        if (null !== ($executablePath = $get('PW_EXECUTABLE_PATH'))) {
             $b->withExecutablePath($executablePath);
         }
+
         if (($headless = $get('PW_HEADLESS')) !== null) {
             $b->withHeadless(self::strToBool($headless));
         }
@@ -173,7 +175,7 @@ final class PlaywrightConfigBuilder
 
     public function withExecutablePath(?string $executablePath): self
     {
-        $this->executablePath = $executablePath ?: null;
+        $this->executablePath = '' === $executablePath ? null : $executablePath;
 
         return $this;
     }

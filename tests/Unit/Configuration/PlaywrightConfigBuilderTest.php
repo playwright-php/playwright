@@ -242,7 +242,7 @@ class PlaywrightConfigBuilderTest extends TestCase
         putenv('PLAYWRIGHT_BROWSERS_PATH=/env/ms-playwright');
         putenv('PW_BROWSER=firefox');
         putenv('PW_CHANNEL=nightly');
-        putenv('PW_EXECUTABLE_PATH=/env/chromium');
+        putenv('PW_EXECUTABLE_PATH=0');
         putenv('PW_HEADLESS=false');
         putenv('PW_TIMEOUT_MS=60000');
         putenv('PW_SLOWMO_MS=500');
@@ -262,7 +262,7 @@ class PlaywrightConfigBuilderTest extends TestCase
         $this->assertEquals('/env/ms-playwright', $config->env['PLAYWRIGHT_BROWSERS_PATH'] ?? null);
         $this->assertEquals(BrowserType::FIREFOX, $config->browser);
         $this->assertEquals('nightly', $config->channel);
-        $this->assertEquals('/env/chromium', $config->executablePath);
+        $this->assertSame('0', $config->executablePath);
         $this->assertFalse($config->headless);
         $this->assertEquals(60000, $config->timeoutMs);
         $this->assertEquals(500, $config->slowMoMs);
