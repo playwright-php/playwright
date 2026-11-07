@@ -15,11 +15,17 @@ declare(strict_types=1);
 namespace Playwright\Tests\Unit\Assertions;
 
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Playwright\Assertions\AssertionOptions;
 use Playwright\Assertions\Failure\AssertionException;
+use Playwright\Assertions\Internal\ScreenshotExpectation;
 use Playwright\Assertions\LocatorAssertions;
+use Playwright\Assertions\Options\ToHaveScreenshotOptions;
+use Playwright\Locator\Locator;
 use Playwright\Locator\LocatorInterface;
+use Playwright\Tracing\TracingInterface;
+use Playwright\Transport\TransportInterface;
 
 #[CoversClass(LocatorAssertions::class)]
 final class LocatorAssertionsTest extends TestCase
@@ -363,5 +369,130 @@ final class LocatorAssertionsTest extends TestCase
 
         (new LocatorAssertions($this->createMock(LocatorInterface::class)))
             ->toBeInViewport(new AssertionOptions(ratio: -0.1));
+    }
+
+    /** @var list<string> */
+    private array $dirs = [];
+
+    public function testToHaveScreenshotNeedsAPlaywrightLocator(): void
+    {
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('toHaveScreenshot() needs a Playwright\Locator\Locator created by Playwright PHP');
+
+        (new LocatorAssertions($this->createStub(LocatorInterface::class)))->toHaveScreenshot('/tmp/card.png');
+    }
+
+    /**
+     * @param array<string, mixed> $arguments
+     */
+    #[DataProvider('providePageOnlyOptions')]
+    public function testToHaveScreenshotRejectsPageOnlyOptions(array $arguments): void
+    {
+        $transport = $this->createMock(TransportInterface::class);
+        $transport->expects($this->never())->method('send');
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('The fullPage and clip options apply to a page screenshot');
+
+        (new LocatorAssertions(new Locator($transport, 'page1', '#card')))->toHaveScreenshot('/tmp/card.png', new ToHaveScreenshotOptions(...$arguments));
+    }
+
+    /**
+     * @return iterable<string, array{array<string, mixed>}>
+     */
+    public static function providePageOnlyOptions(): iterable
+    {
+        yield 'fullPage' => [['fullPage' => true]];
+        yield 'clip' => [['clip' => ['x' => 0, 'y' => 0, 'width' => 10, 'height' => 10]]];
+    }
+
+    public function testToHaveScreenshotComparesWithTheBaselineInsideATracingGroup(): void
+    {
+        $path = $this->snapshotDir().'/card.png';
+        file_put_contents($path, 'baseline');
+
+        $transport = $this->createMock(TransportInterface::class);
+        $transport->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static fn (array $payload): bool => 'locator.expectScreenshot' === $payload['action']
+                && base64_encode('baseline') === $payload['expected']
+                && 1234 === $payload['options']['timeout']
+                && 'png' === $payload['options']['type']))
+            ->willReturn(['errorMessage' => null]);
+
+        $tracing = $this->createMock(TracingInterface::class);
+        $tracing->expects($this->once())->method('group')->with('expect(#card).toHaveScreenshot');
+        $tracing->expects($this->once())->method('groupEnd');
+
+        $assertions = new LocatorAssertions(new Locator($transport, 'page1', '#card'), $tracing);
+
+        $this->assertSame($assertions, $assertions->withTimeout(1234)->toHaveScreenshot($path));
+    }
+
+    public function testToHaveScreenshotWritesFailureImagesInTheGivenDirectory(): void
+    {
+        $dir = $this->snapshotDir();
+        $path = $dir.'/card.png';
+        file_put_contents($path, 'baseline');
+        $_SERVER[ScreenshotExpectation::UPDATE_ENV] = 'none';
+
+        $transport = $this->createStub(TransportInterface::class);
+        $transport->method('send')->willReturn(['actual' => base64_encode('actual'), 'diff' => base64_encode('diff'), 'errorMessage' => 'different']);
+
+        try {
+            (new LocatorAssertions(new Locator($transport, 'page1', '#card'), null, $dir.'/out'))->toHaveScreenshot($path);
+            $this->fail('A mismatch must fail the assertion.');
+        } catch (AssertionException $e) {
+            $this->assertNotNull($e->actual);
+            $outputDir = dirname($e->actual);
+        }
+
+        $this->assertStringStartsWith($dir.'/out/', $outputDir);
+        $this->assertSame('actual', file_get_contents($outputDir.'/card-actual.png'));
+        $this->assertSame('diff', file_get_contents($outputDir.'/card-diff.png'));
+        foreach (glob($outputDir.'/*') ?: [] as $file) {
+            unlink($file);
+        }
+        rmdir($outputDir);
+        rmdir($dir.'/out');
+    }
+
+    public function testToHaveScreenshotCannotBeNegatedAndResetsTheNegation(): void
+    {
+        $path = $this->snapshotDir().'/card.png';
+        file_put_contents($path, 'baseline');
+
+        $transport = $this->createMock(TransportInterface::class);
+        $transport->expects($this->once())->method('send')->willReturn(['errorMessage' => null]);
+        $assertions = new LocatorAssertions(new Locator($transport, 'page1', '#card'));
+
+        try {
+            $assertions->not()->toHaveScreenshot($path);
+            $this->fail('A negated screenshot assertion must throw.');
+        } catch (\LogicException $e) {
+            $this->assertSame('toHaveScreenshot() cannot be negated.', $e->getMessage());
+        }
+
+        $this->assertSame($assertions, $assertions->toHaveScreenshot($path));
+    }
+
+    private function snapshotDir(): string
+    {
+        $dir = sys_get_temp_dir().'/pw-assertions-'.bin2hex(random_bytes(6));
+        mkdir($dir);
+        $this->dirs[] = $dir;
+
+        return $dir;
+    }
+
+    protected function tearDown(): void
+    {
+        unset($_SERVER[ScreenshotExpectation::UPDATE_ENV]);
+        foreach ($this->dirs as $dir) {
+            foreach (glob($dir.'/*') ?: [] as $file) {
+                unlink($file);
+            }
+            rmdir($dir);
+        }
     }
 }

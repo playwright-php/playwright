@@ -18,10 +18,16 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Playwright\Assertions\AssertionOptions;
 use Playwright\Assertions\Failure\AssertionException;
+use Playwright\Assertions\Internal\ScreenshotExpectation;
+use Playwright\Assertions\Options\ToHaveScreenshotOptions;
 use Playwright\Assertions\PageAssertions;
+use Playwright\Browser\BrowserContextInterface;
+use Playwright\Configuration\PlaywrightConfig;
 use Playwright\Locator\LocatorInterface;
+use Playwright\Page\Page;
 use Playwright\Page\PageInterface;
 use Playwright\Tracing\TracingInterface;
+use Playwright\Transport\TransportInterface;
 
 #[CoversClass(PageAssertions::class)]
 final class PageAssertionsTest extends TestCase
@@ -127,5 +133,91 @@ final class PageAssertionsTest extends TestCase
         $page->method('locator')->willReturn($locator);
 
         return $page;
+    }
+
+    /** @var list<string> */
+    private array $dirs = [];
+
+    public function testToHaveScreenshotNeedsAPlaywrightPage(): void
+    {
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('toHaveScreenshot() needs a Playwright\Page\Page created by Playwright PHP');
+
+        (new PageAssertions($this->createStub(PageInterface::class)))->toHaveScreenshot('/tmp/page.png');
+    }
+
+    public function testToHaveScreenshotSendsPageOptionsInsideATracingGroup(): void
+    {
+        $path = $this->snapshotDir().'/page.png';
+        file_put_contents($path, 'baseline');
+
+        $transport = $this->createMock(TransportInterface::class);
+        $transport->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static fn (array $payload): bool => 'page.expectScreenshot' === $payload['action']
+                && true === $payload['options']['fullPage']
+                && ['x' => 0, 'y' => 0, 'width' => 320, 'height' => 200] === $payload['options']['clip']))
+            ->willReturn(['errorMessage' => null]);
+
+        $tracing = $this->createMock(TracingInterface::class);
+        $tracing->expects($this->once())->method('group')->with('expect(page).toHaveScreenshot');
+        $tracing->expects($this->once())->method('groupEnd');
+
+        $page = new Page($transport, $this->createStub(BrowserContextInterface::class), 'page-id', new PlaywrightConfig());
+        $assertions = new PageAssertions($page, $tracing);
+
+        $this->assertSame($assertions, $assertions->toHaveScreenshot($path, new ToHaveScreenshotOptions(
+            fullPage: true,
+            clip: ['x' => 0, 'y' => 0, 'width' => 320, 'height' => 200],
+        )));
+    }
+
+    public function testToHaveScreenshotClosesTheTracingGroupOnFailure(): void
+    {
+        $path = $this->snapshotDir().'/page.png';
+        file_put_contents($path, 'baseline');
+        $_SERVER[ScreenshotExpectation::UPDATE_ENV] = 'none';
+
+        $transport = $this->createStub(TransportInterface::class);
+        $transport->method('send')->willReturn(['actual' => base64_encode('actual'), 'errorMessage' => 'different']);
+
+        $tracing = $this->createMock(TracingInterface::class);
+        $tracing->expects($this->once())->method('groupEnd');
+
+        $page = new Page($transport, $this->createStub(BrowserContextInterface::class), 'page-id', new PlaywrightConfig());
+
+        $this->expectException(AssertionException::class);
+
+        try {
+            (new PageAssertions($page, $tracing))->toHaveScreenshot($path);
+        } finally {
+            foreach (glob(getcwd().'/test-failures/snapshots/page-*', GLOB_ONLYDIR) ?: [] as $directory) {
+                foreach (glob($directory.'/*') ?: [] as $file) {
+                    unlink($file);
+                }
+                rmdir($directory);
+            }
+            @rmdir(getcwd().'/test-failures/snapshots');
+        }
+    }
+
+    private function snapshotDir(): string
+    {
+        $dir = sys_get_temp_dir().'/pw-assertions-'.bin2hex(random_bytes(6));
+        mkdir($dir);
+        $this->dirs[] = $dir;
+
+        return $dir;
+    }
+
+    protected function tearDown(): void
+    {
+        unset($_SERVER[ScreenshotExpectation::UPDATE_ENV]);
+        foreach ($this->dirs as $dir) {
+            foreach (glob($dir.'/*') ?: [] as $file) {
+                unlink($file);
+            }
+            rmdir($dir);
+        }
     }
 }

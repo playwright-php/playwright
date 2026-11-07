@@ -14,6 +14,8 @@ declare(strict_types=1);
 
 namespace Playwright\Testing;
 
+use Playwright\Assertions\Options\ToHaveScreenshotOptions;
+
 interface ExpectInterface
 {
     public function toBeAttached(): void;
@@ -64,6 +66,17 @@ interface ExpectInterface
     public function toHaveTitle(string $title): void;
 
     public function toHaveURL(string $url): void;
+
+    /**
+     * Compares a stable screenshot with a baseline image.
+     *
+     * A relative $name resolves in the snapshot directory of the test, suffixed
+     * with the browser and the platform read from the page under test:
+     * "card.png" in tests/CardTest.php, run in Chromium on Linux, is stored as
+     * tests/CardTest.php-snapshots/card-chromium-linux.png. Without extension,
+     * ".png" is added. Name it ".webp" for a lossless WebP baseline.
+     */
+    public function toHaveScreenshot(string $name, ?ToHaveScreenshotOptions $options = null): void;
 
     public function not(): self;
 
