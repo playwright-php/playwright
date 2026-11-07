@@ -62,18 +62,21 @@ final class BrowserBuilderRemoteEndpointTest extends TestCase
         yield 'webkit' => ['webkit'];
     }
 
-    public function testExplicitConnectOverridesTheConfiguredEndpoint(): void
+    public function testExplicitConnectUsesItsOwnEndpointAndDefaultContextSettings(): void
     {
         $transport = new MockTransport();
         $transport->queueResponse(['browserId' => 'browser', 'defaultContextId' => 'context', 'version' => '1.0']);
-        $config = new PlaywrightConfig(wsEndpoint: 'ws://configured:3000/');
+        $config = new PlaywrightConfig(videosDir: '/tmp/videos', wsEndpoint: 'ws://configured:3000/');
         $client = new PlaywrightClient($transport, new NullLogger(), $config);
         $builder = $client->chromium();
         $builder->connect('ws://explicit:3000/', ['timeout' => 500]);
 
-        $messages = $transport->getSentMessages();
-        $this->assertSame('ws://explicit:3000/', $messages[0]['wsEndpoint']);
-        $this->assertSame(['timeout' => 500], $messages[0]['options']);
+        $this->assertSame([[
+            'action' => 'connect',
+            'browser' => 'chromium',
+            'wsEndpoint' => 'ws://explicit:3000/',
+            'options' => ['timeout' => 500],
+        ]], $transport->getSentMessages());
     }
 
     public function testLaunchPreservesAnUnlimitedConnectionTimeout(): void

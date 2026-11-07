@@ -109,10 +109,10 @@ final class BrowserBuilder
     public function launch(): BrowserInterface
     {
         if (null !== $this->config->wsEndpoint) {
-            return $this->connect($this->config->wsEndpoint, [
+            return $this->connectToBrowserServer($this->config->wsEndpoint, [
                 'timeout' => $this->config->timeoutMs,
                 'slowMo' => $this->launchOptions['slowMo'] ?? 0,
-            ]);
+            ], $this->config->toContextOptions());
         }
 
         // Launch options can carry proxy credentials, so never log them raw.
@@ -164,19 +164,33 @@ final class BrowserBuilder
      */
     public function connect(string $wsEndpoint, array $options = []): BrowserInterface
     {
+        return $this->connectToBrowserServer($wsEndpoint, $options);
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     * @param array<string, mixed> $contextOptions
+     */
+    private function connectToBrowserServer(string $wsEndpoint, array $options, array $contextOptions = []): BrowserInterface
+    {
         $this->logger->info('Connecting to browser server', [
             'browser' => $this->browserType,
             'wsEndpoint' => Sanitizer::sanitizeUrl($wsEndpoint),
             'options' => Sanitizer::sanitizeParams($options),
         ]);
 
-        $response = $this->transport->send([
+        $payload = [
             'action' => 'connect',
             'browser' => $this->browserType,
             'wsEndpoint' => $wsEndpoint,
             'options' => $options,
-            'contextOptions' => $this->config->toContextOptions(),
-        ]);
+        ];
+
+        if ([] !== $contextOptions) {
+            $payload['contextOptions'] = $contextOptions;
+        }
+
+        $response = $this->transport->send($payload);
 
         if (isset($response['error'])) {
             if (!is_string($response['error'])) {

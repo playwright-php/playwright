@@ -96,7 +96,9 @@ The builder also accepts `withWsEndpoint($endpoint)`. To read the endpoint from 
 PW_WS_ENDPOINT='ws://playwright:3000/' php your-script.php
 ```
 
-The browser type must match the server. Local launch settings such as `headless`, `channel`, `args` and `proxy` do not configure an already running remote browser. `timeoutMs` and `slowMoMs` apply to the connection, and context settings still apply. An explicit `connect($endpoint, $options)` call uses its own endpoint and options.
+The browser type must match the server. Set browser launch options such as `headless`, `channel`, `args` and `proxy` on the server. For a remote `launch()`, `timeoutMs` and `slowMoMs` apply to the connection, and context settings apply to the initial context.
+
+An explicit `connect($endpoint, $options)` call uses the supplied endpoint and options and creates its initial context with Playwright defaults. Use `newContext()` to create a context with your configured settings.
 
 ### Run the browser in a separate container
 
