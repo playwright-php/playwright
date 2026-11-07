@@ -17,7 +17,9 @@ namespace Playwright\Tests\Unit\Transport\JsonRpc;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Playwright\Exception\DisconnectedException;
+use Playwright\Exception\MissingDependencyException;
 use Playwright\Exception\NetworkException;
+use Playwright\Exception\ProcessCrashedException;
 use Playwright\Tests\Mocks\FixedClock;
 use Playwright\Tests\Mocks\TestLogger;
 use Playwright\Transport\JsonRpc\JsonRpcClientInterface;
@@ -117,6 +119,66 @@ final class ProcessJsonRpcClientTest extends TestCase
         $this->expectExceptionMessage("Process exited with code 1:\n\nStartup failed with Bearer [REDACTED]");
 
         $client->send('test.method');
+    }
+
+    public function testProcessExitWithoutPlaywrightModuleThrowsMissingDependencyException(): void
+    {
+        $mockProcess = $this->createMock(Process::class);
+        $mockProcessLauncher = $this->createMock(ProcessLauncherInterface::class);
+
+        $mockProcess->method('isRunning')->willReturn(false);
+        $mockProcess->method('getExitCode')->willReturn(1);
+        $mockProcessLauncher->method('getInputStream')->willReturn($this->createMock(InputStream::class));
+        $mockProcessLauncher->method('getStderrOutput')->willReturn("Error: Cannot find module 'playwright'");
+
+        $client = new ProcessJsonRpcClient(
+            process: $mockProcess,
+            processLauncher: $mockProcessLauncher,
+            clock: $this->clock,
+            logger: $this->logger
+        );
+
+        $this->expectException(MissingDependencyException::class);
+        $this->expectExceptionMessage(MissingDependencyException::INSTALL_COMMAND);
+
+        $client->send('test.method');
+    }
+
+    public function testCrashedProcessThrowsDisconnectedExceptionWithStderr(): void
+    {
+        $mockProcess = $this->createMock(Process::class);
+        $mockProcessLauncher = $this->createMock(ProcessLauncherInterface::class);
+
+        $mockProcess->method('isRunning')->willReturn(true);
+        $mockProcess->method('getExitCode')->willReturn(134);
+        $mockProcessLauncher->method('getInputStream')->willReturn($this->createMock(InputStream::class));
+        $mockProcessLauncher->method('ensureRunning')->willThrowException(new ProcessCrashedException('Process crashed', 134, 'Aborted'));
+        $mockProcessLauncher->method('getStderrOutput')->willReturn('Aborted');
+
+        $client = new ProcessJsonRpcClient(
+            process: $mockProcess,
+            processLauncher: $mockProcessLauncher,
+            clock: $this->clock,
+            logger: $this->logger
+        );
+
+        $this->expectException(DisconnectedException::class);
+        $this->expectExceptionMessage("Process exited with code 134:\n\nAborted");
+
+        $client->send('test.method');
+    }
+
+    public function testProcessStderrIsLoggedSanitized(): void
+    {
+        $this->mockProcess->method('getIncrementalOutput')->willReturn(LspFraming::encode('{"requestId":1,"value":"ok"}'));
+        $this->mockProcess->method('getIncrementalErrorOutput')->willReturn('Authorization: Bearer example-credential');
+
+        $this->client->sendRaw(['action' => 'page.url', 'requestId' => 1]);
+
+        $warnings = array_values(array_filter($this->logger->records, static fn (array $record): bool => 'warning' === $record['level']));
+        $this->assertCount(1, $warnings);
+        $this->assertSame('Process stderr', $warnings[0]['message']);
+        $this->assertStringNotContainsString('example-credential', $warnings[0]['context']['stderr']);
     }
 
     public function testInputStreamWriteFailureThrowsNetworkException(): void

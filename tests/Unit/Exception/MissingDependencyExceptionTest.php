@@ -53,4 +53,25 @@ final class MissingDependencyExceptionTest extends TestCase
         $this->assertStringContainsString(MissingDependencyException::WITH_DEPENDENCIES_COMMAND, $exception->getMessage());
         $this->assertStringContainsString('Host system is missing dependencies', $exception->getMessage());
     }
+
+    public function testBrowserLaunchWithMissingExecutableNamesTheInstallCommand(): void
+    {
+        $exception = MissingDependencyException::fromBrowserLaunch("browserType.launch: Executable doesn't exist at /tmp/chrome");
+
+        $this->assertInstanceOf(MissingDependencyException::class, $exception);
+        $this->assertStringContainsString(MissingDependencyException::INSTALL_COMMAND, $exception->getMessage());
+    }
+
+    public function testBrowserLaunchWithMissingHostLibrariesNamesTheWithDepsCommand(): void
+    {
+        $exception = MissingDependencyException::fromBrowserLaunch('browserType.launch: Host system is missing dependencies to run browsers.');
+
+        $this->assertInstanceOf(MissingDependencyException::class, $exception);
+        $this->assertStringContainsString(MissingDependencyException::WITH_DEPENDENCIES_COMMAND, $exception->getMessage());
+    }
+
+    public function testBrowserLaunchWithAnotherErrorIsNotAMissingDependency(): void
+    {
+        $this->assertNull(MissingDependencyException::fromBrowserLaunch('browserType.launch: Target page, context or browser has been closed'));
+    }
 }
