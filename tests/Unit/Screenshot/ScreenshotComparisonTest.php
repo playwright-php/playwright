@@ -15,7 +15,9 @@ declare(strict_types=1);
 namespace Playwright\Tests\Unit\Screenshot;
 
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use Playwright\Exception\ProtocolErrorException;
 use Playwright\Screenshot\ScreenshotComparison;
 
 #[CoversClass(ScreenshotComparison::class)]
@@ -47,12 +49,25 @@ final class ScreenshotComparisonTest extends TestCase
         $this->assertNull($comparison->actual);
     }
 
-    public function testIgnoresMalformedValues(): void
+    #[DataProvider('malformedStatuses')]
+    public function testRejectsMissingOrMalformedComparisonStatus(array $response): void
     {
-        $comparison = ScreenshotComparison::fromResponse(['actual' => '***', 'errorMessage' => '', 'timedOut' => 'yes']);
+        $this->expectException(ProtocolErrorException::class);
 
-        $this->assertNull($comparison->actual);
-        $this->assertNull($comparison->errorMessage);
-        $this->assertFalse($comparison->timedOut);
+        ScreenshotComparison::fromResponse($response);
+    }
+
+    public static function malformedStatuses(): iterable
+    {
+        yield 'missing status' => [[]];
+        yield 'invalid error' => [['errorMessage' => false]];
+        yield 'invalid timeout' => [['errorMessage' => null, 'timedOut' => 'yes']];
+    }
+
+    public function testTimeoutCannotMatchWithoutAnErrorMessage(): void
+    {
+        $comparison = ScreenshotComparison::fromResponse(['errorMessage' => null, 'timedOut' => true]);
+
+        $this->assertFalse($comparison->matches());
     }
 }
