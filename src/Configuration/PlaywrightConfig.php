@@ -58,6 +58,8 @@ final class PlaywrightConfig
         public readonly ?array $proxy = null,
 
         public readonly ?LoggerInterface $logger = null,
+
+        public readonly ?string $executablePath = null,
     ) {
     }
 
@@ -121,6 +123,7 @@ final class PlaywrightConfig
             traceSnapshots: $this->traceSnapshots,
             proxy: $this->proxy,
             logger: $this->logger,
+            executablePath: $this->executablePath,
         );
     }
 
@@ -136,6 +139,7 @@ final class PlaywrightConfig
             'minNodeVersion' => $this->minNodeVersion,
             'browser' => $this->browser->value,
             'channel' => $this->channel,
+            'executablePath' => $this->executablePath,
             'headless' => $this->headless,
             'timeoutMs' => $this->timeoutMs,
             'slowMoMs' => $this->slowMoMs,
