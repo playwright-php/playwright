@@ -8,6 +8,7 @@ power of Playwright for PHP.
 * [File Uploads](#file-uploads)
 * [Network Interception](#network-interception)
 * [Handling Dialogs](#handling-dialogs)
+* [Inspecting JavaScript Errors](#inspecting-javascript-errors)
 * [Working with Frames](#working-with-frames)
 * [Connecting to External Browsers](#connecting-to-external-browsers)
 * [Browser Configuration with `PlaywrightConfigBuilder`](#browser-configuration-with-playwrightconfigbuilder)
@@ -79,6 +80,37 @@ $this->page->events()->onDialog(function ($dialog) {
 // Perform the action that triggers the dialog
 $this->page->locator('#delete-item-button')->click();
 ```
+
+## Inspecting JavaScript Errors
+
+Use `pageErrors()` to read uncaught JavaScript errors recorded by the page, including errors raised before
+you inspect them. Each `PageErrorInterface` exposes the JavaScript error's `name()`, `message()` and `stack()`.
+The stack is `null` when unavailable.
+
+```php
+use Playwright\Page\Options\PageErrorsOptions;
+
+// Include errors from earlier navigations in this page.
+$errors = $this->page->pageErrors(new PageErrorsOptions(filter: 'all'));
+
+foreach ($errors as $error) {
+    echo $error->name().': '.$error->message().PHP_EOL;
+    if (null !== $error->stack()) {
+        echo $error->stack().PHP_EOL;
+    }
+}
+
+$this->page->clearPageErrors();
+```
+
+An array works too: `$this->page->pageErrors(['filter' => 'all'])`. Without options, the filter defaults to
+`'since-navigation'`, returning errors since the last navigation. Playwright retains up to 200 recent errors
+per page; reading them does not clear the history. `clearPageErrors()` clears the entire recorded history,
+including errors from previous navigations.
+
+`pageErrors()` reads errors already recorded; it does not wait for a future error. After triggering an asynchronous
+action, wait for the relevant application state before reading its errors. Messages logged with `console.error()`
+belong to `consoleMessages()` instead.
 
 ## Working with Frames
 
