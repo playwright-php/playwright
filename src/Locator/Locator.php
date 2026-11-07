@@ -53,6 +53,7 @@ use Playwright\Locator\Options\WaitForFunctionOptions;
 use Playwright\Locator\Options\WaitForOptions;
 use Playwright\Page\PageInterface;
 use Playwright\Screenshot\ScreenshotComparison;
+use Playwright\Transport\Sanitizer;
 use Playwright\Transport\TransportInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -514,8 +515,8 @@ final class Locator implements \Stringable, LocatorInterface
             $this->logger->error('Failed to set input files on locator', [
                 'selector' => (string) $this->selectorChain,
                 'files' => $fileArray,
-                'error' => $e->getMessage(),
-                'exception' => $e,
+                'error' => Sanitizer::sanitizeParams($e->getMessage()),
+                'exceptionType' => $e::class,
             ]);
             throw $e;
         }
@@ -816,6 +817,11 @@ final class Locator implements \Stringable, LocatorInterface
         if (isset($response['error'])) {
             $error = $response['error'];
             $errorMessage = is_string($error) ? $error : 'Unknown locator error';
+            $this->logger->error('Locator command failed', [
+                'action' => $action,
+                'error' => Sanitizer::sanitizeParams($errorMessage),
+            ]);
+
             throw new PlaywrightException($errorMessage);
         }
 

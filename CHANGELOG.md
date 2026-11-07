@@ -9,6 +9,9 @@
 - Read recorded JavaScript errors with `PageInterface::pageErrors()` (#179). Custom `PageInterface` implementations must add this method.
 - Remote browser configuration through `PlaywrightConfig::wsEndpoint`, `withWsEndpoint()` and the `PW_WS_ENDPOINT` / `PLAYWRIGHT_WS_ENDPOINT` environment variables (#195)
 
+### Fixed
+- Use `PlaywrightConfig::logger` for page and locator diagnostics, with redacted navigation URLs and command errors (#83)
+
 ## [1.5.1] - 2026-11-06
 
 ### Fixed

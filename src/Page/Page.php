@@ -79,6 +79,7 @@ use Playwright\Screencast\Screencast;
 use Playwright\Screencast\ScreencastInterface;
 use Playwright\Screenshot\ScreenshotComparison;
 use Playwright\Screenshot\ScreenshotHelper;
+use Playwright\Transport\Sanitizer;
 use Playwright\Transport\TransportInterface;
 use Playwright\Video\Video;
 use Playwright\Video\VideoInterface;
@@ -104,7 +105,7 @@ final class Page implements PageInterface, EventDispatcherInterface
 
     private PageEventHandlerInterface $eventHandler;
 
-    private LoggerInterface $logger;
+    private readonly LoggerInterface $logger;
 
     private ?APIRequestContextInterface $apiRequestContext = null;
 
@@ -359,21 +360,22 @@ final class Page implements PageInterface, EventDispatcherInterface
     public function goto(string $url, array|GotoOptions $options = []): ?ResponseInterface
     {
         $options = GotoOptions::from($options)->toArray();
+        $logUrl = Sanitizer::sanitizeUrl($url);
 
-        $this->logger->debug('Navigating to URL', ['url' => $url, 'options' => $options]);
+        $this->logger->debug('Navigating to URL', ['url' => $logUrl, 'options' => Sanitizer::sanitizeParams($options)]);
 
         try {
             $response = $this->sendCommand('goto', ['url' => $url, 'options' => $options]);
-            $this->logger->info('Successfully navigated to URL', ['url' => $url]);
+            $this->logger->info('Successfully navigated to URL', ['url' => $logUrl]);
 
             $responseData = $response['response'] ?? null;
 
             return $responseData && is_array($responseData) ? $this->createResponse($this->pageId, $responseData) : null;
         } catch (\Throwable $e) {
             $this->logger->error('Failed to navigate to URL', [
-                'url' => $url,
-                'error' => $e->getMessage(),
-                'exception' => $e,
+                'url' => $logUrl,
+                'error' => Sanitizer::sanitizeParams($e->getMessage()),
+                'exceptionType' => $e::class,
             ]);
             throw $e;
         }
@@ -410,8 +412,8 @@ final class Page implements PageInterface, EventDispatcherInterface
         } catch (\Throwable $e) {
             $this->logger->error('Failed to take screenshot', [
                 'path' => $finalPath,
-                'error' => $e->getMessage(),
-                'exception' => $e,
+                'error' => Sanitizer::sanitizeParams($e->getMessage()),
+                'exceptionType' => $e::class,
             ]);
             throw $e;
         }
@@ -489,8 +491,8 @@ final class Page implements PageInterface, EventDispatcherInterface
         } catch (\Throwable $e) {
             $this->logger->error('Failed to generate PDF', [
                 'path' => $finalPath,
-                'error' => $e->getMessage(),
-                'exception' => $e,
+                'error' => Sanitizer::sanitizeParams($e->getMessage()),
+                'exceptionType' => $e::class,
             ]);
 
             throw $e;
@@ -836,7 +838,7 @@ final class Page implements PageInterface, EventDispatcherInterface
             $error = $response['error'];
             if (!is_array($error)) {
                 $message = is_string($error) ? $error : 'Unknown error';
-                $this->logger->error('Playwright server error (non-structured)', ['error' => $error]);
+                $this->logger->error('Playwright server error (non-structured)', ['error' => Sanitizer::sanitizeParams($error)]);
                 if (str_contains($message, 'Timeout')) {
                     throw new TimeoutException($message);
                 }
@@ -851,7 +853,7 @@ final class Page implements PageInterface, EventDispatcherInterface
                 $message = 'Unknown error';
             }
 
-            $this->logger->error('Playwright server error', ['error' => $error]);
+            $this->logger->error('Playwright server error', ['error' => Sanitizer::sanitizeParams($error)]);
 
             if (str_contains($message, 'Target page, context or browser has been closed')) {
                 throw new PlaywrightException('Browser context has been closed');
@@ -1224,12 +1226,12 @@ final class Page implements PageInterface, EventDispatcherInterface
 
     public function frameLocator(string $selector): FrameLocatorInterface
     {
-        return new FrameLocator($this->transport, $this->pageId, $selector, null, $this);
+        return new FrameLocator($this->transport, $this->pageId, $selector, $this->logger, $this);
     }
 
     public function mainFrame(): FrameInterface
     {
-        return new Frame($this->transport, $this->pageId, ':root', null, $this);
+        return new Frame($this->transport, $this->pageId, ':root', $this->logger, $this);
     }
 
     /**
@@ -1246,7 +1248,7 @@ final class Page implements PageInterface, EventDispatcherInterface
         $result = [];
         foreach ($frames as $frameData) {
             if (\is_array($frameData) && isset($frameData['selector']) && \is_string($frameData['selector'])) {
-                $result[] = new Frame($this->transport, $this->pageId, $frameData['selector'], null, $this);
+                $result[] = new Frame($this->transport, $this->pageId, $frameData['selector'], $this->logger, $this);
             }
         }
 
@@ -1262,7 +1264,7 @@ final class Page implements PageInterface, EventDispatcherInterface
         $response = $this->sendCommand('frame', ['options' => $options]);
         $selector = $response['selector'] ?? null;
         if (\is_string($selector)) {
-            return new Frame($this->transport, $this->pageId, $selector, null, $this);
+            return new Frame($this->transport, $this->pageId, $selector, $this->logger, $this);
         }
 
         return null;
@@ -1385,8 +1387,8 @@ final class Page implements PageInterface, EventDispatcherInterface
             $this->logger->error('Failed to set input files', [
                 'selector' => $selector,
                 'files' => $files,
-                'error' => $e->getMessage(),
-                'exception' => $e,
+                'error' => Sanitizer::sanitizeParams($e->getMessage()),
+                'exceptionType' => $e::class,
             ]);
             throw $e;
         }

@@ -12,6 +12,7 @@ power of Playwright for PHP.
 * [Working with Frames](#working-with-frames)
 * [Connecting to External Browsers](#connecting-to-external-browsers)
 * [Browser Configuration with `PlaywrightConfigBuilder`](#browser-configuration-with-playwrightconfigbuilder)
+* [Page and Locator Logging](#page-and-locator-logging)
 
 ## File Uploads
 
@@ -158,3 +159,17 @@ $playwright = PlaywrightFactory::create($config);
 // Now launch the browser, which will use these settings
 $browser = $playwright->chromium()->launch();
 ```
+
+## Page and Locator Logging
+
+Set a PSR-3 logger on `PlaywrightConfig` to log page operations and locator failures, including locators inside frames.
+
+```php
+use Playwright\Configuration\PlaywrightConfig;
+use Playwright\PlaywrightFactory;
+
+$config = new PlaywrightConfig(logger: $logger);
+$playwright = PlaywrightFactory::create($config);
+```
+
+Use the factory's second argument to configure client and transport logging. You can pass the same logger in both places.
