@@ -17,7 +17,9 @@ namespace Playwright\Transport\JsonRpc;
 use Playwright\Exception\DisconnectedException;
 use Playwright\Exception\MissingDependencyException;
 use Playwright\Exception\NetworkException;
+use Playwright\Exception\ProcessCrashedException;
 use Playwright\Exception\TimeoutException;
+use Playwright\Transport\Sanitizer;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -138,7 +140,7 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
         $stderr = $this->process->getIncrementalErrorOutput();
         $this->process->clearErrorOutput();
         if ('' !== $stderr) {
-            $this->logger->warning('Process stderr', ['stderr' => $stderr]);
+            $this->logger->warning('Process stderr', ['stderr' => Sanitizer::sanitizeString($stderr)]);
         }
 
         $this->processAndDispatchMessages();
@@ -261,28 +263,35 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
     private function ensureProcessRunning(): void
     {
         if (!$this->process->isRunning()) {
-            $exitCode = $this->process->getExitCode() ?? -1;
-            $stderr = trim($this->processLauncher->getStderrOutput());
-
-            if (self::indicatesMissingServer($stderr)) {
-                throw MissingDependencyException::server($stderr);
-            }
-
-            // Without the stderr excerpt an exit code alone gives the user nothing to act on.
-            $message = sprintf('Process exited with code %d', $exitCode);
-
-            if ('' !== $stderr) {
-                $message .= sprintf(":\n\n%s", $stderr);
-            }
-
-            throw new DisconnectedException($message, 0, null, ['exitCode' => $exitCode, 'pid' => $this->process->getPid(), 'stderr' => $stderr]);
+            $this->throwProcessExit();
         }
 
         try {
             $this->processLauncher->ensureRunning($this->process, 'JSON-RPC communication');
+        } catch (ProcessCrashedException) {
+            $this->throwProcessExit();
         } catch (\Throwable $e) {
             throw new DisconnectedException('Process health check failed: '.$e->getMessage(), 0, $e);
         }
+    }
+
+    private function throwProcessExit(): never
+    {
+        $exitCode = $this->process->getExitCode() ?? -1;
+        $stderr = trim($this->processLauncher->getStderrOutput());
+
+        if (self::indicatesMissingServer($stderr)) {
+            throw MissingDependencyException::server($stderr);
+        }
+
+        $stderr = Sanitizer::sanitizeString($stderr);
+        $message = sprintf('Process exited with code %d', $exitCode);
+
+        if ('' !== $stderr) {
+            $message .= sprintf(":\n\n%s", $stderr);
+        }
+
+        throw new DisconnectedException($message, 0, null, ['exitCode' => $exitCode, 'pid' => $this->process->getPid(), 'stderr' => $stderr]);
     }
 
     /**

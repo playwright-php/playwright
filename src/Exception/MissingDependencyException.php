@@ -14,6 +14,8 @@ declare(strict_types=1);
 
 namespace Playwright\Exception;
 
+use Playwright\Transport\Sanitizer;
+
 /**
  * Thrown when the Playwright server or its browsers have not been installed.
  *
@@ -37,7 +39,7 @@ class MissingDependencyException extends RuntimeException
         );
 
         if (null !== $details && '' !== $details) {
-            $message .= "\n\n".$details;
+            $message .= "\n\n".Sanitizer::sanitizeString($details);
         }
 
         return new self($message);
@@ -51,7 +53,7 @@ class MissingDependencyException extends RuntimeException
         return new self(\sprintf(
             "The requested browser is not installed. Run \"%s\" to download it.\n\n%s",
             self::INSTALL_COMMAND,
-            $details,
+            Sanitizer::sanitizeString($details),
         ));
     }
 
@@ -64,7 +66,21 @@ class MissingDependencyException extends RuntimeException
         return new self(\sprintf(
             "The host is missing system libraries the browsers need. Run \"%s\" to install them.\n\n%s",
             self::WITH_DEPENDENCIES_COMMAND,
-            $details,
+            Sanitizer::sanitizeString($details),
         ));
+    }
+
+    /** @internal */
+    public static function fromBrowserLaunch(string $details): ?self
+    {
+        if (str_contains($details, "Executable doesn't exist")) {
+            return self::browsers($details);
+        }
+
+        if (str_contains($details, 'Host system is missing dependencies')) {
+            return self::hostLibraries($details);
+        }
+
+        return null;
     }
 }

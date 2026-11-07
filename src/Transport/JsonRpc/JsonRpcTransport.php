@@ -172,6 +172,7 @@ final class JsonRpcTransport implements TransportInterface
                 throw new NetworkException('Invalid timeout configuration: must be float, int or null');
             }
 
+            $this->processLauncher->clearStderrBuffer();
             $this->process = $this->processLauncher->start(
                 $command,
                 $cwd,
@@ -377,13 +378,9 @@ final class JsonRpcTransport implements TransportInterface
 
     private function ensureConnected(): void
     {
-        if (!$this->isConnected()) {
+        if (!$this->connected || null === $this->process || null === $this->client) {
             throw new NetworkException('JSON-RPC transport not connected');
         }
-        if (null === $this->process) {
-            throw new NetworkException('Process not available');
-        }
-        $this->processLauncher->ensureRunning($this->process, 'JSON-RPC operation');
     }
 
     /**
