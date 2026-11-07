@@ -32,6 +32,7 @@ use Playwright\Locator\Options\SelectTextOptions;
 use Playwright\Locator\Options\SetCheckedOptions;
 use Playwright\Locator\Options\TapOptions;
 use Playwright\Page\PageInterface;
+use Playwright\Tests\Mocks\TestLogger;
 use Playwright\Transport\TransportInterface;
 
 #[CoversClass(Locator::class)]
@@ -1255,6 +1256,28 @@ final class LocatorTest extends TestCase
      * Rebinds $this->locator to the '.items' selector used by the filter and
      * combinator tests, which need a different base selector than setUp().
      */
+    public function testFailedSetInputFilesLogsTheSanitizedErrorAndExceptionType(): void
+    {
+        $logger = new TestLogger();
+        $locator = new Locator($this->transport, 'page1', 'input[type=file]', null, $logger);
+        $failure = new PlaywrightException('Upload failed: Bearer example-upload-secret');
+        $this->transport->method('send')->willThrowException($failure);
+
+        try {
+            $locator->setInputFiles(__FILE__);
+            $this->fail('Expected the transport exception.');
+        } catch (PlaywrightException $exception) {
+            $this->assertSame($failure, $exception);
+        }
+
+        $errors = array_values(array_filter($logger->records, static fn (array $record): bool => 'error' === $record['level']));
+        $this->assertCount(1, $errors);
+        $this->assertSame('Failed to set input files on locator', $errors[0]['message']);
+        $this->assertSame('Upload failed: Bearer [REDACTED]', $errors[0]['context']['error']);
+        $this->assertSame(PlaywrightException::class, $errors[0]['context']['exceptionType']);
+        $this->assertArrayNotHasKey('exception', $errors[0]['context']);
+    }
+
     private function useItemsLocator(): void
     {
         $this->locator = new Locator($this->transport, 'page1', '.items');

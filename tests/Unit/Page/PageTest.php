@@ -109,6 +109,69 @@ class PageTest extends TestCase
         }
     }
 
+    #[DataProvider('failingFileOperations')]
+    public function testFailedFileOperationsLogTheSanitizedErrorAndExceptionType(callable $operation, string $logMessage): void
+    {
+        $logger = new TestLogger();
+        $page = new Page($this->transport, $this->context, 'page-id', new PlaywrightConfig(logger: $logger));
+        $failure = new PlaywrightException('Operation failed: Bearer example-file-secret');
+        $this->transport->method('send')->willThrowException($failure);
+
+        try {
+            $operation($page);
+            $this->fail('Expected the transport exception.');
+        } catch (PlaywrightException $exception) {
+            $this->assertSame($failure, $exception);
+        }
+
+        $errors = array_values(array_filter(
+            $logger->records,
+            static fn (array $record): bool => 'error' === $record['level'] && $logMessage === $record['message'],
+        ));
+        $this->assertCount(1, $errors);
+        $this->assertSame('Operation failed: Bearer [REDACTED]', $errors[0]['context']['error']);
+        $this->assertSame(PlaywrightException::class, $errors[0]['context']['exceptionType']);
+        $this->assertArrayNotHasKey('exception', $errors[0]['context']);
+        $this->assertStringNotContainsString('example-file-secret', json_encode($logger->records, JSON_THROW_ON_ERROR));
+    }
+
+    public static function failingFileOperations(): iterable
+    {
+        yield 'screenshot' => [
+            static fn (Page $page) => $page->screenshot(sys_get_temp_dir().'/playwright-php-failed-screenshot.png'),
+            'Failed to take screenshot',
+        ];
+        yield 'pdf' => [
+            static fn (Page $page) => $page->pdf(sys_get_temp_dir().'/playwright-php-failed.pdf'),
+            'Failed to generate PDF',
+        ];
+        yield 'set input files' => [
+            static fn (Page $page) => $page->setInputFiles('input[type=file]', [__FILE__]),
+            'Failed to set input files',
+        ];
+    }
+
+    public function testStructuredServerErrorIsLoggedSanitized(): void
+    {
+        $logger = new TestLogger();
+        $page = new Page($this->transport, $this->context, 'page-id', new PlaywrightConfig(logger: $logger));
+        $this->transport->method('send')->willReturn([
+            'error' => ['name' => 'Error', 'message' => 'Request failed: Bearer example-server-secret'],
+        ]);
+
+        try {
+            $page->title();
+            $this->fail('Expected the server error.');
+        } catch (PlaywrightException $exception) {
+            $this->assertSame('Request failed: Bearer example-server-secret', $exception->getMessage());
+        }
+
+        $errors = array_values(array_filter($logger->records, static fn (array $record): bool => 'error' === $record['level']));
+        $this->assertCount(1, $errors);
+        $this->assertSame('Playwright server error', $errors[0]['message']);
+        $this->assertStringNotContainsString('example-server-secret', json_encode($logger->records, JSON_THROW_ON_ERROR));
+    }
+
     public static function locatorFactories(): iterable
     {
         yield 'nested locator' => [static function (Page $page) {
