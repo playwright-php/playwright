@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Added
+- Remote browser configuration through `PlaywrightConfig::wsEndpoint`, `withWsEndpoint()` and the `PW_WS_ENDPOINT` / `PLAYWRIGHT_WS_ENDPOINT` environment variables (#195)
+
 ## [1.5.1] - 2026-11-06
 
 ### Fixed

@@ -58,6 +58,7 @@ final class PlaywrightConfig
         public readonly ?array $proxy = null,
 
         public readonly ?LoggerInterface $logger = null,
+        public readonly ?string $wsEndpoint = null,
     ) {
     }
 
@@ -120,6 +121,7 @@ final class PlaywrightConfig
             traceScreenshots: $this->traceScreenshots,
             traceSnapshots: $this->traceSnapshots,
             proxy: $this->proxy,
+            wsEndpoint: $this->wsEndpoint,
             logger: $this->logger,
         );
     }
@@ -150,6 +152,7 @@ final class PlaywrightConfig
             'traceScreenshots' => $this->traceScreenshots,
             'traceSnapshots' => $this->traceSnapshots,
             'proxy' => $this->proxy,
+            'wsEndpoint' => $this->wsEndpoint,
             'loggerProvided' => null !== $this->logger,
         ];
     }
