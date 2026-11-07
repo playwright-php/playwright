@@ -19,11 +19,13 @@ use Playwright\BrowserServer\BrowserServer;
 use Playwright\BrowserServer\BrowserServerInterface;
 use Playwright\Configuration\PlaywrightConfig;
 use Playwright\Exception\DisconnectedException;
+use Playwright\Exception\MissingDependencyException;
 use Playwright\Exception\ProcessCrashedException;
 use Playwright\Exception\ProcessLaunchException;
 use Playwright\Exception\TransportException;
 use Playwright\Selector\Selectors;
 use Playwright\Selector\SelectorsInterface;
+use Playwright\Transport\Sanitizer;
 use Playwright\Transport\TransportInterface;
 use Psr\Log\LoggerInterface;
 
@@ -79,6 +81,10 @@ class PlaywrightClient
             'browser' => $browser,
             'options' => $options,
         ]);
+
+        if (is_string($response['error'] ?? null)) {
+            throw MissingDependencyException::fromBrowserLaunch($response['error']) ?? new TransportException(Sanitizer::sanitizeString($response['error']));
+        }
 
         $serverId = $response['serverId'] ?? null;
         $endpoint = $response['wsEndpoint'] ?? null;

@@ -18,6 +18,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Playwright\BrowserServer\BrowserServerInterface;
 use Playwright\Configuration\PlaywrightConfigBuilder;
+use Playwright\Exception\MissingDependencyException;
 use Playwright\PlaywrightClient;
 use Playwright\Transport\TransportInterface;
 use Psr\Log\NullLogger;
@@ -48,5 +49,18 @@ final class PlaywrightClientLaunchServerTest extends TestCase
         $this->assertInstanceOf(BrowserServerInterface::class, $server);
         $this->assertSame('ws://127.0.0.1:12345', $server->wsEndpoint());
         $this->assertSame(43210, $server->process());
+    }
+
+    public function testLaunchServerReportsMissingBrowsers(): void
+    {
+        $transport = $this->createMock(TransportInterface::class);
+        $transport->method('send')->willReturn(['error' => "browserType.launchServer: Executable doesn't exist at /tmp/chrome"]);
+        $config = PlaywrightConfigBuilder::create()->build();
+        $client = new PlaywrightClient($transport, new NullLogger(), $config);
+
+        $this->expectException(MissingDependencyException::class);
+        $this->expectExceptionMessage('vendor/bin/playwright-install --browsers');
+
+        $client->launchServer('chromium');
     }
 }

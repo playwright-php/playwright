@@ -19,6 +19,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Playwright\Event\EventDispatcherInterface;
 use Playwright\Exception\DisconnectedException;
+use Playwright\Exception\MissingDependencyException;
 use Playwright\Exception\NetworkException;
 use Playwright\Exception\TimeoutException;
 use Playwright\Tests\Mocks\TestLogger;
@@ -178,6 +179,24 @@ final class JsonRpcTransportTest extends TestCase
         $transport->sendAsync(['action' => 'test']);
 
         $this->assertTrue($this->logger->hasWarningRecords());
+    }
+
+    public function testSendDiagnosesAMissingPackageWhenNodeAlreadyExited(): void
+    {
+        $process = $this->createMock(Process::class);
+        $process->method('isRunning')->willReturn(false);
+        $process->method('getExitCode')->willReturn(1);
+        $this->processLauncher->method('start')->willReturn($process);
+        $this->processLauncher->method('getInputStream')->willReturn(new InputStream());
+        $this->processLauncher->method('getStderrOutput')->willReturn("Error: Cannot find module 'playwright'");
+
+        $transport = new JsonRpcTransport($this->processLauncher, ['command' => ['node', 'server.js']], $this->logger);
+        $transport->connect();
+
+        $this->expectException(MissingDependencyException::class);
+        $this->expectExceptionMessage('vendor/bin/playwright-install --browsers');
+
+        $transport->send(['action' => 'launch']);
     }
 
     public function testProcessEventsIsNoOpButDoesNotThrow(): void

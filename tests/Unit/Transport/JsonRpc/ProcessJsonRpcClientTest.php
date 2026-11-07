@@ -104,6 +104,7 @@ final class ProcessJsonRpcClientTest extends TestCase
         $mockProcess->method('getExitCode')->willReturn(1);
         $mockProcess->method('getPid')->willReturn(12345);
         $mockProcessLauncher->method('getInputStream')->willReturn($mockInputStream);
+        $mockProcessLauncher->method('getStderrOutput')->willReturn('Startup failed with Bearer example-credential');
 
         $client = new ProcessJsonRpcClient(
             process: $mockProcess,
@@ -113,7 +114,7 @@ final class ProcessJsonRpcClientTest extends TestCase
         );
 
         $this->expectException(DisconnectedException::class);
-        $this->expectExceptionMessage('Process exited with code 1');
+        $this->expectExceptionMessage("Process exited with code 1:\n\nStartup failed with Bearer [REDACTED]");
 
         $client->send('test.method');
     }

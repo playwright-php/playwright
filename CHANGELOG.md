@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Added
+- Report missing Playwright dependencies with installation commands and include redacted Node stderr when the process exits (#130)
+
 ## [1.5.1] - 2026-11-06
 
 ### Fixed
