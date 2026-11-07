@@ -14,9 +14,11 @@ declare(strict_types=1);
 
 namespace Playwright\Screenshot;
 
+use Playwright\Exception\ProtocolErrorException;
+
 /**
  * Outcome of one stable screenshot compared against an expected image.
- * Binary fields hold raw PNG bytes.
+ * Binary fields hold raw image bytes.
  *
  * @internal
  */
@@ -47,18 +49,23 @@ final readonly class ScreenshotComparison
         };
 
         $errorMessage = $response['errorMessage'] ?? null;
+        $timedOut = $response['timedOut'] ?? false;
+
+        if (!array_key_exists('errorMessage', $response) || (null !== $errorMessage && !is_string($errorMessage)) || '' === $errorMessage || !is_bool($timedOut)) {
+            throw new ProtocolErrorException('Invalid screenshot comparison response from transport', 0);
+        }
 
         return new self(
             actual: $binary($response['actual'] ?? null),
             diff: $binary($response['diff'] ?? null),
             previous: $binary($response['previous'] ?? null),
-            errorMessage: is_string($errorMessage) && '' !== $errorMessage ? $errorMessage : null,
-            timedOut: true === ($response['timedOut'] ?? false),
+            errorMessage: $errorMessage,
+            timedOut: $timedOut,
         );
     }
 
     public function matches(): bool
     {
-        return null === $this->errorMessage;
+        return !$this->timedOut && null === $this->errorMessage;
     }
 }

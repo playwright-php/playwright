@@ -460,23 +460,33 @@ final class JsonRpcTransportTest extends TestCase
         ]);
     }
 
-    public function testSendExtendsTheDeadlineForAnOperationTimeout(): void
+    #[DataProvider('nativeOperationTimeouts')]
+    public function testSendHonorsTheNativeOperationTimeout(string $action, int $timeout, float $expectedDeadline): void
     {
         $transport = $this->createConnectedTransport(['command' => ['node', 'server.js']]);
 
         $client = $this->createMock(JsonRpcClient::class);
         $client->expects($this->once())
             ->method('sendRaw')
-            ->with($this->anything(), 40000.0)
+            ->with($this->anything(), $expectedDeadline)
             ->willReturn([]);
         $this->injectClient($transport, $client);
 
         $transport->send([
-            'action' => 'page.waitForSelector',
+            'action' => $action,
             'pageId' => 'page_1',
             'selector' => '#x',
-            'options' => ['timeout' => 35000],
+            'options' => ['timeout' => $timeout],
         ]);
+    }
+
+    public static function nativeOperationTimeouts(): iterable
+    {
+        yield 'selector wait' => ['page.waitForSelector', 35000, 40000.0];
+        yield 'long page screenshot assertion' => ['page.expectScreenshot', 35000, 40000.0];
+        yield 'unlimited page screenshot assertion' => ['page.expectScreenshot', 0, 0.0];
+        yield 'long locator screenshot assertion' => ['locator.expectScreenshot', 35000, 40000.0];
+        yield 'unlimited locator screenshot assertion' => ['locator.expectScreenshot', 0, 0.0];
     }
 
     public function testSendKeepsTheConfiguredTimeoutWhenLarger(): void
