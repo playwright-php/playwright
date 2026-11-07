@@ -2,15 +2,21 @@
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-11-07
+
 ### Added
 - Report missing Playwright dependencies with installation commands and include redacted Node stderr when the process exits (#130)
-- `toHaveScreenshot()` visual regression assertion on pages and locators, with PNG or lossless WebP baselines (#174)
+- `toHaveScreenshot()` visual regression assertion on pages and locators, with PNG or lossless WebP baselines (#174). Custom implementations of `PageAssertionsInterface`, `LocatorAssertionsInterface`, and `ExpectInterface` must add this method.
 - Launching a browser from a custom path through `withExecutablePath()` and `PW_EXECUTABLE_PATH` (#191)
 - Read recorded JavaScript errors with `PageInterface::pageErrors()` (#179). Custom `PageInterface` implementations must add this method.
 - Remote browser configuration through `PlaywrightConfig::wsEndpoint`, `withWsEndpoint()` and the `PW_WS_ENDPOINT` / `PLAYWRIGHT_WS_ENDPOINT` environment variables (#195)
 
+### Changed
+- `Playwright` static browser launch helpers throw `InvalidArgumentException` for unsupported options that were previously ignored (#200)
+
 ### Fixed
 - Use `PlaywrightConfig::logger` for page and locator diagnostics, with redacted navigation URLs and command errors (#83)
+- Preserve Playwright's default Chromium feature flags so cross-site iframes can access storage (#199)
 
 ## [1.5.1] - 2026-11-06
 
