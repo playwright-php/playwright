@@ -14,6 +14,8 @@ declare(strict_types=1);
 
 namespace Playwright\Assertions;
 
+use Playwright\Assertions\Options\ToHaveScreenshotOptions;
+
 interface LocatorAssertionsInterface
 {
     /**
@@ -146,6 +148,21 @@ interface LocatorAssertionsInterface
      * line. The expectation describes the whole subtree, not a subset of it.
      */
     public function toMatchAriaSnapshot(string $expected, ?AssertionOptions $options = null): self;
+
+    /**
+     * Asserts a stable screenshot of the element matches the baseline image at
+     * $path, a .png or a lossless .webp.
+     *
+     * Screenshots are taken until two consecutive ones are identical, then
+     * compared with the baseline by Playwright's own comparator. A missing
+     * baseline is written and the assertion fails; PLAYWRIGHT_UPDATE_SNAPSHOTS
+     * ("none", "missing", "changed", "all") controls what gets rewritten. On
+     * failure, the expected, actual and diff images are written to the
+     * screenshot output directory, test-failures/snapshots/ by default, and
+     * removed once the baseline matches or is recorded again. Negation throws
+     * a LogicException.
+     */
+    public function toHaveScreenshot(string $path, ?ToHaveScreenshotOptions $options = null): self;
 
     public function not(): self;
 

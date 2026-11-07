@@ -1412,6 +1412,39 @@ class PageTest extends TestCase
         $this->assertSame($this->page, $frame->page());
     }
 
+    public function testExpectScreenshotSendsAPageCommand(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'expected' => base64_encode('baseline'),
+                'options' => ['fullPage' => true, 'timeout' => 1000],
+                'action' => 'page.expectScreenshot',
+                'pageId' => 'page-id',
+            ])
+            ->willReturn(['actual' => null, 'diff' => null, 'errorMessage' => null, 'timedOut' => false]);
+
+        $this->assertTrue($this->page->expectScreenshot('baseline', ['fullPage' => true, 'timeout' => 1000])->matches());
+    }
+
+    public function testExpectScreenshotWithoutBaselineReturnsTheStableScreenshot(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static fn (array $payload): bool => null === $payload['expected']))
+            ->willReturn(['actual' => base64_encode('stable'), 'errorMessage' => null, 'timedOut' => false]);
+
+        $this->assertSame('stable', $this->page->expectScreenshot(null)->actual);
+    }
+
+    public function testFrameLocatorLocatorsKeepTheirFrameForMasks(): void
+    {
+        $locator = $this->page->frameLocator('iframe#preview')->locator('.date');
+
+        $this->assertInstanceOf(Locator::class, $locator);
+        $this->assertSame('iframe#preview', $locator->getFrameSelector());
+    }
+
     /**
      * @return \ArrayObject<int, array<string, mixed>>
      */

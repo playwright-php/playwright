@@ -288,6 +288,15 @@ final class LocatorTest extends TestCase
         $this->assertNotSame($this->locator, $normalized);
     }
 
+    public function testNormalizeKeepsThePageOfTheLocator(): void
+    {
+        $page = $this->createStub(PageInterface::class);
+        $locator = new Locator($this->transport, 'page1', '.element', null, null, [], $page);
+        $this->transport->method('send')->willReturn(['value' => 'internal:role=button[name="Save"i]']);
+
+        $this->assertSame($page, $locator->normalize()->page());
+    }
+
     public function testNormalizeRejectsAResponseWithoutASelector(): void
     {
         $this->transport
@@ -1172,6 +1181,74 @@ final class LocatorTest extends TestCase
         $this->assertSame($page, $locator->or($other)->page());
         $this->assertSame($page, $locator->frameLocator('iframe')->locator('.inner')->page());
         $this->assertSame($page, $locator->contentFrame()->locator('.inner')->page());
+    }
+
+    public function testExpectScreenshotSendsTheBaselineAndOptions(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with([
+                'expected' => base64_encode('baseline'),
+                'options' => ['threshold' => 0.1, 'timeout' => 1000],
+                'action' => 'locator.expectScreenshot',
+                'pageId' => 'page1',
+                'selector' => '.element',
+            ])
+            ->willReturn([
+                'actual' => base64_encode('actual'),
+                'previous' => null,
+                'diff' => base64_encode('diff'),
+                'errorMessage' => '12 pixels (ratio 0.01 of all image pixels) are different.',
+                'timedOut' => false,
+            ]);
+
+        $comparison = $this->locator->expectScreenshot('baseline', ['threshold' => 0.1, 'timeout' => 1000]);
+
+        $this->assertSame('actual', $comparison->actual);
+        $this->assertSame('diff', $comparison->diff);
+        $this->assertSame('12 pixels (ratio 0.01 of all image pixels) are different.', $comparison->errorMessage);
+        $this->assertFalse($comparison->matches());
+    }
+
+    public function testExpectScreenshotWithoutBaselineAsksForAStableScreenshot(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static fn (array $payload): bool => null === $payload['expected'] && [] === $payload['options']))
+            ->willReturn(['actual' => base64_encode('stable'), 'errorMessage' => null, 'timedOut' => false]);
+
+        $comparison = $this->locator->expectScreenshot(null);
+
+        $this->assertSame('stable', $comparison->actual);
+        $this->assertTrue($comparison->matches());
+    }
+
+    public function testExpectScreenshotInAFrameSendsTheFrameSelector(): void
+    {
+        $locator = new Locator($this->transport, 'page1', '.inner', 'iframe#preview');
+
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static fn (array $payload): bool => 'iframe#preview' === $payload['frameSelector'] && '.inner' === $payload['selector']))
+            ->willReturn(['errorMessage' => null]);
+
+        $this->assertTrue($locator->expectScreenshot('baseline')->matches());
+    }
+
+    public function testExpectScreenshotSurfacesBridgeErrors(): void
+    {
+        $this->transport->method('send')->willReturn(['error' => 'page._expectScreenshot is not a function']);
+
+        $this->expectException(PlaywrightException::class);
+        $this->expectExceptionMessage('page._expectScreenshot is not a function');
+
+        $this->locator->expectScreenshot('baseline');
+    }
+
+    public function testGetFrameSelector(): void
+    {
+        $this->assertNull($this->locator->getFrameSelector());
+        $this->assertSame('iframe#preview', (new Locator($this->transport, 'page1', '.inner', 'iframe#preview'))->getFrameSelector());
     }
 
     /**

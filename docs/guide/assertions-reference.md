@@ -80,6 +80,7 @@ These assertions are available when you pass a `Locator` to `expect()`.
 * **`toHaveId(string $id)`**: Asserts the element has the given ID.
 * **`toHaveClass(string|array $class)`**: Asserts the complete class list matches.
 * **`toHaveCount(int $count)`**: Asserts the locator resolves to a specific number of elements.
+* **`toHaveScreenshot(string $name, ?ToHaveScreenshotOptions $options = null)`**: Compares a stable screenshot of the element with a baseline image. See [Visual Regression](visual-regression.md).
 
 -----
 
@@ -89,3 +90,4 @@ These assertions are available when you pass a `Page` object to `expect()`.
 
 * **`toHaveURL(string $url)`**: Asserts the page's current URL is a match.
 * **`toHaveTitle(string $title)`**: Asserts the page's title is a match.
+* **`toHaveScreenshot(string $name, ?ToHaveScreenshotOptions $options = null)`**: Compares a stable screenshot of the page with a baseline image. See [Visual Regression](visual-regression.md).
