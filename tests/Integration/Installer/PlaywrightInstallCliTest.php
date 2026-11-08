@@ -48,6 +48,38 @@ final class PlaywrightInstallCliTest extends TestCase
         $this->assertStringContainsString("'playwright' 'install' '--with-deps' 'chromium' 'firefox'", $process->getOutput());
     }
 
+    /**
+     * @param list<string> $options
+     */
+    #[Test]
+    #[DataProvider('chromiumShellOptions')]
+    public function itForwardsTheChromiumShellOptionsToPlaywright(array $options, string $expectedCommand): void
+    {
+        $process = $this->runInstaller(['--dry-run', '--verbose', ...$options]);
+
+        $this->assertSame(0, $process->getExitCode(), $process->getErrorOutput());
+        $this->assertStringContainsString($expectedCommand, $process->getOutput());
+    }
+
+    public static function chromiumShellOptions(): iterable
+    {
+        yield 'no shell alone installs the default browsers' => [['--no-shell'], "'playwright' 'install' '--no-shell'\n"];
+        yield 'only shell alone installs the default browsers' => [['--only-shell'], "'playwright' 'install' '--only-shell'\n"];
+        yield 'no shell with the default shortcut' => [['--browsers', '--no-shell'], "'playwright' 'install' '--no-shell'\n"];
+        yield 'only shell with a browser target' => [['chromium', '--only-shell'], "'playwright' 'install' '--only-shell' 'chromium'"];
+        yield 'no shell with system dependencies' => [['--with-deps', '--no-shell', 'chromium'], "'playwright' 'install' '--with-deps' '--no-shell' 'chromium'"];
+    }
+
+    #[Test]
+    public function itRejectsBothChromiumShellOptionsTogether(): void
+    {
+        $process = $this->runInstaller(['--no-shell', '--only-shell']);
+
+        $this->assertSame(2, $process->getExitCode());
+        $this->assertSame('', $process->getOutput());
+        $this->assertSame("The --no-shell and --only-shell options cannot be used together.\n", $process->getErrorOutput());
+    }
+
     #[Test]
     public function itKeepsTheDefaultBrowserInstallShortcut(): void
     {
@@ -110,6 +142,8 @@ final class PlaywrightInstallCliTest extends TestCase
         $this->assertStringContainsString('Branded browser targets:', $process->getOutput());
         $this->assertStringContainsString('chrome            Google Chrome stable', $process->getOutput());
         $this->assertStringContainsString('msedge-beta       Microsoft Edge Beta', $process->getOutput());
+        $this->assertStringContainsString("--no-shell        Skip Chromium's headless shell", $process->getOutput());
+        $this->assertStringContainsString("--only-shell      Install Chromium's headless shell", $process->getOutput());
     }
 
     #[Test]
