@@ -19,6 +19,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Playwright\Browser\Browser;
 use Playwright\Browser\BrowserBuilder;
+use Playwright\Browser\Options\LaunchOptions;
 use Playwright\Configuration\PlaywrightConfig;
 use Playwright\Exception\MissingDependencyException;
 use Playwright\Exception\PlaywrightException;
@@ -239,6 +240,56 @@ class BrowserBuilderTest extends TestCase
             ->willReturn(['browserId' => 'b', 'defaultContextId' => 'c', 'version' => '1.0']);
 
         $this->builder->withDownloadsPath('/tmp/downloads')->launch();
+    }
+
+    #[Test]
+    public function itPassesLaunchArrayOptionsThroughUnchanged(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static function (array $message): bool {
+                return 'launch' === $message['action']
+                    && ['--mute-audio'] === $message['options']['ignoreDefaultArgs']
+                    && ['FOO' => 'bar'] === $message['options']['env'];
+            }))
+            ->willReturn(['browserId' => 'b', 'defaultContextId' => 'c', 'version' => '1.0']);
+
+        $this->builder->launch(['ignoreDefaultArgs' => ['--mute-audio'], 'env' => ['FOO' => 'bar']]);
+    }
+
+    #[Test]
+    public function itSendsLaunchOptionsObjectInTheLaunchPayload(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static function (array $message): bool {
+                return 'launch' === $message['action']
+                    && 'chrome' === $message['options']['channel']
+                    && 25 === $message['options']['slowMo'];
+            }))
+            ->willReturn(['browserId' => 'b', 'defaultContextId' => 'c', 'version' => '1.0']);
+
+        $this->builder->launch(new LaunchOptions(channel: 'chrome', slowMo: 25));
+    }
+
+    #[Test]
+    public function itLetsExplicitLaunchOptionsOverrideTheBuilderSettings(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static function (array $message): bool {
+                return 'launch' === $message['action']
+                    && false === $message['options']['headless']
+                    && ['--lang=en'] === $message['options']['args']
+                    && 'msedge' === $message['options']['channel'];
+            }))
+            ->willReturn(['browserId' => 'b', 'defaultContextId' => 'c', 'version' => '1.0']);
+
+        $this->builder
+            ->withHeadless(true)
+            ->withArgs(['--mute-audio'])
+            ->withChannel('msedge')
+            ->launch(['headless' => false, 'args' => ['--lang=en']]);
     }
 
     #[Test]
