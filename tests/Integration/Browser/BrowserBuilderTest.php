@@ -316,6 +316,29 @@ class BrowserBuilderTest extends TestCase
     }
 
     #[Test]
+    public function itDoesNotLogEnvValues(): void
+    {
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())
+            ->method('info')
+            ->with('Launching browser', $this->callback(static function (array $context): bool {
+                return ['DATABASE_URL' => '[REDACTED]'] === $context['options']['env'];
+            }));
+
+        $transport = $this->createMock(TransportInterface::class);
+        $transport->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static function (array $message): bool {
+                return ['DATABASE_URL' => 'postgres://user:pass@db/app'] === $message['options']['env'];
+            }))
+            ->willReturn(['browserId' => 'b', 'defaultContextId' => 'c', 'version' => '1.0']);
+
+        $builder = new BrowserBuilder('chromium', $transport, $logger, new PlaywrightConfig());
+
+        $builder->launch(['env' => ['DATABASE_URL' => 'postgres://user:pass@db/app']]);
+    }
+
+    #[Test]
     public function itSendsContextOptionsSoTheDefaultContextRecordsVideo(): void
     {
         $transport = $this->createMock(TransportInterface::class);
