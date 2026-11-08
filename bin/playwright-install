@@ -50,6 +50,10 @@ final class PlaywrightServerInstaller
 
     private bool $withDeps;
 
+    private bool $noShell;
+
+    private bool $onlyShell;
+
     /**
      * @var list<string>
      */
@@ -65,7 +69,7 @@ final class PlaywrightServerInstaller
     /**
      * @param list<string> $browserTargets
      */
-    public function __construct(bool $verbose, bool $dryRun, bool $installBrowsers, bool $withDeps, array $browserTargets, private ?string $packageManagerBinary = null)
+    public function __construct(bool $verbose, bool $dryRun, bool $installBrowsers, bool $withDeps, bool $noShell, bool $onlyShell, array $browserTargets, private ?string $packageManagerBinary = null)
     {
         $this->serverDir = __DIR__;
         $this->output = new ConsoleOutput();
@@ -73,6 +77,8 @@ final class PlaywrightServerInstaller
         $this->dryRun = $dryRun;
         $this->shouldInstallBrowsers = $installBrowsers;
         $this->withDeps = $withDeps;
+        $this->noShell = $noShell;
+        $this->onlyShell = $onlyShell;
         $this->browserTargets = $browserTargets;
 
         if ($this->verbose) {
@@ -345,6 +351,14 @@ final class PlaywrightServerInstaller
             $args[] = '--with-deps';
         }
 
+        if ($this->noShell) {
+            $args[] = '--no-shell';
+        }
+
+        if ($this->onlyShell) {
+            $args[] = '--only-shell';
+        }
+
         array_push($args, ...$this->browserTargets);
 
         return match ($packageManager) {
@@ -441,6 +455,8 @@ $verbose = false;
 $dryRun = false;
 $installBrowsers = false;
 $withDeps = false;
+$noShell = false;
+$onlyShell = false;
 $help = false;
 $browserTargets = [];
 $defaultBrowsersRequested = false;
@@ -488,6 +504,14 @@ for ($index = 0; $index < count($args); ++$index) {
             $installBrowsers = true;
             $withDeps = true;
             break;
+        case '--no-shell':
+            $installBrowsers = true;
+            $noShell = true;
+            break;
+        case '--only-shell':
+            $installBrowsers = true;
+            $onlyShell = true;
+            break;
         default:
             if (str_starts_with($arg, '-')) {
                 throw new \InvalidArgumentException(sprintf('Unknown option: %s', $arg));
@@ -510,6 +534,12 @@ for ($index = 0; $index < count($args); ++$index) {
     }
 }
 
+if ($noShell && $onlyShell) {
+    fwrite(STDERR, "The --no-shell and --only-shell options cannot be used together.\n");
+
+    exit(2);
+}
+
 if ($defaultBrowsersRequested && [] !== $browserTargets) {
     fwrite(STDERR, "The --browsers option cannot be combined with explicit browser targets.\n");
 
@@ -527,6 +557,8 @@ if ($help) {
     echo "  --dry-run         Print commands without executing install steps\n";
     echo "  --browsers        Install Playwright's default browsers\n";
     echo "  --with-deps       Install selected browsers and system dependencies\n";
+    echo "  --no-shell        Skip Chromium's headless shell when installing browsers\n";
+    echo "  --only-shell      Install Chromium's headless shell without full Chromium\n";
     echo "  --package-manager-bin=PATH  Use a specific npm, yarn, or pnpm executable\n";
     echo "\n";
     echo "Managed browser targets:\n";
@@ -557,6 +589,8 @@ if ($help) {
     echo "\n";
     echo "Examples:\n";
     echo "  playwright-install --browsers\n";
+    echo "  playwright-install --no-shell\n";
+    echo "  playwright-install chromium --only-shell\n";
     echo "  playwright-install firefox\n";
     echo "  playwright-install chromium webkit\n";
     echo "  playwright-install chrome\n";
@@ -564,5 +598,5 @@ if ($help) {
     exit(0);
 }
 
-$installer = new PlaywrightServerInstaller($verbose, $dryRun, $installBrowsers, $withDeps, $browserTargets, $packageManagerBinary);
+$installer = new PlaywrightServerInstaller($verbose, $dryRun, $installBrowsers, $withDeps, $noShell, $onlyShell, $browserTargets, $packageManagerBinary);
 exit($installer->install());

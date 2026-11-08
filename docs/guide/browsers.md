@@ -42,6 +42,32 @@ installs Google Chrome and does not install Playwright-managed Chromium. There
 is no `safari` target because Playwright uses a patched WebKit build, not the
 installed Safari application.
 
+## Install Chromium with or without the headless shell
+
+The `chromium` target, and the default set, install two Chromium builds: the
+full browser and Chromium headless shell. Playwright picks one at launch:
+
+| Launch | Build used |
+| --- | --- |
+| Headless, the default | Chromium headless shell |
+| Headed (`headless: false`) | Full Chromium |
+| `channel: 'chromium'` | Full Chromium, in headless or headed mode |
+
+Skip the build your project does not launch to save download time and disk
+space:
+
+```bash
+# Headless runs only, for example in CI
+vendor/bin/playwright-install chromium --only-shell
+
+# Headed runs, or the 'chromium' channel
+vendor/bin/playwright-install chromium --no-shell
+```
+
+Both options also apply without a target, to the default set. They cannot be
+used together. With `--no-shell`, a default headless launch fails because the
+headless shell is missing: launch headed or with the `chromium` channel.
+
 ## Understand branded browser installation
 
 Google Chrome and Microsoft Edge are installed in the operating system's global

@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Added
+- `--no-shell` and `--only-shell` installer options choose between full Chromium and Chromium headless shell
+
 ## [1.6.0] - 2026-11-07
 
 ### Added
