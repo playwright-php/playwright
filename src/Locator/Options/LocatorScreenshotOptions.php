@@ -17,11 +17,11 @@ namespace Playwright\Locator\Options;
 class LocatorScreenshotOptions
 {
     /**
-     * @param 'png'|'jpeg'|null       $type
-     * @param 'disabled'|'allow'|null $animations
-     * @param 'hide'|'initial'|null   $caret
-     * @param 'css'|'device'|null     $scale
-     * @param array<mixed>|null       $mask
+     * @param 'png'|'jpeg'|'webp'|null $type
+     * @param 'disabled'|'allow'|null  $animations
+     * @param 'hide'|'initial'|null    $caret
+     * @param 'css'|'device'|null      $scale
+     * @param array<mixed>|null        $mask
      */
     public function __construct(
         public ?string $path = null,
@@ -92,7 +92,7 @@ class LocatorScreenshotOptions
 
         /** @var string|null $path */
         $path = $options['path'] ?? null;
-        /** @var 'png'|'jpeg'|null $type */
+        /** @var 'png'|'jpeg'|'webp'|null $type */
         $type = $options['type'] ?? null;
         /** @var int|null $quality */
         $quality = $options['quality'] ?? null;

@@ -21,6 +21,7 @@ use Playwright\Exception\PlaywrightException;
 use Playwright\Locator\Locator;
 use Playwright\Locator\Options\DropOptions;
 use Playwright\Locator\Options\DropPayload;
+use Playwright\Locator\Options\LocatorScreenshotOptions;
 use Playwright\Testing\PlaywrightTestCaseTrait;
 use Playwright\Tests\Support\RouteServerTestTrait;
 
@@ -173,6 +174,17 @@ class LocatorTest extends TestCase
         $this->assertNotEmpty($binary);
 
         $this->assertStringStartsWith(base64_decode('iVBORw0KGgo='), base64_decode($binary));
+    }
+
+    #[Test]
+    public function itTakesAWebpScreenshotOfAnElement(): void
+    {
+        $binary = $this->page->locator('#div-1')->screenshot(options: new LocatorScreenshotOptions(type: 'webp'));
+        $this->assertIsString($binary);
+
+        $image = (string) base64_decode($binary);
+        $this->assertSame('RIFF', substr($image, 0, 4));
+        $this->assertSame('WEBP', substr($image, 8, 4));
     }
 
     #[Test]

@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Added
+- WebP screenshots through `type: 'webp'` in `ScreenshotOptions` and `LocatorScreenshotOptions` (#206)
+
 ## [1.6.0] - 2026-11-07
 
 ### Added
