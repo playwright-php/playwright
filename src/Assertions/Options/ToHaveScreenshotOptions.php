@@ -14,8 +14,8 @@ declare(strict_types=1);
 
 namespace Playwright\Assertions\Options;
 
-use Playwright\Locator\Locator;
 use Playwright\Locator\LocatorInterface;
+use Playwright\Screenshot\ScreenshotMask;
 
 /**
  * Options of toHaveScreenshot(), named and defaulted like their
@@ -103,11 +103,7 @@ final readonly class ToHaveScreenshotOptions
             throw new \InvalidArgumentException('The maskColor option must be a CSS color, an empty string given.');
         }
 
-        foreach ($mask as $index => $locator) {
-            if (!$locator instanceof LocatorInterface) {
-                throw new \InvalidArgumentException(sprintf('The mask option expects %s instances, %s given at index %s.', LocatorInterface::class, get_debug_type($locator), $index));
-            }
-        }
+        ScreenshotMask::assertLocators($mask);
 
         if (null !== $clip) {
             self::assertClip($clip);
@@ -138,13 +134,7 @@ final readonly class ToHaveScreenshotOptions
         ], static fn (mixed $value): bool => null !== $value);
 
         if ([] !== $this->mask) {
-            $options['mask'] = array_map(
-                static fn (LocatorInterface $locator): array => array_filter([
-                    'selector' => $locator->getSelector(),
-                    'frameSelector' => $locator instanceof Locator ? $locator->getFrameSelector() : null,
-                ], static fn (?string $value): bool => null !== $value),
-                $this->mask,
-            );
+            $options['mask'] = ScreenshotMask::toArray($this->mask);
         }
 
         return $options;

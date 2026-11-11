@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Fixed
+- The `mask` option of `Page::screenshot()` and `Locator::screenshot()` covers the given locators instead of failing in the driver; other values throw `InvalidArgumentException`
+
 ## [1.6.0] - 2026-11-07
 
 ### Added

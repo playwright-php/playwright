@@ -18,6 +18,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Playwright\Configuration\PlaywrightConfig;
+use Playwright\Page\Options\ScreenshotOptions;
 use Playwright\Page\Page;
 use Playwright\Screenshot\ScreenshotHelper;
 use Playwright\Testing\PlaywrightTestCaseTrait;
@@ -102,6 +103,34 @@ class ScreenshotIntegrationTest extends TestCase
         );
 
         $this->assertPngFileIsValid($screenshotPath);
+    }
+
+    #[Test]
+    public function itMasksLocators(): void
+    {
+        $this->page->setContent('<body style="margin:0"><div class="ad" style="width:50px;height:50px;background:#f00"></div></body>');
+        $path = $this->screenshotTestDir.'/masked.png';
+
+        $this->page->screenshot($path, new ScreenshotOptions(mask: [$this->page->locator('.ad')], maskColor: '#00FF00'));
+
+        $image = imagecreatefrompng($path);
+        $this->assertNotFalse($image);
+        $this->assertSame(0x00FF00, imagecolorat($image, 25, 25) & 0xFFFFFF);
+    }
+
+    #[Test]
+    public function itMasksLocatorsInsideAnIframe(): void
+    {
+        $frame = htmlspecialchars('<body style="margin:0"><div class="ad" style="width:50px;height:50px;background:#f00"></div></body>');
+        $this->page->setContent('<body style="margin:0"><iframe id="preview" srcdoc="'.$frame.'" style="border:0;width:100px;height:100px"></iframe></body>');
+        $this->page->frameLocator('#preview')->locator('.ad')->waitFor();
+        $path = $this->screenshotTestDir.'/masked-frame.png';
+
+        $this->page->screenshot($path, new ScreenshotOptions(mask: [$this->page->frameLocator('#preview')->locator('.ad')], maskColor: '#00FF00'));
+
+        $image = imagecreatefrompng($path);
+        $this->assertNotFalse($image);
+        $this->assertSame(0x00FF00, imagecolorat($image, 25, 25) & 0xFFFFFF);
     }
 
     #[Test]

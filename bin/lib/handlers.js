@@ -10,9 +10,7 @@ const { PopupCoordinator } = require('./popup-coordinator');
 // which the private method does not apply by itself.
 async function expectScreenshot(page, locator, command) {
   const options = command.options || {};
-  const mask = (options.mask || []).map(target => target.frameSelector
-    ? FrameUtils.resolve(page, target.frameSelector).locator(target.selector)
-    : page.locator(target.selector));
+  const mask = resolveMask(page, options.mask);
 
   const result = await page._expectScreenshot({
     animations: 'disabled',
@@ -34,6 +32,23 @@ async function expectScreenshot(page, locator, command) {
     errorMessage: result.errorMessage || null,
     timedOut: Boolean(result.timedOut),
   };
+}
+
+// PHP sends each mask entry as the selector of a locator, plus the selector of
+// its frame when it was obtained through frameLocator().
+function resolveMask(page, targets) {
+  return (targets || []).map(target => target.frameSelector
+    ? FrameUtils.resolve(page, target.frameSelector).locator(target.selector)
+    : page.locator(target.selector));
+}
+
+// Screenshot options with the mask resolved into Playwright locators.
+function screenshotOptions(page, options) {
+  if (!options || !options.mask) {
+    return options;
+  }
+
+  return { ...options, mask: resolveMask(page, options.mask) };
 }
 
 // The two callbacks below never run in this Node process: Playwright ships
@@ -428,7 +443,7 @@ class PageHandler extends BaseHandler {
       waitForURL: () => page.waitForURL(command.url, command.options),
       waitForSelector: () => page.waitForSelector(command.selector, command.options),
       waitForFunction: () => this.waitForFunction(page, command),
-      screenshot: () => PromiseUtils.wrapBinary(page.screenshot(command.options)),
+      screenshot: () => PromiseUtils.wrapBinary(page.screenshot(screenshotOptions(page, command.options))),
       expectScreenshot: () => expectScreenshot(page, null, command),
       pdf: () => PromiseUtils.wrapBinary(page.pdf(command.options || {})),
       evaluateHandle: () => this.evaluateHandle(page, command),
@@ -824,7 +839,7 @@ class LocatorHandler extends BaseHandler {
       count: () => PromiseUtils.wrapValue(locator.count()),
       getAttribute: () => PromiseUtils.wrapValue(locator.getAttribute(command.name, command.options)),
       selectOption: () => PromiseUtils.wrapValues(locator.selectOption(command.values, command.options)),
-      screenshot: () => PromiseUtils.wrapBinary(locator.screenshot(command.options)),
+      screenshot: () => PromiseUtils.wrapBinary(locator.screenshot(screenshotOptions(page, command.options))),
       expectScreenshot: () => expectScreenshot(page, locator, command),
       evaluate: () => this.evaluateLocator(locator, command),
       evaluateHandle: () => this.evaluateHandle(locator, command),
