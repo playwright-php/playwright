@@ -24,6 +24,7 @@ use Playwright\Browser\BrowserContextInterface;
 use Playwright\Clock\ClockInterface;
 use Playwright\Configuration\PlaywrightConfig;
 use Playwright\Console\ConsoleMessage;
+use Playwright\Download\DownloadInterface;
 use Playwright\Exception\PlaywrightException;
 use Playwright\Exception\ProtocolErrorException;
 use Playwright\Exception\RuntimeException;
@@ -1261,6 +1262,33 @@ class PageTest extends TestCase
         $this->expectExceptionMessage('No download id returned from transport');
 
         $page->waitForDownload(static fn () => null);
+    }
+
+    public function testDownloadEventEmitsADownload(): void
+    {
+        $received = null;
+        $this->page->events()->onDownload(function (DownloadInterface $download) use (&$received) {
+            $received = $download;
+        });
+
+        $this->page->dispatchEvent('download', ['downloadId' => 'download_1', 'suggestedFilename' => 'report.csv', 'url' => 'https://example.test/report.csv']);
+
+        $this->assertInstanceOf(DownloadInterface::class, $received);
+        $this->assertSame('report.csv', $received->suggestedFilename());
+        $this->assertSame('https://example.test/report.csv', $received->url());
+        $this->assertSame($this->page, $received->page());
+    }
+
+    public function testDownloadEventWithoutIdIsIgnored(): void
+    {
+        $called = false;
+        $this->page->events()->onDownload(function () use (&$called) {
+            $called = true;
+        });
+
+        $this->page->dispatchEvent('download', []);
+
+        $this->assertFalse($called);
     }
 
     public function testRequestIsCached(): void

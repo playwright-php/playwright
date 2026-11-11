@@ -56,4 +56,9 @@ final class PageEventHandler implements PageEventHandlerInterface
     {
         $this->on('route', $handler);
     }
+
+    public function onDownload(callable $handler): void
+    {
+        $this->on('download', $handler);
+    }
 }

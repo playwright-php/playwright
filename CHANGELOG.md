@@ -6,6 +6,7 @@
 - WebP screenshots through `type: 'webp'` in `ScreenshotOptions` and `LocatorScreenshotOptions` (#206)
 - `ScreenshotOptions::$style` applies CSS while a page screenshot is taken, like `LocatorScreenshotOptions::$style` (#210)
 - `Page::screenshotAuto()` accepts `ScreenshotOptions`, like `Page::screenshot()` (#210)
+- `PageEventHandlerInterface::onDownload()` receives each `Download` a page starts
 - `PageInterface::waitForDownload()` runs an action and returns the `Download` it starts, with `path()`, `saveAs()`, `failure()`, `cancel()`, `delete()` and `createReadStream()` working end to end
 
 ### Changed
