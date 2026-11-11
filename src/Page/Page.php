@@ -195,6 +195,11 @@ final class Page implements PageInterface, EventDispatcherInterface
                     $this->eventHandler->publicEmit('requestfailed', [$this->createRequest($params['request'])]);
                 }
                 break;
+            case 'download':
+                if (is_string($params['downloadId'] ?? null)) {
+                    $this->eventHandler->publicEmit('download', [new Download($this->transport, $this, $params['downloadId'], $params)]);
+                }
+                break;
             case 'close':
                 $this->isClosed = true;
                 $this->routeHandlers = [];

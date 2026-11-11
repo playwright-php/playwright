@@ -25,6 +25,7 @@ class PlaywrightServer extends BaseHandler {
     this.servers = new Map();
     this.videos = new Map();
     this.downloads = new Map();
+    this.downloadIds = new WeakMap();
     this.apiContexts = new Map();
     this.counters = { api: 0, browser: 0, context: 0, page: 0, response: 0, route: 0, element: 0, server: 0, video: 0, download: 0, download_req: 0 };
   }
@@ -34,7 +35,7 @@ class PlaywrightServer extends BaseHandler {
       contexts: this.contexts, contextThrottling: this.contextThrottling, pages: this.pages,
       apiContexts: this.apiContexts, apiRequest: request,
       pageContexts: this.pageContexts, dialogs: this.dialogs, elementHandles: this.elementHandles,
-      responses: this.responses, routes: this.routes, routeHandlers: this.routeHandlers, videos: this.videos, downloads: this.downloads, generateId: this.generateId.bind(this),
+      responses: this.responses, routes: this.routes, routeHandlers: this.routeHandlers, videos: this.videos, downloads: this.downloads, registerDownload: this.registerDownload.bind(this), generateId: this.generateId.bind(this),
       navigationRedirects: this.navigationRedirects,
       extractRequestData: this.extractRequestData.bind(this), serializeResponse: this.serializeResponse.bind(this),
       serializeConsoleMessage: this.serializeConsoleMessage.bind(this),
@@ -172,9 +173,9 @@ class PlaywrightServer extends BaseHandler {
   }
 
   setupPageEventListeners(page, pageId) {
-    ['console', 'dialog', 'request', 'response', 'requestfailed'].forEach(eventName => {
+    ['console', 'dialog', 'request', 'response', 'requestfailed', 'download'].forEach(eventName => {
       page.on(eventName, ErrorHandler.wrapHandler((eventData) => {
-        const params = this.formatEventParams(eventName, eventData);
+        const params = eventName === 'download' ? this.registerDownload(eventData, page) : this.formatEventParams(eventName, eventData);
         sendFramedResponse({ objectId: pageId, event: eventName, params });
       }));
     });
@@ -196,6 +197,20 @@ class PlaywrightServer extends BaseHandler {
     });
     // A context also closes with its browser, which never goes through closeContext().
     context.once('close', () => RouteUtils.forgetRoutes(this.routes, this.routeHandlers, contextId));
+  }
+
+  // One id per download, whether PHP learns about it from the page event or from
+  // waitForDownload(). The file lives as long as its browser context.
+  registerDownload(download, page) {
+    let downloadId = this.downloadIds.get(download);
+    if (!downloadId) {
+      downloadId = this.generateId('download');
+      this.downloadIds.set(download, downloadId);
+      this.downloads.set(downloadId, download);
+      page.context().once('close', () => this.downloads.delete(downloadId));
+    }
+
+    return { downloadId, suggestedFilename: download.suggestedFilename(), url: download.url() };
   }
 
   registerPage(page, contextId) {

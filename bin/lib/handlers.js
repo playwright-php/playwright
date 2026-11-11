@@ -698,8 +698,7 @@ class PageHandler extends BaseHandler {
   async waitForDownload(page, command) {
     const requestId = command.requestId || this.generateId('download_req');
     const timeout = command.timeout ?? 30000;
-    const downloads = this.downloads;
-    const generateId = this.generateId.bind(this);
+    const registerDownload = this.registerDownload;
 
     globalCoordinator.registerAsyncCommand(requestId, [
       {
@@ -718,18 +717,12 @@ class PageHandler extends BaseHandler {
         name: 'waitForDownload',
         handler: async (data) => {
           const download = await data.downloadPromise;
-          const downloadId = generateId('download');
-          downloads.set(downloadId, download);
-          // A download file lives as long as its browser context.
-          page.context().once('close', () => downloads.delete(downloadId));
 
           return {
             page: undefined,
             downloadPromise: undefined,
             timeout: undefined,
-            downloadId,
-            suggestedFilename: download.suggestedFilename(),
-            url: download.url()
+            ...registerDownload(download, page)
           };
         },
         waitForCallback: false
