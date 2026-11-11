@@ -56,12 +56,12 @@ final class DownloadTest extends TestCase
         $transport = $this->createMock(TransportInterface::class);
         $transport->expects($this->once())
             ->method('send')
-            ->willReturn(['error' => 'Download failed']);
+            ->willReturn(['failure' => 'canceled']);
 
         $page = $this->createMock(PageInterface::class);
         $download = new Download($transport, $page, 'dl-123', []);
 
-        $this->assertSame('Download failed', $download->failure());
+        $this->assertSame('canceled', $download->failure());
     }
 
     public function testFailureReturnsNull(): void

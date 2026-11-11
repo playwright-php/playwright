@@ -18,6 +18,7 @@ use Playwright\API\APIRequestContextInterface;
 use Playwright\Browser\BrowserContextInterface;
 use Playwright\Clock\ClockInterface;
 use Playwright\Console\ConsoleMessage;
+use Playwright\Download\DownloadInterface;
 use Playwright\Frame\FrameInterface;
 use Playwright\Frame\FrameLocatorInterface;
 use Playwright\Input\KeyboardInterface;
@@ -44,6 +45,7 @@ use Playwright\Page\Options\SetContentOptions;
 use Playwright\Page\Options\SetInputFilesOptions;
 use Playwright\Page\Options\StyleTagOptions;
 use Playwright\Page\Options\TypeOptions;
+use Playwright\Page\Options\WaitForDownloadOptions;
 use Playwright\Page\Options\WaitForFunctionOptions;
 use Playwright\Page\Options\WaitForLoadStateOptions;
 use Playwright\Page\Options\WaitForPopupOptions;
@@ -397,6 +399,18 @@ interface PageInterface
      * @param array<string, mixed>|WaitForPopupOptions $options
      */
     public function waitForPopup(callable $action, array|WaitForPopupOptions $options = []): self;
+
+    /**
+     * Runs $action and returns the download it starts.
+     *
+     * The listener is armed before $action runs, so a download that starts
+     * right away is not missed. Throws a TimeoutException when no download
+     * starts within the timeout.
+     *
+     * @param callable(): mixed                           $action  Starts the download, for example a click on a link
+     * @param array<string, mixed>|WaitForDownloadOptions $options
+     */
+    public function waitForDownload(callable $action, array|WaitForDownloadOptions $options = []): DownloadInterface;
 
     /**
      * @param string|callable                             $url

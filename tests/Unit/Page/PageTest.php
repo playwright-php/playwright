@@ -39,6 +39,7 @@ use Playwright\Locator\Options\GetByRoleOptions;
 use Playwright\Locator\Options\LocatorOptions;
 use Playwright\Page\Options\DragAndDropOptions;
 use Playwright\Page\Options\EmulateMediaOptions;
+use Playwright\Page\Options\WaitForDownloadOptions;
 use Playwright\Page\Options\WaitForRequestOptions;
 use Playwright\Page\Page;
 use Playwright\Page\PageEventHandlerInterface;
@@ -1203,6 +1204,63 @@ class PageTest extends TestCase
 
         $action = function () {};
         $page->waitForPopup($action);
+    }
+
+    public function testWaitForDownloadRunsTheActionAndReturnsTheDownload(): void
+    {
+        $page = $this->createPage('page1');
+
+        $actionExecuted = false;
+        $action = function () use (&$actionExecuted) {
+            $actionExecuted = true;
+        };
+
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(function ($payload) use (&$actionExecuted) {
+                $this->assertTrue($actionExecuted);
+
+                return 'page.waitForDownload' === $payload['action']
+                    && 'page1' === $payload['pageId']
+                    && 30000 === $payload['timeout']
+                    && is_string($payload['requestId']);
+            }))
+            ->willReturn(['downloadId' => 'download_1', 'suggestedFilename' => 'report.csv', 'url' => 'https://example.test/report.csv']);
+
+        $download = $page->waitForDownload($action);
+
+        $this->assertSame('report.csv', $download->suggestedFilename());
+        $this->assertSame('https://example.test/report.csv', $download->url());
+        $this->assertSame($page, $download->page());
+    }
+
+    public function testWaitForDownloadWithCustomTimeout(): void
+    {
+        $page = $this->createPage('page1');
+
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static fn ($payload): bool => 5000.0 === $payload['timeout']))
+            ->willReturn(['downloadId' => 'download_1']);
+
+        $page->waitForDownload(static fn () => null, new WaitForDownloadOptions(timeout: 5000));
+    }
+
+    public function testWaitForDownloadRejectsAResponseWithoutDownloadId(): void
+    {
+        $page = $this->createPage('page1');
+
+        $this->transport
+            ->expects($this->once())
+            ->method('send')
+            ->willReturn([]);
+
+        $this->expectException(ProtocolErrorException::class);
+        $this->expectExceptionMessage('No download id returned from transport');
+
+        $page->waitForDownload(static fn () => null);
     }
 
     public function testRequestIsCached(): void
