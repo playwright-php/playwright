@@ -443,13 +443,17 @@ final class Page implements PageInterface, EventDispatcherInterface
     /**
      * Take an auto-generated screenshot with custom suffix.
      *
-     * @param string               $suffix  Custom suffix for the filename (will be slugified)
-     * @param array<string, mixed> $options Screenshot options; the type option sets the file extension
+     * @param string                                 $suffix  Custom suffix for the filename (will be slugified)
+     * @param array<string, mixed>|ScreenshotOptions $options Screenshot options. An array is sent as is. The type option sets the file extension.
      *
      * @return string The generated screenshot path
      */
-    public function screenshotAuto(string $suffix = '', array $options = []): string
+    public function screenshotAuto(string $suffix = '', array|ScreenshotOptions $options = []): string
     {
+        if ($options instanceof ScreenshotOptions) {
+            $options = $options->toArray();
+        }
+
         $currentUrl = $this->url();
         $screenshotDir = $this->getScreenshotDirectory();
 
