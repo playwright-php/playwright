@@ -23,6 +23,7 @@ final readonly class ScreenshotOptions
      * @param 'hide'|'initial'|null                                       $caret
      * @param 'css'|'device'|null                                         $scale
      * @param array<mixed>|null                                           $mask
+     * @param string|null                                                 $style      CSS applied while the screenshot is taken, to hide or freeze dynamic parts. It pierces the Shadow DOM and applies to iframes.
      */
     public function __construct(
         public ?string $path = null,
@@ -37,6 +38,7 @@ final readonly class ScreenshotOptions
         public ?string $scale = null,
         public ?array $mask = null,
         public ?string $maskColor = null,
+        public ?string $style = null,
     ) {
     }
 
@@ -82,6 +84,9 @@ final readonly class ScreenshotOptions
         if (null !== $this->maskColor) {
             $options['maskColor'] = $this->maskColor;
         }
+        if (null !== $this->style) {
+            $options['style'] = $this->style;
+        }
 
         return $options;
     }
@@ -119,7 +124,9 @@ final readonly class ScreenshotOptions
         $mask = $options['mask'] ?? null;
         /** @var string|null $maskColor */
         $maskColor = $options['maskColor'] ?? null;
+        /** @var string|null $style */
+        $style = $options['style'] ?? null;
 
-        return new self($path, $type, $quality, $fullPage, $clip, $omitBackground, $timeout, $animations, $caret, $scale, $mask, $maskColor);
+        return new self($path, $type, $quality, $fullPage, $clip, $omitBackground, $timeout, $animations, $caret, $scale, $mask, $maskColor, $style);
     }
 }

@@ -18,6 +18,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Playwright\Configuration\PlaywrightConfig;
+use Playwright\Page\Options\ScreenshotOptions;
 use Playwright\Page\Page;
 use Playwright\Screenshot\ScreenshotHelper;
 use Playwright\Testing\PlaywrightTestCaseTrait;
@@ -102,6 +103,19 @@ class ScreenshotIntegrationTest extends TestCase
         );
 
         $this->assertPngFileIsValid($screenshotPath);
+    }
+
+    #[Test]
+    public function itAppliesTheStyleOption(): void
+    {
+        $this->page->setContent('<body style="margin:0;background:#fff"><div class="ad" style="width:50px;height:50px;background:#f00"></div></body>');
+        $path = $this->screenshotTestDir.'/styled.png';
+
+        $this->page->screenshot($path, new ScreenshotOptions(style: '.ad { visibility: hidden; }'));
+
+        $image = imagecreatefrompng($path);
+        $this->assertNotFalse($image);
+        $this->assertSame(0xFFFFFF, imagecolorat($image, 25, 25) & 0xFFFFFF);
     }
 
     #[Test]
