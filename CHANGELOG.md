@@ -5,6 +5,9 @@
 ### Added
 - WebP screenshots through `type: 'webp'` in `ScreenshotOptions` and `LocatorScreenshotOptions` (#206)
 
+### Changed
+- `ScreenshotHelper::cleanupOldScreenshots()` and `getDirectoryInfo()` include `.jpeg`, `.jpg` and `.webp` files along with `.png`; cleanup now deletes old files of these formats (#208)
+
 ### Fixed
 - Screenshots taken without a path use the extension of their `type` instead of always `.png` (#207)
 
