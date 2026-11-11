@@ -1,6 +1,6 @@
 const {chromium, firefox, webkit, request} = require('playwright');
 const { logger, ErrorHandler, LspFraming, sendFramedResponse, CommandRegistry, NavigationRedirects, BaseHandler, RouteUtils } = require('./lib/core');
-const { APIRequestHandler, ContextHandler, PageHandler, LocatorHandler, InteractionHandler, FrameHandler, JSHandleHandler, SelectorsHandler, VideoHandler } = require('./lib/handlers');
+const { APIRequestHandler, ContextHandler, PageHandler, LocatorHandler, InteractionHandler, FrameHandler, JSHandleHandler, SelectorsHandler, VideoHandler, DownloadHandler } = require('./lib/handlers');
 const { globalCoordinator } = require('./lib/coordination');
 
 class PlaywrightServer extends BaseHandler {
@@ -24,8 +24,9 @@ class PlaywrightServer extends BaseHandler {
     this.navigationRedirects = new NavigationRedirects();
     this.servers = new Map();
     this.videos = new Map();
+    this.downloads = new Map();
     this.apiContexts = new Map();
-    this.counters = { api: 0, browser: 0, context: 0, page: 0, response: 0, route: 0, element: 0, server: 0, video: 0 };
+    this.counters = { api: 0, browser: 0, context: 0, page: 0, response: 0, route: 0, element: 0, server: 0, video: 0, download: 0, download_req: 0 };
   }
 
   initHandlers() {
@@ -33,7 +34,7 @@ class PlaywrightServer extends BaseHandler {
       contexts: this.contexts, contextThrottling: this.contextThrottling, pages: this.pages,
       apiContexts: this.apiContexts, apiRequest: request,
       pageContexts: this.pageContexts, dialogs: this.dialogs, elementHandles: this.elementHandles,
-      responses: this.responses, routes: this.routes, routeHandlers: this.routeHandlers, videos: this.videos, generateId: this.generateId.bind(this),
+      responses: this.responses, routes: this.routes, routeHandlers: this.routeHandlers, videos: this.videos, downloads: this.downloads, generateId: this.generateId.bind(this),
       navigationRedirects: this.navigationRedirects,
       extractRequestData: this.extractRequestData.bind(this), serializeResponse: this.serializeResponse.bind(this),
       serializeConsoleMessage: this.serializeConsoleMessage.bind(this),
@@ -49,6 +50,7 @@ class PlaywrightServer extends BaseHandler {
     this.jsHandleHandler = new JSHandleHandler(deps);
     this.selectorsHandler = new SelectorsHandler(deps);
     this.videoHandler = new VideoHandler(deps);
+    this.downloadHandler = new DownloadHandler(deps);
   }
 
   async handleCommand(command) {
@@ -90,6 +92,7 @@ class PlaywrightServer extends BaseHandler {
       credentials: () => this.contextHandler.handleCredentials(command, actionMethod),
       screencast: () => this.pageHandler.handleScreencast(command, actionMethod),
       video: () => this.videoHandler.handle(command, actionMethod),
+      download: () => this.downloadHandler.handle(command, actionMethod),
       // Tracing actions are flat names (no dot), sent by the PHP Tracing class
       tracingStart: () => this.contextHandler.handleTracing(command, 'start'),
       tracingStartChunk: () => this.contextHandler.handleTracing(command, 'startChunk'),

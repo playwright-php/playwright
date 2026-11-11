@@ -22,6 +22,8 @@ use Playwright\Configuration\PlaywrightConfig;
 use Playwright\Console\ConsoleMessage;
 use Playwright\Cookie;
 use Playwright\Dialog\Dialog;
+use Playwright\Download\Download;
+use Playwright\Download\DownloadInterface;
 use Playwright\Event\EventDispatcherInterface;
 use Playwright\Exception\NetworkException;
 use Playwright\Exception\PlaywrightException;
@@ -65,6 +67,7 @@ use Playwright\Page\Options\SetContentOptions;
 use Playwright\Page\Options\SetInputFilesOptions;
 use Playwright\Page\Options\StyleTagOptions;
 use Playwright\Page\Options\TypeOptions;
+use Playwright\Page\Options\WaitForDownloadOptions;
 use Playwright\Page\Options\WaitForFunctionOptions;
 use Playwright\Page\Options\WaitForLoadStateOptions;
 use Playwright\Page\Options\WaitForPopupOptions;
@@ -1363,6 +1366,35 @@ final class Page implements PageInterface, EventDispatcherInterface
         }
 
         return $popup;
+    }
+
+    /**
+     * @param array<string, mixed>|WaitForDownloadOptions $options
+     */
+    public function waitForDownload(callable $action, array|WaitForDownloadOptions $options = []): DownloadInterface
+    {
+        $options = WaitForDownloadOptions::from($options)->toArray();
+        $requestId = uniqid('download_', true);
+
+        if (method_exists($this->transport, 'storePendingCallback')) {
+            $this->transport->storePendingCallback($requestId, $action);
+        } else {
+            $action();
+        }
+
+        $response = $this->transport->send([
+            'action' => 'page.waitForDownload',
+            'pageId' => $this->pageId,
+            'timeout' => $options['timeout'] ?? 30000,
+            'requestId' => $requestId,
+        ]);
+
+        $downloadId = $response['downloadId'] ?? null;
+        if (!is_string($downloadId)) {
+            throw new ProtocolErrorException('No download id returned from transport', 0);
+        }
+
+        return new Download($this->transport, $this, $downloadId, $response);
     }
 
     /**

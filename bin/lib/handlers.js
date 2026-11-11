@@ -1,3 +1,4 @@
+const fs = require('fs/promises');
 const { logger, ErrorHandler, CommandRegistry, BaseHandler, PromiseUtils, FrameUtils, RouteUtils } = require('./core');
 const { globalCoordinator } = require('./coordination');
 const { PopupCoordinator } = require('./popup-coordinator');
@@ -445,6 +446,7 @@ class PageHandler extends BaseHandler {
       frames: () => this.getFrames(page),
       frame: () => this.getFrame(page, command),
       waitForPopup: () => this.waitForPopup(page, command),
+      waitForDownload: () => this.waitForDownload(page, command),
       bringToFront: () => page.bringToFront(),
       ariaSnapshot: () => PromiseUtils.wrapValue(page.ariaSnapshot(command.options)),
       hideHighlight: () => page.hideHighlight(),
@@ -689,6 +691,52 @@ class PageHandler extends BaseHandler {
 
   async buildFrameSelector(frame, mainFrame) {
     return FrameUtils.selectorForNativeFrame(frame, mainFrame);
+  }
+
+  // Same callback coordination as waitForPopup: the listener is armed first,
+  // then PHP runs the action that starts the download.
+  async waitForDownload(page, command) {
+    const requestId = command.requestId || this.generateId('download_req');
+    const timeout = command.timeout ?? 30000;
+    const downloads = this.downloads;
+    const generateId = this.generateId.bind(this);
+
+    globalCoordinator.registerAsyncCommand(requestId, [
+      {
+        name: 'setupListener',
+        handler: async () => {
+          const downloadPromise = page.waitForEvent('download', { timeout });
+          // PHP may still be running the action when this rejects. Observe it
+          // now; awaiting the promise in the next phase still throws it.
+          downloadPromise.catch(() => {});
+          return { downloadPromise };
+        },
+        waitForCallback: true,
+        callbackType: 'readyForAction'
+      },
+      {
+        name: 'waitForDownload',
+        handler: async (data) => {
+          const download = await data.downloadPromise;
+          const downloadId = generateId('download');
+          downloads.set(downloadId, download);
+          // A download file lives as long as its browser context.
+          page.context().once('close', () => downloads.delete(downloadId));
+
+          return {
+            page: undefined,
+            downloadPromise: undefined,
+            timeout: undefined,
+            downloadId,
+            suggestedFilename: download.suggestedFilename(),
+            url: download.url()
+          };
+        },
+        waitForCallback: false
+      }
+    ]);
+
+    return await globalCoordinator.executeNextPhase(requestId, { page, timeout });
   }
 
   async waitForPopup(page, command) {
@@ -1142,6 +1190,25 @@ class SelectorsHandler extends BaseHandler {
   }
 }
 
+class DownloadHandler extends BaseHandler {
+  async handle(command, method) {
+    const download = this.validateResource(this.downloads, command.downloadId, 'Download');
+
+    const registry = CommandRegistry.create({
+      path: async () => ({ path: await download.path() }),
+      saveAs: () => download.saveAs(command.path),
+      // Not "error": the PHP transport reads that key as a failed command.
+      failure: async () => ({ failure: await download.failure() }),
+      cancel: () => download.cancel(),
+      delete: () => download.delete(),
+      readStream: async () => ({ stream: (await fs.readFile(await download.path())).toString('base64') })
+    });
+
+    const result = await ErrorHandler.safeExecute(() => this.executeWithRegistry(registry, method), { method, downloadId: command.downloadId });
+    return this.wrapResult(result);
+  }
+}
+
 class VideoHandler extends BaseHandler {
   async handle(command, method) {
     const video = this.validateResource(this.videos, command.videoId, 'Video');
@@ -1160,4 +1227,4 @@ class VideoHandler extends BaseHandler {
   }
 }
 
-module.exports = { APIRequestHandler, ContextHandler, PageHandler, LocatorHandler, InteractionHandler, FrameHandler, JSHandleHandler, SelectorsHandler, VideoHandler };
+module.exports = { APIRequestHandler, ContextHandler, PageHandler, LocatorHandler, InteractionHandler, FrameHandler, JSHandleHandler, SelectorsHandler, VideoHandler, DownloadHandler };
