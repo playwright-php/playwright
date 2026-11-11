@@ -34,6 +34,13 @@ final class ScreenshotOptionsTest extends TestCase
         $this->assertSame('jpeg', $options->type);
     }
 
+    public function testItPassesWebpTypeAndQuality(): void
+    {
+        $options = new ScreenshotOptions(type: 'webp', quality: 90);
+
+        $this->assertSame(['type' => 'webp', 'quality' => 90], $options->toArray());
+    }
+
     public function testItThrowsExceptionForInvalidInput(): void
     {
         $this->expectException(\TypeError::class);
