@@ -4,6 +4,7 @@
 
 ### Added
 - `ScreenshotOptions::$style` applies CSS while a page screenshot is taken, like `LocatorScreenshotOptions::$style`
+- `Page::screenshotAuto()` accepts `ScreenshotOptions`, like `Page::screenshot()`
 
 ## [1.6.0] - 2026-11-07
 

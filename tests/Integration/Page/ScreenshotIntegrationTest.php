@@ -142,6 +142,17 @@ class ScreenshotIntegrationTest extends TestCase
     }
 
     #[Test]
+    public function itTakesScreenshotAutoWithOptionsObject(): void
+    {
+        $screenshotPath = $this->page->screenshotAuto('clipped', new ScreenshotOptions(clip: ['x' => 0, 'y' => 0, 'width' => 50, 'height' => 40]));
+
+        $this->assertStringStartsWith($this->screenshotTestDir, $screenshotPath);
+        $size = getimagesize($screenshotPath);
+        $this->assertIsArray($size);
+        $this->assertSame([50, 40], [$size[0], $size[1]]);
+    }
+
+    #[Test]
     public function itGeneratesUniqueFilenames(): void
     {
         $screenshots = [];
