@@ -137,6 +137,25 @@ class ScreenshotHelperTest extends TestCase
         $this->assertEquals('new.png', $info['newestFile']);
     }
 
+    /**
+     * @return iterable<string, array{mixed, string}>
+     */
+    public static function provideExtensionForCases(): iterable
+    {
+        yield 'no type' => [null, 'png'];
+        yield 'png' => ['png', 'png'];
+        yield 'jpeg' => ['jpeg', 'jpeg'];
+        yield 'webp' => ['webp', 'webp'];
+        yield 'unknown type' => ['gif', 'png'];
+        yield 'path-like value' => ['../evil', 'png'];
+    }
+
+    #[DataProvider('provideExtensionForCases')]
+    public function testExtensionFor(mixed $type, string $expected): void
+    {
+        $this->assertSame($expected, ScreenshotHelper::extensionFor($type));
+    }
+
     public function testCleanupOldScreenshots(): void
     {
         $oldFile = $this->testDir.'/old.png';
