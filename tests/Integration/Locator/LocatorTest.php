@@ -188,6 +188,20 @@ class LocatorTest extends TestCase
     }
 
     #[Test]
+    public function itMasksLocatorsInAnElementScreenshot(): void
+    {
+        $this->page->setContent('<body style="margin:0"><div id="card" style="width:80px;height:80px;background:#fff"><div class="ad" style="width:40px;height:40px;background:#f00"></div></div></body>');
+
+        $binary = $this->page->locator('#card')->screenshot(options: new LocatorScreenshotOptions(mask: [$this->page->locator('.ad')], maskColor: '#00FF00'));
+        $this->assertIsString($binary);
+
+        $image = imagecreatefromstring((string) base64_decode($binary));
+        $this->assertNotFalse($image);
+        $this->assertSame(0x00FF00, imagecolorat($image, 20, 20) & 0xFFFFFF);
+        $this->assertSame(0xFFFFFF, imagecolorat($image, 60, 60) & 0xFFFFFF);
+    }
+
+    #[Test]
     public function itEvaluatesElementTagNameAndCss(): void
     {
         $tagName = $this->page->locator('h1')->evaluate('element => element.tagName');
