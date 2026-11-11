@@ -146,6 +146,19 @@ class ScreenshotIntegrationTest extends TestCase
     }
 
     #[Test]
+    public function itAppliesTheStyleOption(): void
+    {
+        $this->page->setContent('<body style="margin:0;background:#fff"><div class="ad" style="width:50px;height:50px;background:#f00"></div></body>');
+        $path = $this->screenshotTestDir.'/styled.png';
+
+        $this->page->screenshot($path, new ScreenshotOptions(style: '.ad { visibility: hidden; }'));
+
+        $image = imagecreatefrompng($path);
+        $this->assertNotFalse($image);
+        $this->assertSame(0xFFFFFF, imagecolorat($image, 25, 25) & 0xFFFFFF);
+    }
+
+    #[Test]
     public function itTakesScreenshotWithCustomPath(): void
     {
         $customPath = $this->screenshotTestDir.'/custom-screenshot.png';
