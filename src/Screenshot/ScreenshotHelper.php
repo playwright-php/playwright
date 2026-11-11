@@ -24,6 +24,20 @@ use Playwright\Exception\RuntimeException;
 final class ScreenshotHelper
 {
     /**
+     * File extension matching a screenshot type option, png for any other value.
+     *
+     * @internal
+     */
+    public static function extensionFor(mixed $type): string
+    {
+        return match ($type) {
+            'jpeg' => 'jpeg',
+            'webp' => 'webp',
+            default => 'png',
+        };
+    }
+
+    /**
      * Generate an auto screenshot filename based on current datetime and URL.
      *
      * Format: YYYYMMDD_HHMMSS_mmm_url-slug.<extension>
