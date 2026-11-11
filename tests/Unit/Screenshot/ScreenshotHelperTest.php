@@ -33,7 +33,7 @@ class ScreenshotHelperTest extends TestCase
     protected function tearDown(): void
     {
         if (is_dir($this->testDir)) {
-            array_map('unlink', glob($this->testDir.'/*.png'));
+            array_map('unlink', glob($this->testDir.'/*') ?: []);
             rmdir($this->testDir);
         }
     }
@@ -135,6 +135,30 @@ class ScreenshotHelperTest extends TestCase
         $this->assertEquals(37, $info['totalSize']);
         $this->assertEquals('old.png', $info['oldestFile']);
         $this->assertEquals('new.png', $info['newestFile']);
+    }
+
+    public function testGetDirectoryInfoCountsEveryScreenshotFormat(): void
+    {
+        foreach (['a.png', 'b.jpeg', 'c.jpg', 'd.webp', 'e.PNG', 'f.txt'] as $name) {
+            file_put_contents($this->testDir.'/'.$name, 'x');
+        }
+
+        $info = ScreenshotHelper::getDirectoryInfo($this->testDir);
+
+        $this->assertSame(5, $info['count']);
+    }
+
+    public function testCleanupRemovesOldScreenshotsOfEveryFormat(): void
+    {
+        foreach (['a.png', 'b.jpeg', 'c.jpg', 'd.webp', 'e.txt'] as $name) {
+            file_put_contents($this->testDir.'/'.$name, 'x');
+            touch($this->testDir.'/'.$name, time() - 7200);
+        }
+
+        $cleaned = ScreenshotHelper::cleanupOldScreenshots($this->testDir, 3600);
+
+        $this->assertSame(4, $cleaned);
+        $this->assertSame(['e.txt'], array_map('basename', glob($this->testDir.'/*') ?: []));
     }
 
     public function testCleanupOldScreenshots(): void
