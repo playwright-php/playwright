@@ -24,6 +24,11 @@ use Playwright\Exception\RuntimeException;
 final class ScreenshotHelper
 {
     /**
+     * File extensions of the images a screenshot can produce.
+     */
+    private const EXTENSIONS = ['png', 'jpeg', 'jpg', 'webp'];
+
+    /**
      * Generate an auto screenshot filename based on current datetime and URL.
      *
      * Format: YYYYMMDD_HHMMSS_mmm_url-slug.<extension>
@@ -95,6 +100,8 @@ final class ScreenshotHelper
     /**
      * Clean up old screenshots in a directory.
      *
+     * Screenshots are the .png, .jpeg, .jpg and .webp files, whatever the case.
+     *
      * @param string $directory The directory to clean
      * @param int    $maxAge    Maximum age in seconds (default: 7 days)
      * @param int    $maxFiles  Maximum number of files to keep (default: 100)
@@ -110,7 +117,7 @@ final class ScreenshotHelper
         $cleanedCount = 0;
 
         foreach (new \DirectoryIterator($directory) as $fileInfo) {
-            if ($fileInfo->isDot() || 'png' !== $fileInfo->getExtension()) {
+            if ($fileInfo->isDot() || !self::isScreenshotFile($fileInfo)) {
                 continue;
             }
 
@@ -147,6 +154,8 @@ final class ScreenshotHelper
     /**
      * Get information about screenshots in a directory.
      *
+     * Screenshots are the .png, .jpeg, .jpg and .webp files, whatever the case.
+     *
      * @param string $directory The directory to analyze
      *
      * @return array{count: int, totalSize: int, oldestFile: string|null, newestFile: string|null}
@@ -169,7 +178,7 @@ final class ScreenshotHelper
         }
 
         foreach (new \DirectoryIterator($directory) as $fileInfo) {
-            if ($fileInfo->isDot() || 'png' !== $fileInfo->getExtension()) {
+            if ($fileInfo->isDot() || !self::isScreenshotFile($fileInfo)) {
                 continue;
             }
 
@@ -192,5 +201,10 @@ final class ScreenshotHelper
         unset($info['oldestTime'], $info['newestTime']);
 
         return $info;
+    }
+
+    private static function isScreenshotFile(\SplFileInfo $fileInfo): bool
+    {
+        return in_array(strtolower($fileInfo->getExtension()), self::EXTENSIONS, true);
     }
 }

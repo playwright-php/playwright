@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Changed
+- `ScreenshotHelper::cleanupOldScreenshots()` and `getDirectoryInfo()` include `.jpeg`, `.jpg` and `.webp` files along with `.png`; cleanup now deletes old files of these formats (#208)
+
 ## [1.6.0] - 2026-11-07
 
 ### Added
