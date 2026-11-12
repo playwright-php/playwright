@@ -3,8 +3,8 @@
 ## [Unreleased]
 
 ### Added
-- `PageEventHandlerInterface::onDownload()` receives each `Download` a page starts
-- `PageInterface::waitForDownload()` runs an action and returns the `Download` it starts, with `path()`, `saveAs()`, `failure()`, `cancel()`, `delete()` and `createReadStream()` working end to end
+- `PageEventHandlerInterface::onDownload()` receives each `Download` a page starts (#211)
+- `PageInterface::waitForDownload()` runs an action and returns the `Download` it starts, with `path()`, `saveAs()`, `failure()`, `cancel()`, `delete()` and `createReadStream()` working end to end (#211)
 
 ## [1.6.0] - 2026-11-07
 
