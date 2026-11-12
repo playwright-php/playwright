@@ -34,6 +34,11 @@ final class ScreenshotOptionsTest extends TestCase
         $this->assertSame('jpeg', $options->type);
     }
 
+    public function testItReadsStyleFromArray(): void
+    {
+        $this->assertSame('.ad { visibility: hidden; }', ScreenshotOptions::from(['style' => '.ad { visibility: hidden; }'])->style);
+    }
+
     public function testItThrowsExceptionForInvalidInput(): void
     {
         $this->expectException(\TypeError::class);
@@ -55,7 +60,8 @@ final class ScreenshotOptionsTest extends TestCase
             caret: 'hide',
             scale: 'css',
             mask: [],
-            maskColor: '#000000'
+            maskColor: '#000000',
+            style: '.ad { visibility: hidden; }',
         );
 
         $expected = [
@@ -71,6 +77,7 @@ final class ScreenshotOptionsTest extends TestCase
             'scale' => 'css',
             'mask' => [],
             'maskColor' => '#000000',
+            'style' => '.ad { visibility: hidden; }',
         ];
 
         $this->assertSame($expected, $options->toArray());
