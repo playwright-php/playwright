@@ -128,13 +128,9 @@ final class BrowserBuilder
         }
 
         // Launch options can carry proxy credentials and secrets in env values, so never log them raw.
-        $loggedOptions = $launchOptions;
-        if (is_array($loggedOptions['env'] ?? null)) {
-            $loggedOptions['env'] = array_fill_keys(array_keys($loggedOptions['env']), '[REDACTED]');
-        }
         $this->logger->info('Launching browser', [
             'browser' => $this->browserType,
-            'options' => Sanitizer::sanitizeParams($loggedOptions),
+            'options' => Sanitizer::sanitizeParams($launchOptions),
         ]);
 
         $response = $this->transport->send([
