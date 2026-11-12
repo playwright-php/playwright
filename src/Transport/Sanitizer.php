@@ -87,6 +87,9 @@ final class Sanitizer
         foreach ($array as $key => $value) {
             if (is_string($key) && self::isSensitiveKey($key)) {
                 $sanitized[$key] = self::REPLACEMENT;
+            } elseif ('env' === $key && is_array($value)) {
+                // Environment variable values can hold secrets under any name, so only the names are kept.
+                $sanitized[$key] = array_fill_keys(array_keys($value), self::REPLACEMENT);
             } else {
                 $sanitized[$key] = self::sanitizeParams($value);
             }

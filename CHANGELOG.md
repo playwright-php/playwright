@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Added
+- `BrowserBuilder::launch()` accepts `LaunchOptions` or an array of Playwright launch options (#204)
+
 ## [1.6.0] - 2026-11-07
 
 ### Added

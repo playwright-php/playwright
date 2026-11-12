@@ -123,6 +123,23 @@ one work.
 `PW_EXECUTABLE_PATH` provides the same launch choice when configuration is
 built with `PlaywrightConfigBuilder::fromEnv()`.
 
+## Pass launch options directly
+
+`launch()` accepts a `LaunchOptions` object or an array. Explicit options
+override the builder settings, and array keys go to Playwright unchanged, so
+launch options without a builder method work too:
+
+```php
+use Playwright\Browser\Options\LaunchOptions;
+
+$browser = $playwright->chromium()->launch(new LaunchOptions(channel: 'chrome', slowMo: 50));
+
+$browser = $playwright->chromium()->launch([
+    'ignoreDefaultArgs' => ['--mute-audio'],
+    'env' => ['TZ' => 'UTC'],
+]);
+```
+
 ## Keep the browser cache consistent
 
 Set `PLAYWRIGHT_BROWSERS_PATH` during installation and at runtime when managed
