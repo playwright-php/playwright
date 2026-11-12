@@ -88,7 +88,7 @@ final class Download implements DownloadInterface
             'downloadId' => $this->downloadId,
         ]);
 
-        return isset($response['error']) && is_string($response['error']) ? $response['error'] : null;
+        return isset($response['failure']) && is_string($response['failure']) ? $response['failure'] : null;
     }
 
     public function page(): PageInterface

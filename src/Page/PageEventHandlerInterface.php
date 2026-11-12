@@ -37,4 +37,11 @@ interface PageEventHandlerInterface
      * fulfill, abort, continue or fall back the route themselves.
      */
     public function onRoute(callable $handler): void;
+
+    /**
+     * Called with a DownloadInterface each time the page starts a download.
+     * Events reach PHP while it talks to the browser, so the handler runs
+     * during a later call on the page, not at the moment of the click.
+     */
+    public function onDownload(callable $handler): void;
 }
