@@ -14,14 +14,18 @@ declare(strict_types=1);
 
 namespace Playwright\Locator\Options;
 
+use Playwright\Locator\LocatorInterface;
+use Playwright\Screenshot\ScreenshotMask;
+
 class LocatorScreenshotOptions
 {
     /**
-     * @param 'png'|'jpeg'|null       $type
-     * @param 'disabled'|'allow'|null $animations
-     * @param 'hide'|'initial'|null   $caret
-     * @param 'css'|'device'|null     $scale
-     * @param array<mixed>|null       $mask
+     * @param 'png'|'jpeg'|null           $type
+     * @param 'disabled'|'allow'|null     $animations
+     * @param 'hide'|'initial'|null       $caret
+     * @param 'css'|'device'|null         $scale
+     * @param list<LocatorInterface>|null $mask       Elements covered with a solid box of $maskColor. A locator obtained
+     *                                                through frameLocator() masks inside its iframe.
      */
     public function __construct(
         public ?string $path = null,
@@ -36,6 +40,9 @@ class LocatorScreenshotOptions
         public ?string $maskColor = null,
         public ?string $style = null,
     ) {
+        if (null !== $mask) {
+            ScreenshotMask::assertLocators($mask);
+        }
     }
 
     /**
@@ -69,7 +76,8 @@ class LocatorScreenshotOptions
             $options['scale'] = $this->scale;
         }
         if (null !== $this->mask) {
-            $options['mask'] = $this->mask;
+            ScreenshotMask::assertLocators($this->mask);
+            $options['mask'] = ScreenshotMask::toArray($this->mask);
         }
         if (null !== $this->maskColor) {
             $options['maskColor'] = $this->maskColor;
@@ -108,6 +116,10 @@ class LocatorScreenshotOptions
         $scale = $options['scale'] ?? null;
         /** @var array<mixed>|null $mask */
         $mask = $options['mask'] ?? null;
+        if (null !== $mask) {
+            ScreenshotMask::assertLocators($mask);
+            $mask = array_values($mask);
+        }
         /** @var string|null $maskColor */
         $maskColor = $options['maskColor'] ?? null;
         /** @var string|null $style */

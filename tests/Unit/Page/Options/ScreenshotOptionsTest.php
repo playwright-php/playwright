@@ -16,7 +16,9 @@ namespace Playwright\Tests\Unit\Page\Options;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Playwright\Locator\Locator;
 use Playwright\Page\Options\ScreenshotOptions;
+use Playwright\Transport\TransportInterface;
 
 #[CoversClass(ScreenshotOptions::class)]
 final class ScreenshotOptionsTest extends TestCase
@@ -74,5 +76,24 @@ final class ScreenshotOptionsTest extends TestCase
         ];
 
         $this->assertSame($expected, $options->toArray());
+    }
+
+    public function testItSendsMaskLocatorsAsSelectors(): void
+    {
+        $transport = $this->createStub(TransportInterface::class);
+        $options = ScreenshotOptions::from(['mask' => [
+            new Locator($transport, 'page1', '.ad'),
+            new Locator($transport, 'page1', '.date', 'iframe#preview'),
+        ]]);
+
+        $this->assertSame([['selector' => '.ad'], ['selector' => '.date', 'frameSelector' => 'iframe#preview']], $options->toArray()['mask']);
+    }
+
+    public function testItRejectsMaskEntriesThatAreNotLocators(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('The mask option expects Playwright\Locator\LocatorInterface instances, string given at index 0.');
+
+        ScreenshotOptions::from(['mask' => ['.ad']]);
     }
 }
