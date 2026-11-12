@@ -6,8 +6,8 @@
 - WebP screenshots through `type: 'webp'` in `ScreenshotOptions` and `LocatorScreenshotOptions` (#206)
 - `ScreenshotOptions::$style` applies CSS while a page screenshot is taken, like `LocatorScreenshotOptions::$style` (#210)
 - `Page::screenshotAuto()` accepts `ScreenshotOptions`, like `Page::screenshot()` (#210)
-- `PageEventHandlerInterface::onDownload()` receives each `Download` a page starts
-- `PageInterface::waitForDownload()` runs an action and returns the `Download` it starts, with `path()`, `saveAs()`, `failure()`, `cancel()`, `delete()` and `createReadStream()` working end to end
+- `PageEventHandlerInterface::onDownload()` receives each `Download` a page starts (#211)
+- `PageInterface::waitForDownload()` runs an action and returns the `Download` it starts, with `path()`, `saveAs()`, `failure()`, `cancel()`, `delete()` and `createReadStream()` working end to end (#211)
 
 ### Changed
 - `ScreenshotHelper::cleanupOldScreenshots()` and `getDirectoryInfo()` include `.jpeg`, `.jpg` and `.webp` files along with `.png`; cleanup now deletes old files of these formats (#208)
