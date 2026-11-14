@@ -18,6 +18,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Playwright\Configuration\PlaywrightConfig;
+use Playwright\Page\Options\ScreenshotOptions;
 use Playwright\Page\Page;
 use Playwright\Screenshot\ScreenshotHelper;
 use Playwright\Testing\PlaywrightTestCaseTrait;
@@ -114,6 +115,18 @@ class ScreenshotIntegrationTest extends TestCase
         $this->assertEquals($customPath, $result);
         $this->assertFileExists($customPath);
         $this->assertPngFileIsValid($customPath);
+    }
+
+    #[Test]
+    public function itTakesWebpScreenshot(): void
+    {
+        $customPath = $this->screenshotTestDir.'/custom-screenshot.webp';
+
+        $this->page->screenshot($customPath, new ScreenshotOptions(type: 'webp'));
+
+        $content = (string) file_get_contents($customPath);
+        $this->assertSame('RIFF', substr($content, 0, 4));
+        $this->assertSame('WEBP', substr($content, 8, 4));
     }
 
     #[Test]

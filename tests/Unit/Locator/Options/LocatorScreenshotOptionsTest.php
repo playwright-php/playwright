@@ -73,6 +73,13 @@ final class LocatorScreenshotOptionsTest extends TestCase
         $this->assertArrayNotHasKey('style', $result);
     }
 
+    public function testToArrayPassesWebpTypeAndQuality(): void
+    {
+        $options = new LocatorScreenshotOptions(type: 'webp', quality: 90);
+
+        $this->assertSame(['type' => 'webp', 'quality' => 90], $options->toArray());
+    }
+
     public function testFromAcceptsSelfInstance(): void
     {
         $original = new LocatorScreenshotOptions(path: '/test.png');

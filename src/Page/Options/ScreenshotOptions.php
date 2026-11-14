@@ -17,7 +17,7 @@ namespace Playwright\Page\Options;
 final readonly class ScreenshotOptions
 {
     /**
-     * @param 'png'|'jpeg'|null                                           $type
+     * @param 'png'|'jpeg'|'webp'|null                                    $type
      * @param array{x: float, y: float, width: float, height: float}|null $clip
      * @param 'disabled'|'allow'|null                                     $animations
      * @param 'hide'|'initial'|null                                       $caret
@@ -97,7 +97,7 @@ final readonly class ScreenshotOptions
 
         /** @var string|null $path */
         $path = $options['path'] ?? null;
-        /** @var 'png'|'jpeg'|null $type */
+        /** @var 'png'|'jpeg'|'webp'|null $type */
         $type = $options['type'] ?? null;
         /** @var int|null $quality */
         $quality = $options['quality'] ?? null;
