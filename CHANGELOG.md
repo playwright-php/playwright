@@ -5,6 +5,9 @@
 ### Added
 - WebP screenshots through `type: 'webp'` in `ScreenshotOptions` and `LocatorScreenshotOptions` (#206)
 
+### Fixed
+- Screenshots taken without a path use the extension of their `type` instead of always `.png` (#207)
+
 ## [1.6.0] - 2026-11-07
 
 ### Added

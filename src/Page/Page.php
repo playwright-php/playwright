@@ -384,7 +384,7 @@ final class Page implements PageInterface, EventDispatcherInterface
     /**
      * Take a screenshot of the page.
      *
-     * @param string|null                            $path    Screenshot path. If null, auto-generates based on current URL and datetime
+     * @param string|null                            $path    Screenshot path. If null, auto-generates based on current URL and datetime, with the extension of the type option
      * @param array<string, mixed>|ScreenshotOptions $options Screenshot options (quality, fullPage, etc.)
      *
      * @return string Returns the screenshot file path
@@ -395,7 +395,8 @@ final class Page implements PageInterface, EventDispatcherInterface
 
         $finalPath = $path ?? $options['path'] ?? ScreenshotHelper::generateFilename(
             $this->url(),
-            $this->getScreenshotDirectory()
+            $this->getScreenshotDirectory(),
+            ScreenshotHelper::extensionFor($options['type'] ?? null),
         );
 
         if (!is_string($finalPath)) {
@@ -443,7 +444,7 @@ final class Page implements PageInterface, EventDispatcherInterface
      * Take an auto-generated screenshot with custom suffix.
      *
      * @param string               $suffix  Custom suffix for the filename (will be slugified)
-     * @param array<string, mixed> $options Screenshot options
+     * @param array<string, mixed> $options Screenshot options; the type option sets the file extension
      *
      * @return string The generated screenshot path
      */
@@ -459,7 +460,8 @@ final class Page implements PageInterface, EventDispatcherInterface
         $urlSlug = ScreenshotHelper::slugifyUrl($currentUrl, 20);
         $suffixSlug = $suffix ? '-'.ScreenshotHelper::slugifyUrl($suffix, 20) : '';
 
-        $filename = sprintf('%s_%s_%s%s.png', $datetime, $milliseconds, $urlSlug, $suffixSlug);
+        $extension = ScreenshotHelper::extensionFor($options['type'] ?? null);
+        $filename = sprintf('%s_%s_%s%s.%s', $datetime, $milliseconds, $urlSlug, $suffixSlug, $extension);
         $path = $screenshotDir.DIRECTORY_SEPARATOR.$filename;
 
         ScreenshotHelper::ensureDirectoryExists($screenshotDir);
