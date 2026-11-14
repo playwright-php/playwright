@@ -27,6 +27,7 @@ final readonly class ScreenshotOptions
      * @param 'css'|'device'|null                                         $scale
      * @param list<LocatorInterface>|null                                 $mask       Elements covered with a solid box of $maskColor. A locator obtained
      *                                                                                through frameLocator() masks inside its iframe.
+     * @param string|null                                                 $style      CSS applied while the screenshot is taken, to hide or freeze dynamic parts. It pierces the Shadow DOM and applies to iframes.
      */
     public function __construct(
         public ?string $path = null,
@@ -41,6 +42,7 @@ final readonly class ScreenshotOptions
         public ?string $scale = null,
         public ?array $mask = null,
         public ?string $maskColor = null,
+        public ?string $style = null,
     ) {
         if (null !== $mask) {
             ScreenshotMask::assertLocators($mask);
@@ -90,6 +92,9 @@ final readonly class ScreenshotOptions
         if (null !== $this->maskColor) {
             $options['maskColor'] = $this->maskColor;
         }
+        if (null !== $this->style) {
+            $options['style'] = $this->style;
+        }
 
         return $options;
     }
@@ -131,7 +136,9 @@ final readonly class ScreenshotOptions
         }
         /** @var string|null $maskColor */
         $maskColor = $options['maskColor'] ?? null;
+        /** @var string|null $style */
+        $style = $options['style'] ?? null;
 
-        return new self($path, $type, $quality, $fullPage, $clip, $omitBackground, $timeout, $animations, $caret, $scale, $mask, $maskColor);
+        return new self($path, $type, $quality, $fullPage, $clip, $omitBackground, $timeout, $animations, $caret, $scale, $mask, $maskColor, $style);
     }
 }
