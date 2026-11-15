@@ -305,7 +305,7 @@ class PlaywrightServer extends BaseHandler {
     if (command?.options?.env?.PWDEBUG) process.env.PWDEBUG = String(command.options.env.PWDEBUG);
     if (command.browser === 'chromium' || !command.browser) {
       options.args = [
-        '--no-sandbox', '--disable-dev-shm-usage', '--disable-web-security',
+        '--disable-dev-shm-usage',
         '--disable-background-timer-throttling', '--disable-backgrounding-occluded-windows', '--disable-renderer-backgrounding',
         '--disable-field-trial-config', '--disable-ipc-flooding-protection', '--disable-popup-blocking', ...(options.args || [])
       ];
@@ -470,62 +470,66 @@ class PlaywrightServer extends BaseHandler {
   }
 }
 
-const server = new PlaywrightServer();
-let inputBuffer = Buffer.alloc(0);
+module.exports = { PlaywrightServer };
 
-sendFramedResponse({ type: 'ready', message: 'READY' });
+if (require.main === module) {
+  const server = new PlaywrightServer();
+  let inputBuffer = Buffer.alloc(0);
 
-process.stdin.on('data', ErrorHandler.wrapHandler(async (chunk) => {
-  inputBuffer = Buffer.concat([inputBuffer, chunk]);
-  try {
-    const decoded = LspFraming.decode(inputBuffer);
-    inputBuffer = decoded.remainingBuffer;
-    for (const messageContent of decoded.messages) {
-      if (!messageContent.trim()) continue;
-      let command;
-      const fail = (error) => {
-        logger.error('SERVER ERROR', { error: error.message, stack: error.stack, command: messageContent });
-        const errorResponse = { error: error.message, parseError: true };
-        if (command?.requestId) errorResponse.requestId = command.requestId;
-        sendFramedResponse(errorResponse);
-      };
-      try {
-        command = JSON.parse(messageContent);
-        // Not awaited, so a slow command cannot hold back the rest of the chunk.
-        server.handleCommand(command).then((result) => { if (result) sendFramedResponse(result); }, fail);
-      } catch (error) {
-        fail(error);
+  sendFramedResponse({ type: 'ready', message: 'READY' });
+
+  process.stdin.on('data', ErrorHandler.wrapHandler(async (chunk) => {
+    inputBuffer = Buffer.concat([inputBuffer, chunk]);
+    try {
+      const decoded = LspFraming.decode(inputBuffer);
+      inputBuffer = decoded.remainingBuffer;
+      for (const messageContent of decoded.messages) {
+        if (!messageContent.trim()) continue;
+        let command;
+        const fail = (error) => {
+          logger.error('SERVER ERROR', { error: error.message, stack: error.stack, command: messageContent });
+          const errorResponse = { error: error.message, parseError: true };
+          if (command?.requestId) errorResponse.requestId = command.requestId;
+          sendFramedResponse(errorResponse);
+        };
+        try {
+          command = JSON.parse(messageContent);
+          // Not awaited, so a slow command cannot hold back the rest of the chunk.
+          server.handleCommand(command).then((result) => { if (result) sendFramedResponse(result); }, fail);
+        } catch (error) {
+          fail(error);
+        }
       }
+    } catch (error) {
+      logger.error('LSP FRAMING ERROR', { error: error.message, stack: error.stack });
+      sendFramedResponse({ error: 'LSP framing error: ' + error.message });
     }
-  } catch (error) {
-    logger.error('LSP FRAMING ERROR', { error: error.message, stack: error.stack });
-    sendFramedResponse({ error: 'LSP framing error: ' + error.message });
+  }));
+
+  // The PHP process owns this server. Once it is gone, nothing will ever arrive on
+  // stdin again and every browser we hold becomes an orphan reparented to init.
+  // stdin closing covers the cases no PHP-side shutdown hook can reach: SIGKILL,
+  // a fatal error, or SIGTERM, none of which run register_shutdown_function.
+  let shuttingDown = false;
+
+  async function shutdown(reason) {
+    if (shuttingDown) return;
+    shuttingDown = true;
+
+    // A browser that refuses to close must not wedge the process: exiting without
+    // cleanup still lets Chromium notice the broken pipe, hanging here does not.
+    const watchdog = setTimeout(() => process.exit(1), 5000);
+    watchdog.unref();
+
+    try {
+      logger.info('Parent gone, shutting down', { reason });
+    } catch {}
+
+    await server.exit();
   }
-}));
 
-// The PHP process owns this server. Once it is gone, nothing will ever arrive on
-// stdin again and every browser we hold becomes an orphan reparented to init.
-// stdin closing covers the cases no PHP-side shutdown hook can reach: SIGKILL,
-// a fatal error, or SIGTERM, none of which run register_shutdown_function.
-let shuttingDown = false;
-
-async function shutdown(reason) {
-  if (shuttingDown) return;
-  shuttingDown = true;
-
-  // A browser that refuses to close must not wedge the process: exiting without
-  // cleanup still lets Chromium notice the broken pipe, hanging here does not.
-  const watchdog = setTimeout(() => process.exit(1), 5000);
-  watchdog.unref();
-
-  try {
-    logger.info('Parent gone, shutting down', { reason });
-  } catch {}
-
-  await server.exit();
+  process.stdin.on('end', () => shutdown('stdin end'));
+  process.stdin.on('close', () => shutdown('stdin close'));
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGHUP', () => shutdown('SIGHUP'));
 }
-
-process.stdin.on('end', () => shutdown('stdin end'));
-process.stdin.on('close', () => shutdown('stdin close'));
-process.on('SIGTERM', () => shutdown('SIGTERM'));
-process.on('SIGHUP', () => shutdown('SIGHUP'));

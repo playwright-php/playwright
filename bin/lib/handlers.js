@@ -520,14 +520,10 @@ class PageHandler extends BaseHandler {
 
   async waitForFunction(page, command) {
     try {
-      let func;
-      try {
-        func = eval(`(${command.pageFunction})`);
-      } catch (e) {
-        func = command.pageFunction;
-      }
-
-      await page.waitForFunction(func, command.arg, command.options);
+      await page.waitForFunction(({ expression, arg }) => {
+        const value = eval(`(${expression})`);
+        return typeof value === 'function' ? value(arg) : value;
+      }, { expression: command.pageFunction, arg: command.arg }, command.options);
     } catch (error) {
       logger.error('PAGE WAITFORFUNCTION ERROR', { message: error.message });
       throw error;
