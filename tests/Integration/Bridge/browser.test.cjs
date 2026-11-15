@@ -29,4 +29,3 @@ test('browser predicates stay in their browser realm and keep arguments', async 
   });
   assert.equal(globalThis.hostPredicateMarker, undefined);
 });
-
