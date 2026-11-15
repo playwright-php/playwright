@@ -16,6 +16,7 @@
 ### Fixed
 - Screenshots taken without a path use the extension of their `type` instead of always `.png` (#207)
 - The `mask` option of `Page::screenshot()` and `Locator::screenshot()` covers the given locators instead of failing in the driver; other values throw `InvalidArgumentException` (#209)
+- A locator assertion on a locator that resolves to several elements fails at once with Playwright's strict mode message instead of waiting for its timeout
 
 ## [1.6.0] - 2026-11-07
 

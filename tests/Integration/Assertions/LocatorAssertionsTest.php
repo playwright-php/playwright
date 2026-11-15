@@ -19,6 +19,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Playwright\Assertions\AssertionOptions;
 use Playwright\Assertions\Expect;
+use Playwright\Assertions\Failure\AssertionException;
 use Playwright\Assertions\LocatorAssertions;
 use Playwright\Testing\PlaywrightTestCaseTrait;
 use Playwright\Tests\Support\RouteServerTestTrait;
@@ -69,6 +70,24 @@ final class LocatorAssertionsTest extends TestCase
     protected function tearDown(): void
     {
         $this->tearDownPlaywright();
+    }
+
+    #[Test]
+    public function itReportsALocatorThatResolvesToSeveralElements(): void
+    {
+        $this->page->setContent('<div class="breadcrumbs">Administration</div><h1>Administration</h1>');
+        $started = hrtime(true);
+
+        try {
+            Expect::locator($this->page->getByText('Administration'))->toBeVisible();
+            $this->fail('A locator that resolves to two elements must fail the assertion.');
+        } catch (AssertionException $exception) {
+            $this->assertLessThan(2000, (hrtime(true) - $started) / 1_000_000);
+            $this->assertStringStartsWith('Expected locator to be visible.', $exception->getMessage());
+            $this->assertStringContainsString('strict mode violation', $exception->getMessage());
+            $this->assertStringContainsString('resolved to 2 elements', $exception->getMessage());
+            $this->assertStringContainsString('<h1>Administration</h1>', $exception->getMessage());
+        }
     }
 
     #[Test]
