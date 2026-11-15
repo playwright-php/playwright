@@ -54,6 +54,9 @@ class PopupCoordinator {
                             logger.error('Popup is null or undefined', { requestId, ownerId });
                             return { popupPageId: null };
                         }
+
+                        if (popup.isClosed()) throw new Error('Popup closed before callback completed.');
+
                         const popupPageId = generateId('page');
 
                         // Register popup and context mapping
