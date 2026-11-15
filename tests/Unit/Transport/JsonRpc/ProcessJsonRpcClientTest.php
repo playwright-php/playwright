@@ -285,4 +285,43 @@ final class ProcessJsonRpcClientTest extends TestCase
         $readProcessOutput->invoke($client);
         $readProcessOutput->invoke($client);
     }
+
+    public function testNestedRequestsConsumeQueuedEventsExactlyOnce(): void
+    {
+        $calls = 0;
+        $nested = null;
+        $this->client->setEventHandler(function () use (&$calls, &$nested): void {
+            ++$calls;
+
+            if (1 === $calls) {
+                $nested = $this->client->sendRaw(['action' => 'page.title', 'requestId' => 2]);
+            }
+        });
+        $this->mockProcess->method('getIncrementalOutput')->willReturnOnConsecutiveCalls(
+            LspFraming::encode('{"event":"console"}').LspFraming::encode('{"event":"response"}').LspFraming::encode('{"requestId":1,"value":"outer"}'),
+            LspFraming::encode('{"requestId":2,"value":"nested"}'),
+            '',
+        );
+
+        $response = $this->client->sendRaw(['action' => 'page.url', 'requestId' => 1]);
+
+        $this->assertSame(2, $calls);
+        $this->assertSame('outer', $response['value']);
+        $this->assertSame('nested', $nested['value'] ?? null);
+    }
+
+    public function testUnsolicitedRepliesAreNotRetained(): void
+    {
+        $this->mockProcess->method('getIncrementalOutput')->willReturn(
+            LspFraming::encode('{"requestId":"custom_async_id","success":true}')
+            .LspFraming::encode('{"id":999,"result":{}}')
+            .LspFraming::encode('{"requestId":1,"value":"ok"}'),
+        );
+
+        $response = $this->client->sendRaw(['action' => 'page.url', 'requestId' => 1]);
+        $responses = new \ReflectionProperty($this->client, 'responses');
+
+        $this->assertSame('ok', $response['value']);
+        $this->assertSame([], $responses->getValue($this->client));
+    }
 }
