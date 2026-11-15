@@ -94,3 +94,7 @@ $signInButton->click();
 
 By understanding and using these four core concepts, you can build powerful, reliable, and maintainable browser
 automation scripts and tests.
+
+## Browser execution
+
+Chromium launches keep the browser's normal same-origin checks. Tests that deliberately need different behavior can supply their own Chromium arguments through `args`.
