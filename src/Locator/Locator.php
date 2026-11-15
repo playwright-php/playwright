@@ -395,7 +395,7 @@ final class Locator implements \Stringable, LocatorInterface
     {
         $options = GetByOptions::from($options);
 
-        return $this->locator(\sprintf('[alt="%s"]', $text));
+        return $this->locator(\sprintf('[alt=%s]', LiteralSelector::css($text)));
     }
 
     /**
@@ -405,7 +405,7 @@ final class Locator implements \Stringable, LocatorInterface
     {
         $options = GetByOptions::from($options);
 
-        return $this->locator(\sprintf('label:text-is("%s") >> nth=0', $text));
+        return $this->locator(\sprintf('label:text-is(%s) >> nth=0', LiteralSelector::css($text)));
     }
 
     /**
@@ -415,7 +415,7 @@ final class Locator implements \Stringable, LocatorInterface
     {
         $options = GetByOptions::from($options);
 
-        return $this->locator(\sprintf('[placeholder="%s"]', $text));
+        return $this->locator(\sprintf('[placeholder=%s]', LiteralSelector::css($text)));
     }
 
     /**
@@ -431,7 +431,7 @@ final class Locator implements \Stringable, LocatorInterface
 
     public function getByTestId(string $testId): self
     {
-        return $this->locator(\sprintf('[data-testid="%s"]', $testId));
+        return $this->locator(\sprintf('[data-testid=%s]', LiteralSelector::css($testId)));
     }
 
     /**
@@ -441,7 +441,7 @@ final class Locator implements \Stringable, LocatorInterface
     {
         $options = GetByOptions::from($options);
 
-        return $this->locator(\sprintf('text="%s"', $text));
+        return $this->locator('internal:text='.LiteralSelector::text($text).'s');
     }
 
     /**
@@ -451,7 +451,7 @@ final class Locator implements \Stringable, LocatorInterface
     {
         $options = GetByOptions::from($options);
 
-        return $this->locator(\sprintf('[title="%s"]', $text));
+        return $this->locator(\sprintf('[title=%s]', LiteralSelector::css($text)));
     }
 
     /**
@@ -977,19 +977,19 @@ final class Locator implements \Stringable, LocatorInterface
         $chain = clone $this->selectorChain;
 
         if (null !== $options->hasText) {
-            $chain->addFilter(\sprintf(':has-text("%s")', $options->hasText));
+            $chain->append('internal:has-text='.LiteralSelector::text($options->hasText).'i');
         }
 
         if (null !== $options->hasNotText) {
-            $chain->addFilter(\sprintf(':not(:has-text("%s"))', $options->hasNotText));
+            $chain->append('internal:has-not-text='.LiteralSelector::text($options->hasNotText).'i');
         }
 
         if (null !== $options->has) {
-            $chain->addFilter(\sprintf(':has(%s)', $options->has->getSelector()));
+            $chain->append('internal:has='.LiteralSelector::text($options->has->getSelector()));
         }
 
         if (null !== $options->hasNot) {
-            $chain->addFilter(\sprintf(':not(:has(%s))', $options->hasNot->getSelector()));
+            $chain->append('internal:has-not='.LiteralSelector::text($options->hasNot->getSelector()));
         }
 
         return new self($this->transport, $this->pageId, $chain, $this->frameSelector, $this->logger, [], $this->page);

@@ -170,7 +170,7 @@ class FrameLocatorTest extends TestCase
     {
         $locator = $this->frameLocator->getByText('Hello');
         $this->assertInstanceOf(LocatorInterface::class, $locator);
-        $this->assertSame('text="Hello"', $locator->getSelector());
+        $this->assertSame('internal:text="Hello"s', $locator->getSelector());
     }
 
     public function testGetByRole(): void

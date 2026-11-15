@@ -43,6 +43,7 @@ use Playwright\Input\Touchscreen;
 use Playwright\Input\TouchscreenInterface;
 use Playwright\JSHandle\JSHandle;
 use Playwright\JSHandle\JSHandleInterface;
+use Playwright\Locator\LiteralSelector;
 use Playwright\Locator\Locator;
 use Playwright\Locator\LocatorInterface;
 use Playwright\Locator\Options\AriaSnapshotOptions;
@@ -335,7 +336,7 @@ final class Page implements PageInterface, EventDispatcherInterface
      */
     public function getByTestId(string $testId, array|LocatorOptions $options = []): LocatorInterface
     {
-        return $this->locator(\sprintf('[data-testid="%s"]', $testId), $options);
+        return $this->locator(\sprintf('[data-testid=%s]', LiteralSelector::css($testId)), $options);
     }
 
     /**
@@ -1558,11 +1559,7 @@ final class Page implements PageInterface, EventDispatcherInterface
             return \sprintf('internal:text=%s', $text->pattern);
         }
 
-        if ($exact) {
-            return \sprintf('internal:text="%s"', addcslashes($text, '\\"'));
-        }
-
-        return \sprintf('internal:text=/%s/i', preg_quote($text, '/'));
+        return 'internal:text='.LiteralSelector::text($text).($exact ? 's' : 'i');
     }
 
     private static function buildAttrSelector(string $attr, string|Regex $text, bool $exact): string

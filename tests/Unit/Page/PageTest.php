@@ -264,7 +264,7 @@ class PageTest extends TestCase
         $locator = $this->page->getByText('Hello World');
 
         $this->assertInstanceOf(Locator::class, $locator);
-        $this->assertSame('internal:text=/Hello World/i', $locator->getSelector());
+        $this->assertSame('internal:text="Hello World"i', $locator->getSelector());
     }
 
     public function testGetByTextBuildsExactSelector(): void
@@ -272,7 +272,7 @@ class PageTest extends TestCase
         $locator = $this->page->getByText('Hello World', ['exact' => true]);
 
         $this->assertInstanceOf(Locator::class, $locator);
-        $this->assertSame('internal:text="Hello World"', $locator->getSelector());
+        $this->assertSame('internal:text="Hello World"s', $locator->getSelector());
     }
 
     public function testGetByPlaceholderBuildsCaseInsensitiveSelector(): void
