@@ -18,6 +18,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Playwright\Dialog\Dialog;
+use Playwright\Download\Download;
 use Playwright\Network\Request;
 use Playwright\Network\Response;
 use Playwright\Page\PageEventHandler;
@@ -147,6 +148,21 @@ final class PageEventHandlerTest extends TestCase
 
         $this->assertTrue($wasCalled);
         $this->assertSame($request, $receivedRequest);
+    }
+
+    public function testOnDownloadRegistersDownloadHandler(): void
+    {
+        $handler = new PageEventHandler();
+        $download = new Download($this->transport, $this->page, 'download_1');
+        $received = null;
+
+        $handler->onDownload(function (Download $d) use (&$received) {
+            $received = $d;
+        });
+
+        $handler->publicEmit('download', [$download]);
+
+        $this->assertSame($download, $received);
     }
 
     public function testOnRouteRegistersRouteHandler(): void

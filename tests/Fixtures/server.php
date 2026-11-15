@@ -62,6 +62,29 @@ if (1 === preg_match('#^/api/status/(\d{3})$#', $uri, $matches)) {
     return true;
 }
 
+if ('/download/report.csv' === $uri) {
+    header('Content-Type: text/csv');
+    header('Content-Disposition: attachment; filename="report.csv"');
+    echo "id,name\n1,Ada\n";
+
+    return true;
+}
+
+if ('/download/slow.bin' === $uri) {
+    header('Content-Type: application/octet-stream');
+    header('Content-Disposition: attachment; filename="slow.bin"');
+    header('Content-Length: 2048');
+    while (ob_get_level() > 0) {
+        ob_end_flush();
+    }
+    echo str_repeat('a', 1024);
+    flush();
+    sleep(2);
+    echo str_repeat('b', 1024);
+
+    return true;
+}
+
 // Default to index.html if root
 if ('/' === $uri) {
     $uri = '/index.html';
