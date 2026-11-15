@@ -24,4 +24,3 @@ test('diagnostics keep command metadata and omit arbitrary payloads', () => {
     rmSync(directory, { recursive: true, force: true });
   }
 });
-
