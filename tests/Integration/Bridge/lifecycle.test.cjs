@@ -35,4 +35,3 @@ for (const mode of ['page', 'context']) {
     assert.equal(pageContexts.size, 1);
   });
 }
-
