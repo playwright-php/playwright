@@ -165,6 +165,20 @@ class FrameIntegrationTest extends TestCase
     }
 
     #[Test]
+    public function itKeepsPollingAFrameFunctionUnderAContentSecurityPolicyWithoutUnsafeEval(): void
+    {
+        $frame = $this->innerFrame();
+        $frame->setContent('<meta http-equiv="Content-Security-Policy" content="script-src \'self\'"><p>Strict</p>');
+        $frame->evaluate('() => { window.ready = false; setTimeout(() => { window.ready = true; }, 200); }');
+
+        $this->assertSame($frame, $frame->waitForFunction(
+            '(expected) => window.ready === expected',
+            true,
+            ['timeout' => 2000],
+        ));
+    }
+
+    #[Test]
     public function itPassesTheArgumentToAFrameFunction(): void
     {
         $frame = $this->innerFrame();

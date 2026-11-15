@@ -70,21 +70,35 @@ const evaluateHandleOnTarget = async (target, { expression, arg }) => {
   return typeof value === 'function' ? await value(target, arg) : await value;
 };
 
-// Predicates handed to waitForFunction() in place of the caller's source.
-// Playwright calls a function on each poll but only evaluates a string, so a
-// function sent as a string would never be called. These run in the page:
-// they evaluate the source there and call the result when it is a function.
-// Playwright serializes them, so they cannot use anything from this file.
-const waitPredicateInPage = ({ source, arg }) => {
-  const text = source.trim();
+// Predicates handed to waitForFunction() in place of the caller's source, which
+// Playwright would only evaluate, never call. They run in the page, so they
+// cannot use anything from this file. A function source is evaluated once and
+// kept on the argument: a Content-Security-Policy without 'unsafe-eval' allows
+// eval() on the first poll only.
+const waitPredicateInPage = (state) => {
+  if (typeof state.predicate === 'function') {
+    return state.predicate(state.arg);
+  }
+  const text = state.source.trim();
   const value = globalThis.eval(/^(async)?\s*function(\s|\()/.test(text) ? `(${text})` : text);
-  return typeof value === 'function' ? value(arg) : value;
+  if (typeof value !== 'function') {
+    return value;
+  }
+  state.predicate = value;
+  return value(state.arg);
 };
 
-const waitPredicateOnElement = (element, { source, arg }) => {
-  const text = source.trim();
+const waitPredicateOnElement = (element, state) => {
+  if (typeof state.predicate === 'function') {
+    return state.predicate(element, state.arg);
+  }
+  const text = state.source.trim();
   const value = globalThis.eval(/^(async)?\s*function(\s|\()/.test(text) ? `(${text})` : text);
-  return typeof value === 'function' ? value(element, arg) : value;
+  if (typeof value !== 'function') {
+    return value;
+  }
+  state.predicate = value;
+  return value(element, state.arg);
 };
 
 // A HAR url filter accepts a glob or a regex. A glob may legitimately start with
