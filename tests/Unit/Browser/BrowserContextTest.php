@@ -902,59 +902,14 @@ final class BrowserContextTest extends TestCase
         $this->assertSame('/tmp/manual-trace.zip', $sent[1]['path']);
     }
 
-    public function testDeleteCookieSendsAddCookiesWithExpiry(): void
+    public function testDeleteCookieDelegatesAllCookieIdentitiesToNativeClear(): void
     {
-        $transport = $this->createMock(TransportInterface::class);
+        $this->mockTransport->expects($this->once())
+            ->method('send')
+            ->with(['action' => 'context.clearCookies', 'contextId' => 'context_1', 'options' => ['name' => 'foo']])
+            ->willReturn([]);
 
-        $calledAdd = false;
-        $that = $this;
-        $transport->method('send')->willReturnCallback(function (array $payload) use (&$calledAdd, $that) {
-            if (($payload['action'] ?? null) === 'context.cookies') {
-                return [
-                    'cookies' => [
-                        [
-                            'name' => 'foo',
-                            'value' => '123',
-                            'domain' => 'example.com',
-                            'path' => '/',
-                            'expires' => time() + 3600,
-                            'httpOnly' => false,
-                            'secure' => false,
-                            'sameSite' => 'Lax',
-                        ],
-                        [
-                            'name' => 'bar',
-                            'value' => 'x',
-                            'domain' => 'example.com',
-                            'path' => '/',
-                            'expires' => time() + 3600,
-                            'httpOnly' => false,
-                            'secure' => false,
-                            'sameSite' => 'Lax',
-                        ],
-                    ],
-                ];
-            }
-
-            if (($payload['action'] ?? null) === 'context.addCookies') {
-                $that->assertArrayHasKey('cookies', $payload);
-                $that->assertIsArray($payload['cookies']);
-                $that->assertSame('foo', $payload['cookies'][0]['name']);
-                $that->assertSame('example.com', $payload['cookies'][0]['domain']);
-                $that->assertSame('/', $payload['cookies'][0]['path']);
-                $that->assertSame(0, $payload['cookies'][0]['expires']);
-                $calledAdd = true;
-
-                return [];
-            }
-
-            return [];
-        });
-
-        $context = new BrowserContext($transport, 'ctx', new PlaywrightConfig());
-        $context->deleteCookie('foo');
-
-        $this->assertTrue($calledAdd, 'context.addCookies should be called to expire matching cookies');
+        $this->context->deleteCookie('foo');
     }
 
     public function testTracksPopupPagesViaEvents(): void
