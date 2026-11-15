@@ -8,7 +8,7 @@
 - `Page::screenshotAuto()` accepts `ScreenshotOptions`, like `Page::screenshot()` (#210)
 - `PageEventHandlerInterface::onDownload()` receives each `Download` a page starts (#211)
 - `PageInterface::waitForDownload()` runs an action and returns the `Download` it starts, with `path()`, `saveAs()`, `failure()`, `cancel()`, `delete()` and `createReadStream()` working end to end (#211)
-- `--no-shell` and `--only-shell` installer options choose between full Chromium and Chromium headless shell
+- `--no-shell` and `--only-shell` installer options choose between full Chromium and Chromium headless shell (#203)
 
 ### Changed
 - `ScreenshotHelper::cleanupOldScreenshots()` and `getDirectoryInfo()` include `.jpeg`, `.jpg` and `.webp` files along with `.png`; cleanup now deletes old files of these formats (#208)
