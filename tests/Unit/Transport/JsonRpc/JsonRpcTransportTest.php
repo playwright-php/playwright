@@ -70,6 +70,22 @@ final class JsonRpcTransportTest extends TestCase
         $this->assertTrue($this->logger->hasInfoRecords());
     }
 
+    public function testConnectPassesTheHeartbeatIntervalToTheServer(): void
+    {
+        $mockProcess = $this->createMock(Process::class);
+        $mockProcess->method('isRunning')->willReturn(true);
+
+        $this->processLauncher
+            ->expects($this->once())
+            ->method('start')
+            ->with(['node', 'server.js', '--heartbeat-interval=5000'])
+            ->willReturn($mockProcess);
+        $this->processLauncher->method('getInputStream')->willReturn($this->createMock(InputStream::class));
+
+        $transport = new JsonRpcTransport($this->processLauncher, ['command' => ['node', 'server.js']], $this->logger);
+        $transport->connect();
+    }
+
     public function testConnectFailsWhenProcessLauncherThrows(): void
     {
         $this->processLauncher

@@ -33,6 +33,14 @@ use Symfony\Component\Process\Process;
  */
 final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientInterface
 {
+    /** Passed to bin/playwright-server.js as --heartbeat-interval. */
+    public const HEARTBEAT_INTERVAL_MS = 5000;
+
+    private const DEFAULT_IDLE_TIMEOUT_MS = 6 * self::HEARTBEAT_INTERVAL_MS;
+
+    /** A longer gap between two polls means PHP was busy elsewhere, not that the server was silent. */
+    private const POLLING_GAP_MS = 1000.0;
+
     private string $outputBuffer = '';
     private ?InputStream $inputStream = null;
 
@@ -48,12 +56,18 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
     private ?\Closure $eventHandler = null;
     private ?\Throwable $eventHandlerException = null;
 
+    private bool $serverStarted = false;
+
+    /**
+     * @param float $idleTimeoutMs longest server silence while a request waits for its response; 0 disables the check
+     */
     public function __construct(
         private readonly Process $process,
         private readonly ProcessLauncherInterface $processLauncher,
         ?ClockInterface $clock = null,
         ?LoggerInterface $logger = null,
         float $defaultTimeoutMs = 30000.0,
+        private readonly float $idleTimeoutMs = self::DEFAULT_IDLE_TIMEOUT_MS,
     ) {
         parent::__construct(
             clock: $clock,
@@ -120,14 +134,26 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
     {
         $pollInterval = 1000;
         $maxInterval = 10000;
+        $lastPoll = $lastOutput = $this->getCurrentTimeMs();
 
         while (true) {
-            if (null !== $deadline && $this->getCurrentTimeMs() > $deadline) {
+            $now = $this->getCurrentTimeMs();
+            if (null !== $deadline && $now > $deadline) {
                 throw new TimeoutException(sprintf('JSON-RPC request %d timed out', $requestId), $deadline - $this->getCurrentTimeMs());
             }
 
+            if ($now - $lastPoll > self::POLLING_GAP_MS) {
+                $lastOutput += $now - $lastPoll;
+            } elseif ($this->serverStarted && $this->idleTimeoutMs > 0 && $now - $lastOutput > $this->idleTimeoutMs) {
+                throw new TimeoutException(sprintf('The Playwright server stopped responding: no output for %.0fms while waiting for request %s.', $now - $lastOutput, $requestId), $this->idleTimeoutMs, null, ['pid' => $this->process->getPid()]);
+            }
+            $lastPoll = $now;
+
             $this->ensureProcessRunning();
-            $this->readProcessOutput();
+            if ($this->readProcessOutput()) {
+                $this->serverStarted = true;
+                $lastOutput = $this->getCurrentTimeMs();
+            }
 
             $response = $this->findResponseForRequest($requestId);
             if (null !== $response) {
@@ -139,7 +165,7 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
         }
     }
 
-    private function readProcessOutput(): void
+    private function readProcessOutput(): bool
     {
         $stdout = $this->process->getIncrementalOutput();
         $this->process->clearOutput();
@@ -154,6 +180,8 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
         }
 
         $this->processAndDispatchMessages();
+
+        return '' !== $stdout;
     }
 
     private function processAndDispatchMessages(): void

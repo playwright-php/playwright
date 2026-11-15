@@ -20,6 +20,7 @@
 - `Frame::waitForFunction()` and `Locator::waitForFunction()` call a function given as a string and wait for its result instead of returning at once (#215)
 - `Page::waitForFunction()` evaluates an expression in the page, never in the server process (#215)
 - Each message from the server reaches its handler once, even when an event handler sends a request, and replies that no request waits for are dropped instead of kept in memory (#219)
+- A call throws `TimeoutException` once the Playwright server has been silent for 30 seconds, so a call without a `timeout` no longer waits forever on a server that stopped responding; a call that is still running is not affected, however long it takes
 
 ## [1.6.0] - 2026-11-07
 

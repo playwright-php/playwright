@@ -155,6 +155,7 @@ final class JsonRpcTransport implements TransportInterface
                 throw new NetworkException('Command configuration is required and must be array');
             }
             $command = $this->validateCommand(array_values($command));
+            $command[] = '--heartbeat-interval='.ProcessJsonRpcClient::HEARTBEAT_INTERVAL_MS;
 
             $cwd = $this->config['cwd'] ?? null;
             if (null !== $cwd && !is_string($cwd)) {

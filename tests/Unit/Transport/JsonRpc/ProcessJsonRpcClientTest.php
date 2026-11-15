@@ -20,6 +20,7 @@ use Playwright\Exception\DisconnectedException;
 use Playwright\Exception\MissingDependencyException;
 use Playwright\Exception\NetworkException;
 use Playwright\Exception\ProcessCrashedException;
+use Playwright\Exception\TimeoutException;
 use Playwright\Tests\Mocks\FixedClock;
 use Playwright\Tests\Mocks\TestLogger;
 use Playwright\Transport\JsonRpc\JsonRpcClientInterface;
@@ -32,6 +33,9 @@ use Symfony\Component\Process\Process;
 #[CoversClass(ProcessJsonRpcClient::class)]
 final class ProcessJsonRpcClientTest extends TestCase
 {
+    private const READY = "Content-Length: 34\r\n\r\n{\"type\":\"ready\",\"message\":\"READY\"}";
+    private const RESPONSE = "Content-Length: 30\r\n\r\n{\"requestId\":1,\"value\":\"done\"}";
+
     private FixedClock $clock;
     private TestLogger $logger;
     private Process $mockProcess;
@@ -232,6 +236,126 @@ final class ProcessJsonRpcClientTest extends TestCase
         $response = $this->client->sendRaw(['action' => 'page.url', 'requestId' => 2]);
 
         $this->assertSame('about:blank', $response['value']);
+    }
+
+    public function testASilentServerThrowsATimeoutExceptionForARequestWithoutDeadline(): void
+    {
+        $client = $this->clientReading([[0, self::READY]]);
+
+        try {
+            $client->sendRaw(['action' => 'locator.click', 'requestId' => 1], 0.0);
+            $this->fail('A silent server must end the request.');
+        } catch (TimeoutException $exception) {
+            $this->assertSame('The Playwright server stopped responding: no output for 2500ms while waiting for request 1.', $exception->getMessage());
+            $this->assertSame(2000.0, $exception->getTimeoutMs());
+        }
+    }
+
+    public function testHeartbeatsKeepARequestWaitingPastTheIdleTimeout(): void
+    {
+        $heartbeat = LspFraming::encode('{"type":"heartbeat"}');
+        $client = $this->clientReading([...array_fill(0, 20, [500, $heartbeat]), [500, self::RESPONSE]]);
+
+        $response = $client->sendRaw(['action' => 'locator.click', 'requestId' => 1], 0.0);
+
+        $this->assertSame('done', $response['value']);
+        $this->assertSame([], array_filter($this->logger->records, static fn (array $record): bool => 'warning' === $record['level']));
+    }
+
+    public function testSilenceIsCountedFromTheLastOutputWhileACallRuns(): void
+    {
+        $polls = 0;
+        $event = LspFraming::encode('{"event":"console"}');
+        $client = $this->clientReading([[0, self::READY], [500, ''], [500, ''], [500, $event]], polls: $polls);
+
+        try {
+            $client->sendRaw(['action' => 'locator.click', 'requestId' => 1], 0.0);
+            $this->fail('A server silent since its last output must end the request.');
+        } catch (TimeoutException $exception) {
+            // the event at 1500 ms restarts the count: the request ends at 4000 ms, not at 2500 ms
+            $this->assertStringContainsString('no output for 2500ms', $exception->getMessage());
+            $this->assertSame(9, $polls);
+        }
+    }
+
+    public function testIdleTimeBetweenTwoCallsIsNotCounted(): void
+    {
+        $client = $this->clientReading([[0, self::READY.self::RESPONSE], [500, LspFraming::encode('{"requestId":2,"value":"again"}')]]);
+        $client->sendRaw(['action' => 'page.url', 'requestId' => 1], 0.0);
+
+        $this->clock->advanceMilliseconds(60000);
+        $response = $client->sendRaw(['action' => 'page.url', 'requestId' => 2], 0.0);
+
+        $this->assertSame('again', $response['value']);
+    }
+
+    public function testAServerThatHasNotStartedYetIsNotTimedOut(): void
+    {
+        $client = $this->clientReading([...array_fill(0, 20, [500, '']), [500, self::READY.self::RESPONSE]]);
+
+        $response = $client->sendRaw(['action' => 'launch', 'requestId' => 1], 0.0);
+
+        $this->assertSame('done', $response['value']);
+    }
+
+    public function testTimeDuringWhichPhpWasNotPollingIsNotCountedAsSilence(): void
+    {
+        $client = $this->clientReading([[0, self::READY], [60000, ''], [500, self::RESPONSE]]);
+
+        $response = $client->sendRaw(['action' => 'locator.click', 'requestId' => 1], 0.0);
+
+        $this->assertSame('done', $response['value']);
+    }
+
+    public function testSilenceObservedBeforeAPauseOfPhpStillCounts(): void
+    {
+        $polls = 0;
+        $client = $this->clientReading([[0, self::READY], [500, ''], [500, ''], [500, ''], [60000, '']], polls: $polls);
+
+        try {
+            $client->sendRaw(['action' => 'locator.click', 'requestId' => 1], 0.0);
+            $this->fail('A silent server must end the request.');
+        } catch (TimeoutException $exception) {
+            $this->assertStringContainsString('no output for 2500ms', $exception->getMessage());
+            $this->assertSame(7, $polls);
+        }
+    }
+
+    public function testAZeroIdleTimeoutDisablesTheCheck(): void
+    {
+        $client = $this->clientReading([[0, self::READY], ...array_fill(0, 20, [500, '']), [500, self::RESPONSE]], 0.0);
+
+        $response = $client->sendRaw(['action' => 'locator.click', 'requestId' => 1], 0.0);
+
+        $this->assertSame('done', $response['value']);
+    }
+
+    /**
+     * @param list<array{int, string}> $reads each poll of the server output: the time it takes
+     *                                        in milliseconds, then what it returns; once the
+     *                                        list is used up, a poll takes 500 ms and returns nothing
+     */
+    private function clientReading(array $reads, float $idleTimeoutMs = 2000.0, int &$polls = 0): ProcessJsonRpcClient
+    {
+        $process = $this->createMock(Process::class);
+        $process->method('isRunning')->willReturn(true);
+        $process->method('getPid')->willReturn(12345);
+        $process->method('getIncrementalErrorOutput')->willReturn('');
+        $process->method('getIncrementalOutput')->willReturnCallback(function () use (&$reads, &$polls): string {
+            ++$polls;
+            [$milliseconds, $output] = array_shift($reads) ?? [500, ''];
+            $this->clock->advanceMilliseconds($milliseconds);
+
+            return $output;
+        });
+
+        return new ProcessJsonRpcClient(
+            process: $process,
+            processLauncher: $this->mockProcessLauncher,
+            clock: $this->clock,
+            logger: $this->logger,
+            idleTimeoutMs: $idleTimeoutMs,
+        );
     }
 
     public function testReadProcessOutputClearsBothProcessBuffers(): void
