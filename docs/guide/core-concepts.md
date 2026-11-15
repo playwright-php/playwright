@@ -94,3 +94,7 @@ $signInButton->click();
 
 By understanding and using these four core concepts, you can build powerful, reliable, and maintainable browser
 automation scripts and tests.
+
+## Resource lifetimes
+
+Response handles remain available for repeated reads while their page is open and are released when the page, context, or browser closes. Close pages and contexts between jobs in a long-running worker. One indefinitely open page can still retain its response history.
