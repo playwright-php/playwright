@@ -70,12 +70,8 @@ class FrameLocatorTest extends TestCase
         $expectedSelector = $this->initialSelector.' >> nth=0';
         $this->logger
             ->expects($this->once())
-            ->method('debug')
-            ->with('Creating nth frame locator', [
-                'frameSelector' => $this->initialSelector,
-                'index' => 0,
-                'newSelector' => $expectedSelector,
-            ]);
+            ->method('log')
+            ->with('debug', 'Creating nth frame locator', ['index' => 0]);
 
         $newLocator = $this->frameLocator->first();
 
@@ -89,12 +85,8 @@ class FrameLocatorTest extends TestCase
         $expectedSelector = $this->initialSelector.' >> nth=-1';
         $this->logger
             ->expects($this->once())
-            ->method('debug')
-            ->with('Creating nth frame locator', [
-                'frameSelector' => $this->initialSelector,
-                'index' => -1,
-                'newSelector' => $expectedSelector,
-            ]);
+            ->method('log')
+            ->with('debug', 'Creating nth frame locator', ['index' => -1]);
 
         $newLocator = $this->frameLocator->last();
 
@@ -108,12 +100,8 @@ class FrameLocatorTest extends TestCase
     {
         $this->logger
             ->expects($this->once())
-            ->method('debug')
-            ->with('Creating nth frame locator', [
-                'frameSelector' => $this->initialSelector,
-                'index' => $index,
-                'newSelector' => $expectedSelector,
-            ]);
+            ->method('log')
+            ->with('debug', 'Creating nth frame locator', ['index' => $index]);
 
         $newLocator = $this->frameLocator->nth($index);
 
@@ -140,12 +128,8 @@ class FrameLocatorTest extends TestCase
 
         $this->logger
             ->expects($this->once())
-            ->method('debug')
-            ->with('Creating nested frame locator', [
-                'parentFrameSelector' => $this->initialSelector,
-                'childSelector' => $childSelector,
-                'newSelector' => $expectedSelector,
-            ]);
+            ->method('log')
+            ->with('debug', 'Creating nested frame locator', []);
 
         $newLocator = $this->frameLocator->frameLocator($childSelector);
 

@@ -35,7 +35,7 @@ final class BrowserBuilderConnectTest extends TestCase
         $this->builder($logger, $sent)->connect(self::WS_ENDPOINT);
 
         $context = $logger->records[0]['context'];
-        $this->assertSame('ws://[REDACTED]@127.0.0.1:9222/devtools', $context['wsEndpoint']);
+        $this->assertArrayNotHasKey('wsEndpoint', $context);
         $this->assertStringNotContainsString('s3cr3t', json_encode($logger->records) ?: '');
     }
 
@@ -47,7 +47,8 @@ final class BrowserBuilderConnectTest extends TestCase
         $this->builder($logger, $sent)->connect(self::WS_ENDPOINT, ['headers' => ['authorization' => 'Bearer t0ken']]);
 
         $context = $logger->records[0]['context'];
-        $this->assertSame('[REDACTED]', $context['options']['headers']['authorization']);
+        $this->assertArrayNotHasKey('options', $context);
+        $this->assertStringNotContainsString('t0ken', json_encode($logger->records) ?: '');
     }
 
     public function testConnectSendsTheEndpointAndOptionsUnchanged(): void
@@ -69,7 +70,7 @@ final class BrowserBuilderConnectTest extends TestCase
         $this->builder($logger, $sent)->connectOverCDP(self::CDP_ENDPOINT);
 
         $context = $logger->records[0]['context'];
-        $this->assertSame('http://[REDACTED]@127.0.0.1:9222/', $context['endpointURL']);
+        $this->assertArrayNotHasKey('endpointURL', $context);
         $this->assertStringNotContainsString('s3cr3t', json_encode($logger->records) ?: '');
     }
 
@@ -81,7 +82,8 @@ final class BrowserBuilderConnectTest extends TestCase
         $this->builder($logger, $sent)->connectOverCDP(self::CDP_ENDPOINT, ['headers' => ['authorization' => 'Bearer t0ken']]);
 
         $context = $logger->records[0]['context'];
-        $this->assertSame('[REDACTED]', $context['options']['headers']['authorization']);
+        $this->assertArrayNotHasKey('options', $context);
+        $this->assertStringNotContainsString('t0ken', json_encode($logger->records) ?: '');
     }
 
     public function testConnectOverCdpSendsTheEndpointAndOptionsUnchanged(): void

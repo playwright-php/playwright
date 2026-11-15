@@ -178,7 +178,8 @@ final class ProcessJsonRpcClientTest extends TestCase
         $warnings = array_values(array_filter($this->logger->records, static fn (array $record): bool => 'warning' === $record['level']));
         $this->assertCount(1, $warnings);
         $this->assertSame('Process stderr', $warnings[0]['message']);
-        $this->assertStringNotContainsString('example-credential', $warnings[0]['context']['stderr']);
+        $this->assertArrayNotHasKey('stderr', $warnings[0]['context']);
+        $this->assertSame(strlen('Authorization: Bearer example-credential'), $warnings[0]['context']['bytes']);
     }
 
     public function testInputStreamWriteFailureThrowsNetworkException(): void
@@ -284,5 +285,16 @@ final class ProcessJsonRpcClientTest extends TestCase
         $readProcessOutput->invoke($client);
         $readProcessOutput->invoke($client);
         $readProcessOutput->invoke($client);
+    }
+
+    public function testRequestValuesAreOmittedFromDiagnostics(): void
+    {
+        $this->mockProcess->method('getIncrementalOutput')->willReturn(LspFraming::encode('{"requestId":1,"success":true}'));
+        $this->client->sendRaw(['action' => 'locator.fill', 'requestId' => 1, 'value' => 'short-secret-value']);
+
+        $logs = json_encode($this->logger->records, JSON_THROW_ON_ERROR);
+
+        $this->assertStringNotContainsString('short-secret-value', $logs);
+        $this->assertStringContainsString('locator.fill', $logs);
     }
 }

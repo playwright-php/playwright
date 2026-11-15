@@ -18,6 +18,7 @@ use Playwright\Locator\Locator;
 use Playwright\Locator\LocatorInterface;
 use Playwright\Locator\RoleSelectorBuilder;
 use Playwright\Page\PageInterface;
+use Playwright\Transport\MetadataLogger;
 use Playwright\Transport\TransportInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -33,7 +34,7 @@ final class FrameLocator implements \Stringable, FrameLocatorInterface
         ?LoggerInterface $logger = null,
         private readonly ?PageInterface $page = null,
     ) {
-        $this->logger = $logger ?? new NullLogger();
+        $this->logger = MetadataLogger::wrap($logger ?? new NullLogger());
     }
 
     public function locator(string $selector): LocatorInterface

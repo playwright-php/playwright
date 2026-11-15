@@ -264,7 +264,7 @@ final class JsonRpcTransport implements TransportInterface
             return $this->client->sendRaw($message, $timeoutMs);
         } catch (\Throwable $e) {
             $this->logger->error('JSON-RPC send failed', [
-                'error' => $e->getMessage(),
+                'exceptionType' => $e::class,
                 'action' => $message['action'] ?? 'unknown',
             ]);
             throw $e;
@@ -339,7 +339,7 @@ final class JsonRpcTransport implements TransportInterface
             $this->sendAsyncMessage($message);
         } catch (\Throwable $e) {
             $this->logger->warning('JSON-RPC sendAsync failed', [
-                'error' => $e->getMessage(),
+                'exceptionType' => $e::class,
                 'method' => $message['action'] ?? 'unknown',
             ]);
         }

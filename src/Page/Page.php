@@ -82,6 +82,7 @@ use Playwright\Screencast\Screencast;
 use Playwright\Screencast\ScreencastInterface;
 use Playwright\Screenshot\ScreenshotComparison;
 use Playwright\Screenshot\ScreenshotHelper;
+use Playwright\Transport\MetadataLogger;
 use Playwright\Transport\Sanitizer;
 use Playwright\Transport\TransportInterface;
 use Playwright\Video\Video;
@@ -131,7 +132,7 @@ final class Page implements PageInterface, EventDispatcherInterface
         private readonly PlaywrightConfig $config,
         ?LoggerInterface $logger = null,
     ) {
-        $this->logger = $logger ?? $config->logger ?? new NullLogger();
+        $this->logger = MetadataLogger::wrap($logger ?? $config->logger ?? new NullLogger());
 
         $this->keyboard = new Keyboard($this->transport, $this->pageId);
         $this->mouse = new Mouse($this->transport, $this->pageId);
@@ -382,7 +383,6 @@ final class Page implements PageInterface, EventDispatcherInterface
         } catch (\Throwable $e) {
             $this->logger->error('Failed to navigate to URL', [
                 'url' => $logUrl,
-                'error' => Sanitizer::sanitizeParams($e->getMessage()),
                 'exceptionType' => $e::class,
             ]);
             throw $e;
@@ -421,7 +421,6 @@ final class Page implements PageInterface, EventDispatcherInterface
         } catch (\Throwable $e) {
             $this->logger->error('Failed to take screenshot', [
                 'path' => $finalPath,
-                'error' => Sanitizer::sanitizeParams($e->getMessage()),
                 'exceptionType' => $e::class,
             ]);
             throw $e;
@@ -505,7 +504,6 @@ final class Page implements PageInterface, EventDispatcherInterface
         } catch (\Throwable $e) {
             $this->logger->error('Failed to generate PDF', [
                 'path' => $finalPath,
-                'error' => Sanitizer::sanitizeParams($e->getMessage()),
                 'exceptionType' => $e::class,
             ]);
 
@@ -852,7 +850,7 @@ final class Page implements PageInterface, EventDispatcherInterface
             $error = $response['error'];
             if (!is_array($error)) {
                 $message = is_string($error) ? $error : 'Unknown error';
-                $this->logger->error('Playwright server error (non-structured)', ['error' => Sanitizer::sanitizeParams($error)]);
+                $this->logger->error('Playwright server error (non-structured)', ['pageId' => $this->pageId]);
                 if (str_contains($message, 'Timeout')) {
                     throw new TimeoutException($message);
                 }
@@ -867,7 +865,7 @@ final class Page implements PageInterface, EventDispatcherInterface
                 $message = 'Unknown error';
             }
 
-            $this->logger->error('Playwright server error', ['error' => Sanitizer::sanitizeParams($error)]);
+            $this->logger->error('Playwright server error', ['pageId' => $this->pageId]);
 
             if (str_contains($message, 'Target page, context or browser has been closed')) {
                 throw new PlaywrightException('Browser context has been closed');
@@ -1430,7 +1428,6 @@ final class Page implements PageInterface, EventDispatcherInterface
             $this->logger->error('Failed to set input files', [
                 'selector' => $selector,
                 'files' => $files,
-                'error' => Sanitizer::sanitizeParams($e->getMessage()),
                 'exceptionType' => $e::class,
             ]);
             throw $e;

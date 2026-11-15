@@ -15,18 +15,6 @@ class Logger {
     this.levels = { error: 0, warn: 1, info: 2, debug: 3 };
     this.currentLevelPriority = this.levels[this.level] ?? this.levels.info;
     this.logStream = null;
-    this.initConsoleLogging();
-  }
-
-  initConsoleLogging() {
-    if (DEBUG) {
-      this.logStream = fs.createWriteStream('playwright-server.log', { flags: 'a' });
-      const originalConsoleLog = console.log;
-      console.log = (d) => {
-        this.logStream.write(new Date().toISOString() + ' - ' + d + '\n');
-        originalConsoleLog(d);
-      };
-    }
   }
 
   shouldLog(level) {
@@ -39,16 +27,10 @@ class Logger {
     if (!this.shouldLog(level)) return;
     const timestamp = new Date().toISOString();
     let logMessage = `[${timestamp}] [${level.toUpperCase()}] ${message}`;
-    if (data) {
-      if (typeof data === 'object') {
-        try {
-          logMessage += `\n${JSON.stringify(data, null, 2)}`;
-        } catch (e) {
-          logMessage += ` [Object: ${String(data)}]`;
-        }
-      } else {
-        logMessage += ` ${data}`;
-      }
+    if (data && typeof data === 'object') {
+      const fields = ['action', 'method', 'requestId', 'pageId', 'contextId', 'browserId', 'serverId', 'routeId', 'ownerId', 'pid', 'type', 'reason'];
+      data = Object.fromEntries(Object.entries(data).filter(([key]) => fields.includes(key)));
+      logMessage += `\n${JSON.stringify(data, null, 2)}`;
     }
     logMessage += '\n';
     try {
@@ -378,6 +360,6 @@ class RouteUtils {
 const logger = new Logger();
 
 module.exports = {
-  logger, ErrorHandler, LspFraming, sendFramedResponse,
+  Logger, logger, ErrorHandler, LspFraming, sendFramedResponse,
   CommandRegistry, NavigationRedirects, BaseHandler, PromiseUtils, FrameUtils, RouteUtils,
 };
