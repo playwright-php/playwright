@@ -26,4 +26,3 @@ test('event overflow terminates the bridge explicitly', () => {
   assert.equal(result.status, 1);
   assert.match(result.stderr, /event queue limit/);
 });
-
