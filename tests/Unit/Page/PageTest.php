@@ -1077,7 +1077,7 @@ class PageTest extends TestCase
         $this->assertSame($expectedPath, $result);
     }
 
-    public function testPdfContentReturnsBinaryAndCleansUpTempFile(): void
+    public function testPdfContentReturnsBinaryWithoutWritingAFile(): void
     {
         $transport = $this->createMock(TransportInterface::class);
         $context = $this->createMock(BrowserContextInterface::class);
@@ -1092,11 +1092,9 @@ class PageTest extends TestCase
             ->method('send')
             ->willReturnCallback(function (array $payload) use ($pdfBytes): array {
                 $this->assertSame('page.pdf', $payload['action']);
-                $path = $payload['options']['path'] ?? null;
-                $this->assertIsString($path);
-                file_put_contents($path, $pdfBytes);
+                $this->assertArrayNotHasKey('path', $payload['options']);
 
-                return [];
+                return ['binary' => base64_encode($pdfBytes)];
             });
 
         $page = new Page($transport, $context, 'page-unit', $config);

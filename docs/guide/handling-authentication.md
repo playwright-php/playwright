@@ -123,3 +123,7 @@ class ProfilePageTest extends AuthenticatedTestCase
 * Use **UI Login** when you are specifically testing the login, password-reset, or logout features.
 * Use **Reusing Authentication State** for all other tests that require an authenticated user. It will make your test
   suite significantly faster and more stable.
+
+## Saved state
+
+Storage-state exports are written atomically with owner-only file permissions. Store them in a private directory, exclude them from version control, and remove them when the sessions are no longer needed. Filesystem access controls on Windows must also restrict access to the owning account.

@@ -470,7 +470,7 @@ final class Page implements PageInterface, EventDispatcherInterface
         $milliseconds = sprintf('%03d', ($now - floor($now)) * 1000);
 
         $urlSlug = ScreenshotHelper::slugifyUrl($currentUrl, 20);
-        $suffixSlug = $suffix ? '-'.ScreenshotHelper::slugifyUrl($suffix, 20) : '';
+        $suffixSlug = $suffix ? '-'.ScreenshotHelper::slugifyName($suffix, 20) : '';
 
         $extension = ScreenshotHelper::extensionFor($options['type'] ?? null);
         $filename = sprintf('%s_%s_%s%s.%s', $datetime, $milliseconds, $urlSlug, $suffixSlug, $extension);
@@ -528,31 +528,20 @@ final class Page implements PageInterface, EventDispatcherInterface
             throw new RuntimeException('Do not provide a "path" option when requesting inline PDF content.');
         }
 
-        $directory = $this->getPdfDirectory();
-        ScreenshotHelper::ensureDirectoryExists($directory);
+        $response = $this->sendCommand('pdf', ['options' => $options->toArray()]);
+        $binary = $response['binary'] ?? null;
 
-        $tempPath = tempnam($directory, 'pw_pdf_');
-        if (false === $tempPath) {
-            throw new RuntimeException('Failed to allocate a temporary PDF file.');
+        if (!is_string($binary)) {
+            throw new ProtocolErrorException('Invalid PDF content response', 0);
         }
 
-        // Remove the placeholder so Playwright can create the file fresh.
-        @unlink($tempPath);
+        $content = base64_decode($binary, true);
 
-        try {
-            $this->pdf($tempPath, $options);
-
-            $content = file_get_contents($tempPath);
-            if (false === $content) {
-                throw new RuntimeException('Unable to read generated PDF content.');
-            }
-
-            return $content;
-        } finally {
-            if (file_exists($tempPath)) {
-                @unlink($tempPath);
-            }
+        if (false === $content) {
+            throw new ProtocolErrorException('Invalid PDF content encoding', 0);
         }
+
+        return $content;
     }
 
     /**

@@ -74,7 +74,14 @@ final class ScreenshotHelper
      */
     public static function slugifyUrl(string $url, int $maxLength = 40): string
     {
-        $slug = preg_replace('#^(https?://)?(www\.)?#i', '', $url);
+        $host = parse_url($url, PHP_URL_HOST);
+
+        return self::slugifyName(is_string($host) ? $host : '', $maxLength);
+    }
+
+    public static function slugifyName(string $name, int $maxLength = 40): string
+    {
+        $slug = preg_replace('#^www\.#i', '', $name);
         if (null === $slug) {
             $slug = 'invalid-url';
         }

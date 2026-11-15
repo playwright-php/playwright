@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 namespace Playwright\API;
 
+use Playwright\Browser\StorageStateFile;
 use Playwright\Exception\ProtocolErrorException;
 use Playwright\Tracing\Tracing;
 use Playwright\Tracing\TracingInterface;
@@ -137,7 +138,7 @@ final class APIRequestContext implements APIRequestContextInterface
         $response = $this->transport->send([
             'action' => 'api.storageState',
             'contextId' => $this->contextId,
-            'path' => $path,
+            'path' => null,
         ]);
 
         $storageState = $response['storageState'] ?? null;
@@ -150,6 +151,10 @@ final class APIRequestContext implements APIRequestContextInterface
             if (is_string($key)) {
                 $result[$key] = $value;
             }
+        }
+
+        if (null !== $path) {
+            StorageStateFile::save($path, $result);
         }
 
         return $result;

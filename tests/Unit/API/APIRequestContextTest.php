@@ -170,11 +170,18 @@ final class APIRequestContextTest extends TestCase
             ->with([
                 'action' => 'api.storageState',
                 'contextId' => 'context_1',
-                'path' => '/tmp/state.json',
+                'path' => null,
             ])
             ->willReturn(['storageState' => $state]);
 
-        $this->assertSame($state, $this->context->storageState('/tmp/state.json'));
+        $path = sys_get_temp_dir().'/playwright-api-state-'.bin2hex(random_bytes(8)).'.json';
+
+        try {
+            $this->assertSame($state, $this->context->storageState($path));
+            $this->assertSame($state, json_decode((string) file_get_contents($path), true));
+        } finally {
+            @unlink($path);
+        }
     }
 
     public function testStorageStateRejectsAnInvalidResponse(): void
