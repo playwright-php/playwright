@@ -29,6 +29,7 @@ use Playwright\Exception\PlaywrightException;
 use Playwright\Exception\ProtocolErrorException;
 use Playwright\Exception\RuntimeException;
 use Playwright\Exception\TimeoutException;
+use Playwright\Frame\Frame;
 use Playwright\Frame\FrameInterface;
 use Playwright\Input\KeyboardInterface;
 use Playwright\Input\MouseInterface;
@@ -86,12 +87,12 @@ class PageTest extends TestCase
 
         $this->assertTrue($logger->hasInfoThatContains('Successfully navigated'));
         $log = json_encode($logger->records, JSON_THROW_ON_ERROR);
-        $this->assertStringContainsString('token=[REDACTED]', $log);
+        $this->assertStringNotContainsString('token=', $log);
         $this->assertStringNotContainsString('example-navigation-secret', $log);
     }
 
     #[DataProvider('locatorFactories')]
-    public function testLocatorsLogANativeFailureOnceWithTheConfiguredLogger(callable $createLocator): void
+    public function testLocatorsLogFailureMetadataOnceWithTheConfiguredLogger(callable $createLocator): void
     {
         $logger = new TestLogger();
         $page = new Page($this->transport, $this->context, 'page-id', new PlaywrightConfig(logger: $logger));
@@ -107,12 +108,12 @@ class PageTest extends TestCase
         } finally {
             $errors = array_values(array_filter($logger->records, static fn (array $record): bool => 'error' === $record['level']));
             $this->assertCount(1, $errors);
-            $this->assertSame('Playwright action failed: Bearer [REDACTED]', $errors[0]['context']['error']);
+            $this->assertArrayNotHasKey('error', $errors[0]['context']);
         }
     }
 
     #[DataProvider('failingFileOperations')]
-    public function testFailedFileOperationsLogTheSanitizedErrorAndExceptionType(callable $operation, string $logMessage): void
+    public function testFailedFileOperationsLogMetadataAndExceptionType(callable $operation, string $logMessage): void
     {
         $logger = new TestLogger();
         $page = new Page($this->transport, $this->context, 'page-id', new PlaywrightConfig(logger: $logger));
@@ -131,7 +132,7 @@ class PageTest extends TestCase
             static fn (array $record): bool => 'error' === $record['level'] && $logMessage === $record['message'],
         ));
         $this->assertCount(1, $errors);
-        $this->assertSame('Operation failed: Bearer [REDACTED]', $errors[0]['context']['error']);
+        $this->assertArrayNotHasKey('error', $errors[0]['context']);
         $this->assertSame(PlaywrightException::class, $errors[0]['context']['exceptionType']);
         $this->assertArrayNotHasKey('exception', $errors[0]['context']);
         $this->assertStringNotContainsString('example-file-secret', json_encode($logger->records, JSON_THROW_ON_ERROR));
@@ -1751,5 +1752,20 @@ class PageTest extends TestCase
         $this->expectExceptionMessage('Invalid video response');
 
         $this->page->video();
+    }
+
+    public function testFrameSelectorsAndPdfTemplatesStayOutOfDiagnostics(): void
+    {
+        $logger = new TestLogger();
+        $frame = new Frame($this->transport, 'page-id', 'iframe[src="https://example.test?token=frame-canary"]', $logger);
+        $frame->locator('input');
+        $this->transport->method('send')->willReturn([]);
+        $page = new Page($this->transport, $this->context, 'page-id', new PlaywrightConfig(logger: $logger));
+        $page->pdf(sys_get_temp_dir().'/playwright-canary.pdf', ['headerTemplate' => 'pdf-canary', 'displayHeaderFooter' => true]);
+        $logs = json_encode($logger->records, JSON_THROW_ON_ERROR);
+
+        $this->assertNotEmpty($logger->records);
+        $this->assertStringNotContainsString('frame-canary', $logs);
+        $this->assertStringNotContainsString('pdf-canary', $logs);
     }
 }

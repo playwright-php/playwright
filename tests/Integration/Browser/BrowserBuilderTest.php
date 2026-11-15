@@ -248,7 +248,7 @@ class BrowserBuilderTest extends TestCase
         $logger->expects($this->once())
             ->method('info')
             ->with('Launching browser', $this->callback(static function (array $context): bool {
-                return '[REDACTED]' === $context['options']['proxy']['password'];
+                return ['browser' => 'chromium'] === $context;
             }));
 
         $transport = $this->createMock(TransportInterface::class);

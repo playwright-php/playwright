@@ -74,7 +74,7 @@ class PlaywrightClient
     public function launchServer(string $browser, array $options = []): BrowserServerInterface
     {
         $this->connect();
-        $this->logger->debug('Launching browser server', ['browser' => $browser, 'options' => $options]);
+        $this->logger->debug('Launching browser server', ['browser' => $browser]);
 
         $response = $this->transport->send([
             'action' => 'launchServer',

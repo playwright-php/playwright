@@ -17,7 +17,6 @@ namespace Playwright\Browser;
 use Playwright\Configuration\PlaywrightConfig;
 use Playwright\Exception\MissingDependencyException;
 use Playwright\Exception\PlaywrightException;
-use Playwright\Transport\Sanitizer;
 use Playwright\Transport\TransportInterface;
 use Psr\Log\LoggerInterface;
 
@@ -116,10 +115,8 @@ final class BrowserBuilder
             ], $this->config->toContextOptions());
         }
 
-        // Launch options can carry proxy credentials, so never log them raw.
         $this->logger->info('Launching browser', [
             'browser' => $this->browserType,
-            'options' => Sanitizer::sanitizeParams($this->launchOptions),
         ]);
 
         $response = $this->transport->send([
@@ -177,8 +174,6 @@ final class BrowserBuilder
     {
         $this->logger->info('Connecting to browser server', [
             'browser' => $this->browserType,
-            'wsEndpoint' => Sanitizer::sanitizeUrl($wsEndpoint),
-            'options' => Sanitizer::sanitizeParams($options),
         ]);
 
         $payload = [
@@ -230,8 +225,6 @@ final class BrowserBuilder
     {
         $this->logger->info('Connecting over CDP', [
             'browser' => $this->browserType,
-            'endpointURL' => Sanitizer::sanitizeUrl($endpointURL),
-            'options' => Sanitizer::sanitizeParams($options),
         ]);
 
         $response = $this->transport->send([

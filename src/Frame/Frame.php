@@ -33,6 +33,7 @@ use Playwright\Page\Options\WaitForFunctionOptions;
 use Playwright\Page\Options\WaitForNavigationOptions;
 use Playwright\Page\Options\WaitForUrlOptions;
 use Playwright\Page\PageInterface;
+use Playwright\Transport\MetadataLogger;
 use Playwright\Transport\TransportInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -48,7 +49,7 @@ final class Frame implements \Stringable, FrameInterface
         ?LoggerInterface $logger = null,
         private readonly ?PageInterface $page = null,
     ) {
-        $this->logger = $logger ?? new NullLogger();
+        $this->logger = MetadataLogger::wrap($logger ?? new NullLogger());
     }
 
     public function __toString(): string

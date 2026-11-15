@@ -82,7 +82,8 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
         $framedMessage = LspFraming::encode($json);
 
         $this->logger->debug('Sending JSON-RPC request to process', [
-            'json' => $json,
+            'action' => $request['action'] ?? $request['method'] ?? null,
+            'requestId' => $requestId,
             'pid' => $this->process->getPid(),
         ]);
 
@@ -140,7 +141,7 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
         $stderr = $this->process->getIncrementalErrorOutput();
         $this->process->clearErrorOutput();
         if ('' !== $stderr) {
-            $this->logger->warning('Process stderr', ['stderr' => Sanitizer::sanitizeString($stderr)]);
+            $this->logger->warning('Process stderr', ['bytes' => strlen($stderr)]);
         }
 
         $this->processAndDispatchMessages();
@@ -172,7 +173,7 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
 
                     return;
                 }
-                $this->logger->warning('Received non-array JSON from process', ['message' => $messageContent]);
+                $this->logger->warning('Received non-array JSON from process');
 
                 return;
             }
@@ -228,7 +229,6 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
                 return;
             }
             $this->logger->warning('Failed to parse JSON from process', [
-                'message' => $messageContent,
                 'error' => $e->getMessage(),
             ]);
         }
