@@ -146,10 +146,36 @@ class LspFraming {
   }
 }
 
+const MAX_QUEUED_EVENT_BYTES = 16 * 1024 * 1024;
+
+class FramedWriter {
+  constructor(stream) {
+    this.stream = stream;
+    this.queuedEventBytes = 0;
+  }
+
+  write(data) {
+    const framed = LspFraming.encode(JSON.stringify(data));
+    const eventBytes = data.event ? Buffer.byteLength(framed) : 0;
+
+    if (this.queuedEventBytes + eventBytes > MAX_QUEUED_EVENT_BYTES) {
+      throw new Error('Browser event output exceeded the 16 MiB queue limit.');
+    }
+
+    this.queuedEventBytes += eventBytes;
+    this.stream.write(framed, () => { this.queuedEventBytes -= eventBytes; });
+  }
+}
+
+const output = new FramedWriter(process.stdout);
+
 const sendFramedResponse = (data) => {
-  const json = JSON.stringify(data);
-  const framed = LspFraming.encode(json);
-  process.stdout.write(framed);
+  try {
+    output.write(data);
+  } catch {
+    process.stderr.write('Playwright bridge output failed or exceeded its event queue limit.\n');
+    process.exit(1);
+  }
 };
 
 class CommandRegistry {
@@ -378,6 +404,6 @@ class RouteUtils {
 const logger = new Logger();
 
 module.exports = {
-  logger, ErrorHandler, LspFraming, sendFramedResponse,
+  logger, ErrorHandler, LspFraming, FramedWriter, sendFramedResponse,
   CommandRegistry, NavigationRedirects, BaseHandler, PromiseUtils, FrameUtils, RouteUtils,
 };
