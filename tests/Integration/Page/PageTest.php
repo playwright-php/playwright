@@ -426,6 +426,16 @@ class PageTest extends TestCase
     }
 
     #[Test]
+    public function itEvaluatesAWaitForFunctionExpressionInThePage(): void
+    {
+        $this->assertSame($this->page, $this->page->waitForFunction(
+            'typeof window !== "undefined" && typeof process === "undefined"',
+            null,
+            ['timeout' => 300]
+        ));
+    }
+
+    #[Test]
     public function itThrowsExceptionOnWaitForFunctionTimeout(): void
     {
         $this->expectException(\Playwright\Exception\TimeoutException::class);

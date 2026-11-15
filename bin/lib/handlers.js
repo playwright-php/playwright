@@ -70,6 +70,23 @@ const evaluateHandleOnTarget = async (target, { expression, arg }) => {
   return typeof value === 'function' ? await value(target, arg) : await value;
 };
 
+// Predicates handed to waitForFunction() in place of the caller's source.
+// Playwright calls a function on each poll but only evaluates a string, so a
+// function sent as a string would never be called. These run in the page:
+// they evaluate the source there and call the result when it is a function.
+// Playwright serializes them, so they cannot use anything from this file.
+const waitPredicateInPage = ({ source, arg }) => {
+  const text = source.trim();
+  const value = globalThis.eval(/^(async)?\s*function(\s|\()/.test(text) ? `(${text})` : text);
+  return typeof value === 'function' ? value(arg) : value;
+};
+
+const waitPredicateOnElement = (element, { source, arg }) => {
+  const text = source.trim();
+  const value = globalThis.eval(/^(async)?\s*function(\s|\()/.test(text) ? `(${text})` : text);
+  return typeof value === 'function' ? value(element, arg) : value;
+};
+
 // A HAR url filter accepts a glob or a regex. A glob may legitimately start with
 // a slash, so PHP sends the regex form under its own key as a "/source/flags"
 // literal rather than leaving the two shapes to be told apart here.
@@ -520,14 +537,7 @@ class PageHandler extends BaseHandler {
 
   async waitForFunction(page, command) {
     try {
-      let func;
-      try {
-        func = eval(`(${command.pageFunction})`);
-      } catch (e) {
-        func = command.pageFunction;
-      }
-
-      await page.waitForFunction(func, command.arg, command.options);
+      await page.waitForFunction(waitPredicateInPage, { source: command.pageFunction, arg: command.arg }, command.options);
     } catch (error) {
       logger.error('PAGE WAITFORFUNCTION ERROR', { message: error.message });
       throw error;
@@ -975,9 +985,7 @@ class LocatorHandler extends BaseHandler {
   }
 
   async waitForFunction(locator, command) {
-    // Forwarded as a string: Playwright evaluates it in the page. Turning it
-    // into a function here would run it in this Node process instead.
-    await locator.waitForFunction(command.pageFunction, command.arg, command.options);
+    await locator.waitForFunction(waitPredicateOnElement, { source: command.pageFunction, arg: command.arg }, command.options);
     return { success: true };
   }
 
@@ -1076,9 +1084,7 @@ class FrameHandler extends BaseHandler {
   }
 
   async waitForFunction(nativeFrame, command) {
-    // Forwarded as a string: Playwright evaluates it in the page. Turning it
-    // into a function here would run it in this Node process instead.
-    await (await nativeFrame()).waitForFunction(command.pageFunction, command.arg, command.options);
+    await (await nativeFrame()).waitForFunction(waitPredicateInPage, { source: command.pageFunction, arg: command.arg }, command.options);
     return { success: true };
   }
 
