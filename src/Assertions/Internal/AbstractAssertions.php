@@ -117,12 +117,19 @@ abstract class AbstractAssertions
         $pollIntervalMs = null === $options || null === $options->intervalMs ? $this->pollIntervalMs : $options->intervalMs;
         $deadline = hrtime(true) + ($timeoutMs * 1_000_000);
 
+        $message = null === $options || null === $options->message ? $message : $options->message;
+
         do {
             try {
                 if ($condition() === $expectedResult) {
                     return;
                 }
-            } catch (\Throwable) {
+            } catch (\Throwable $error) {
+                // Waiting cannot make a locator that resolves to several
+                // elements resolve to one: fail now, as Playwright does.
+                if (str_contains($error->getMessage(), 'strict mode violation')) {
+                    throw new AssertionException(self::describe($message, $error), expected: $expected, previous: $error);
+                }
             }
 
             if (hrtime(true) < $deadline) {
@@ -138,8 +145,17 @@ abstract class AbstractAssertions
             }
         }
 
-        $message = null === $options || null === $options->message ? $message : $options->message;
-
         throw new AssertionException($message, actual: $actual, expected: $expected);
+    }
+
+    /**
+     * Appends Playwright's error to the failure message, without the terminal
+     * colors Playwright puts in its call log.
+     */
+    private static function describe(string $message, \Throwable $error): string
+    {
+        $detail = trim((string) preg_replace('/\e\[[0-9;]*m/', '', $error->getMessage()));
+
+        return '' === $detail ? $message : $message."\n".$detail;
     }
 }

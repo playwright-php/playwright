@@ -20,7 +20,8 @@ final class AssertionException extends \RuntimeException
         string $message,
         public readonly mixed $actual = null,
         public readonly mixed $expected = null,
+        ?\Throwable $previous = null,
     ) {
-        parent::__construct($message);
+        parent::__construct($message, 0, $previous);
     }
 }

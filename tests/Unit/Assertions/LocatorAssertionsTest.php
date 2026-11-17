@@ -22,6 +22,7 @@ use Playwright\Assertions\Failure\AssertionException;
 use Playwright\Assertions\Internal\ScreenshotExpectation;
 use Playwright\Assertions\LocatorAssertions;
 use Playwright\Assertions\Options\ToHaveScreenshotOptions;
+use Playwright\Exception\PlaywrightException;
 use Playwright\Locator\Locator;
 use Playwright\Locator\LocatorInterface;
 use Playwright\Tracing\TracingInterface;
@@ -66,6 +67,48 @@ final class LocatorAssertionsTest extends TestCase
             LocatorAssertions::class,
             (new LocatorAssertions($locator))->withPollInterval(0)->toBeAttached(),
         );
+    }
+
+    public function testAStrictModeViolationFailsAtOnceWithThePlaywrightMessage(): void
+    {
+        $violation = new PlaywrightException("locator.isVisible: Error: strict mode violation: getByText('Administration') resolved to 2 elements:\n    1) <div>Administration</div>\n    2) <h1>Administration</h1>\n\nCall log:\n\e[2m    - checking visibility\e[22m\n");
+        $locator = $this->createMock(LocatorInterface::class);
+        $locator->expects($this->once())->method('isVisible')->willThrowException($violation);
+
+        try {
+            (new LocatorAssertions($locator))->toBeVisible();
+            $this->fail('A strict mode violation must fail the assertion.');
+        } catch (AssertionException $exception) {
+            $this->assertStringStartsWith("Expected locator to be visible.\nlocator.isVisible: Error: strict mode violation", $exception->getMessage());
+            $this->assertStringContainsString('2) <h1>Administration</h1>', $exception->getMessage());
+            $this->assertStringEndsWith('    - checking visibility', $exception->getMessage());
+            $this->assertStringNotContainsString("\e", $exception->getMessage());
+            $this->assertSame($violation, $exception->getPrevious());
+        }
+    }
+
+    public function testAStrictModeViolationFailsANegatedAssertionAtOnce(): void
+    {
+        $locator = $this->createMock(LocatorInterface::class);
+        $locator->expects($this->once())
+            ->method('isVisible')
+            ->willThrowException(new PlaywrightException('strict mode violation: resolved to 2 elements'));
+
+        $this->expectException(AssertionException::class);
+        $this->expectExceptionMessage("Expected locator to be hidden.\nstrict mode violation: resolved to 2 elements");
+
+        (new LocatorAssertions($locator))->not()->toBeVisible();
+    }
+
+    public function testAStrictModeViolationKeepsACustomMessage(): void
+    {
+        $locator = $this->createMock(LocatorInterface::class);
+        $locator->method('isVisible')->willThrowException(new PlaywrightException('strict mode violation: resolved to 2 elements'));
+
+        $this->expectException(AssertionException::class);
+        $this->expectExceptionMessage("The heading is shown.\nstrict mode violation: resolved to 2 elements");
+
+        (new LocatorAssertions($locator))->toBeVisible(new AssertionOptions(message: 'The heading is shown.'));
     }
 
     public function testToBeEditable(): void
