@@ -17,6 +17,7 @@ namespace Playwright\Tests\Integration\Frame;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Playwright\Exception\PlaywrightException;
 use Playwright\Frame\Frame;
 use Playwright\Testing\PlaywrightTestCaseTrait;
 use Playwright\Tests\Support\RouteServerTestTrait;
@@ -151,6 +152,53 @@ class FrameIntegrationTest extends TestCase
             '() => document.querySelector("#status").textContent === "ready"',
             null,
             ['timeout' => 1000, 'polling' => 20],
+        ));
+    }
+
+    #[Test]
+    public function itKeepsWaitingWhileAFrameFunctionReturnsFalse(): void
+    {
+        $this->expectException(PlaywrightException::class);
+        $this->expectExceptionMessage('Timeout 200ms exceeded');
+
+        $this->innerFrame()->waitForFunction('() => false', null, ['timeout' => 200]);
+    }
+
+    #[Test]
+    public function itKeepsPollingAFrameFunctionUnderAContentSecurityPolicyWithoutUnsafeEval(): void
+    {
+        $frame = $this->innerFrame();
+        $frame->setContent('<meta http-equiv="Content-Security-Policy" content="script-src \'self\'"><p>Strict</p>');
+        $frame->evaluate('() => { window.ready = false; setTimeout(() => { window.ready = true; }, 200); }');
+
+        $this->assertSame($frame, $frame->waitForFunction(
+            '(expected) => window.ready === expected',
+            true,
+            ['timeout' => 2000],
+        ));
+    }
+
+    #[Test]
+    public function itPassesTheArgumentToAFrameFunction(): void
+    {
+        $frame = $this->innerFrame();
+
+        $this->assertSame($frame, $frame->waitForFunction(
+            '(text) => document.querySelector("h4").textContent === text',
+            'Inner',
+            ['timeout' => 1000],
+        ));
+    }
+
+    #[Test]
+    public function itWaitsForAFrameExpression(): void
+    {
+        $frame = $this->innerFrame();
+
+        $this->assertSame($frame, $frame->waitForFunction(
+            'document.querySelector("h4").textContent === "Inner"',
+            null,
+            ['timeout' => 1000],
         ));
     }
 
