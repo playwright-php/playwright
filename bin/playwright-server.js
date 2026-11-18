@@ -16,6 +16,8 @@ class PlaywrightServer extends BaseHandler {
     this.pages = new Map();
     this.pageContexts = new Map();
     this.responses = new Map();
+    this.responseIds = new WeakMap();
+    this.responsePages = new Map();
     this.routes = new Map();
     this.routeHandlers = new Map();
     this.dialogs = new Map();
@@ -40,7 +42,8 @@ class PlaywrightServer extends BaseHandler {
       extractRequestData: this.extractRequestData.bind(this), serializeResponse: this.serializeResponse.bind(this),
       serializeConsoleMessage: this.serializeConsoleMessage.bind(this),
       sendFramedResponse,
-      setupPageEventListeners: this.setupPageEventListeners.bind(this)
+      setupPageEventListeners: this.setupPageEventListeners.bind(this),
+      cleanupPageResources: this.cleanupPageResources.bind(this)
     };
     this.apiRequestHandler = new APIRequestHandler(deps);
     this.contextHandler = new ContextHandler(deps);
@@ -175,11 +178,11 @@ class PlaywrightServer extends BaseHandler {
   setupPageEventListeners(page, pageId) {
     ['console', 'dialog', 'request', 'response', 'requestfailed', 'download'].forEach(eventName => {
       page.on(eventName, ErrorHandler.wrapHandler((eventData) => {
-        const params = eventName === 'download' ? this.registerDownload(eventData, page) : this.formatEventParams(eventName, eventData);
+        const params = eventName === 'download' ? this.registerDownload(eventData, page) : this.formatEventParams(eventName, eventData, page);
         sendFramedResponse({ objectId: pageId, event: eventName, params });
       }));
     });
-    page.once('close', () => RouteUtils.forgetRoutes(this.routes, this.routeHandlers, pageId));
+    page.once('close', () => this.cleanupPageResources(page, pageId));
   }
 
   // Pages opened by the browser itself (window.open(), target="_blank", ...) never go through
@@ -188,6 +191,8 @@ class PlaywrightServer extends BaseHandler {
   registerContextPopups(context, contextId) {
     context.on('page', (newPage) => {
       setImmediate(() => {
+        if (newPage.isClosed()) return;
+
         for (const existing of this.pages.values()) {
           if (existing === newPage) return;
         }
@@ -196,7 +201,7 @@ class PlaywrightServer extends BaseHandler {
       });
     });
     // A context also closes with its browser, which never goes through closeContext().
-    context.once('close', () => RouteUtils.forgetRoutes(this.routes, this.routeHandlers, contextId));
+    context.once('close', () => this.contextHandler.cleanupContextResources(contextId));
   }
 
   // One id per download, whether PHP learns about it from the page event or from
@@ -221,7 +226,7 @@ class PlaywrightServer extends BaseHandler {
     return pageId;
   }
 
-  formatEventParams(eventName, eventData) {
+  formatEventParams(eventName, eventData, page) {
     const formatters = {
       console: () => this.serializeConsoleMessage(eventData),
       dialog: () => {
@@ -231,7 +236,7 @@ class PlaywrightServer extends BaseHandler {
       },
       request: () => ({ request: this.extractRequestData(eventData) }),
       requestfailed: () => ({ request: this.extractRequestData(eventData) }),
-      response: () => ({ response: this.serializeResponse(eventData) })
+      response: () => ({ response: this.serializeResponse(eventData, page) })
     };
     return formatters[eventName] ? formatters[eventName]() : {};
   }
@@ -270,10 +275,35 @@ class PlaywrightServer extends BaseHandler {
     return { url: req.url(), method: req.method(), headers: req.headers(), postData: postData ?? null, postDataBuffer, resourceType: req.resourceType ? req.resourceType() : 'document', response: existingResponse, isNavigationRequest: req.isNavigationRequest ? req.isNavigationRequest() : false };
   }
 
-  serializeResponse(response) {
+  cleanupPageResources(page, pageId) {
+    const contextId = this.pageContexts.get(pageId);
+    this.pages.delete(pageId);
+    this.pageContexts.delete(pageId);
+    RouteUtils.forgetRoutes(this.routes, this.routeHandlers, pageId);
+
+    for (const [responseId, owner] of this.responsePages) {
+      if (owner !== page) continue;
+
+      this.responses.delete(responseId);
+      this.responsePages.delete(responseId);
+    }
+
+    sendFramedResponse({ objectId: pageId, event: 'close', params: {} });
+
+    if (contextId) sendFramedResponse({ objectId: contextId, event: 'pageClosed', params: { pageId } });
+  }
+
+  serializeResponse(response, page = null) {
     if (!response) return null;
-    const responseId = this.generateId('response');
-    this.responses.set(responseId, response);
+
+    let responseId = this.responseIds.get(response);
+
+    if (!responseId) {
+      responseId = this.generateId('response');
+      this.responseIds.set(response, responseId);
+      this.responses.set(responseId, response);
+      this.responsePages.set(responseId, page || response.frame().page());
+    }
     return { responseId, url: response.url(), status: response.status(), statusText: response.statusText(), headers: response.headers() };
   }
 
@@ -470,62 +500,66 @@ class PlaywrightServer extends BaseHandler {
   }
 }
 
-const server = new PlaywrightServer();
-let inputBuffer = Buffer.alloc(0);
+module.exports = { PlaywrightServer };
 
-sendFramedResponse({ type: 'ready', message: 'READY' });
+if (require.main === module) {
+  const server = new PlaywrightServer();
+  let inputBuffer = Buffer.alloc(0);
 
-process.stdin.on('data', ErrorHandler.wrapHandler(async (chunk) => {
-  inputBuffer = Buffer.concat([inputBuffer, chunk]);
-  try {
-    const decoded = LspFraming.decode(inputBuffer);
-    inputBuffer = decoded.remainingBuffer;
-    for (const messageContent of decoded.messages) {
-      if (!messageContent.trim()) continue;
-      let command;
-      const fail = (error) => {
-        logger.error('SERVER ERROR', { error: error.message, stack: error.stack, command: messageContent });
-        const errorResponse = { error: error.message, parseError: true };
-        if (command?.requestId) errorResponse.requestId = command.requestId;
-        sendFramedResponse(errorResponse);
-      };
-      try {
-        command = JSON.parse(messageContent);
-        // Not awaited, so a slow command cannot hold back the rest of the chunk.
-        server.handleCommand(command).then((result) => { if (result) sendFramedResponse(result); }, fail);
-      } catch (error) {
-        fail(error);
+  sendFramedResponse({ type: 'ready', message: 'READY' });
+
+  process.stdin.on('data', ErrorHandler.wrapHandler(async (chunk) => {
+    inputBuffer = Buffer.concat([inputBuffer, chunk]);
+    try {
+      const decoded = LspFraming.decode(inputBuffer);
+      inputBuffer = decoded.remainingBuffer;
+      for (const messageContent of decoded.messages) {
+        if (!messageContent.trim()) continue;
+        let command;
+        const fail = (error) => {
+          logger.error('SERVER ERROR', { error: error.message, stack: error.stack, command: messageContent });
+          const errorResponse = { error: error.message, parseError: true };
+          if (command?.requestId) errorResponse.requestId = command.requestId;
+          sendFramedResponse(errorResponse);
+        };
+        try {
+          command = JSON.parse(messageContent);
+          // Not awaited, so a slow command cannot hold back the rest of the chunk.
+          server.handleCommand(command).then((result) => { if (result) sendFramedResponse(result); }, fail);
+        } catch (error) {
+          fail(error);
+        }
       }
+    } catch (error) {
+      logger.error('LSP FRAMING ERROR', { error: error.message, stack: error.stack });
+      sendFramedResponse({ error: 'LSP framing error: ' + error.message });
     }
-  } catch (error) {
-    logger.error('LSP FRAMING ERROR', { error: error.message, stack: error.stack });
-    sendFramedResponse({ error: 'LSP framing error: ' + error.message });
+  }));
+
+  // The PHP process owns this server. Once it is gone, nothing will ever arrive on
+  // stdin again and every browser we hold becomes an orphan reparented to init.
+  // stdin closing covers the cases no PHP-side shutdown hook can reach: SIGKILL,
+  // a fatal error, or SIGTERM, none of which run register_shutdown_function.
+  let shuttingDown = false;
+
+  async function shutdown(reason) {
+    if (shuttingDown) return;
+    shuttingDown = true;
+
+    // A browser that refuses to close must not wedge the process: exiting without
+    // cleanup still lets Chromium notice the broken pipe, hanging here does not.
+    const watchdog = setTimeout(() => process.exit(1), 5000);
+    watchdog.unref();
+
+    try {
+      logger.info('Parent gone, shutting down', { reason });
+    } catch {}
+
+    await server.exit();
   }
-}));
 
-// The PHP process owns this server. Once it is gone, nothing will ever arrive on
-// stdin again and every browser we hold becomes an orphan reparented to init.
-// stdin closing covers the cases no PHP-side shutdown hook can reach: SIGKILL,
-// a fatal error, or SIGTERM, none of which run register_shutdown_function.
-let shuttingDown = false;
-
-async function shutdown(reason) {
-  if (shuttingDown) return;
-  shuttingDown = true;
-
-  // A browser that refuses to close must not wedge the process: exiting without
-  // cleanup still lets Chromium notice the broken pipe, hanging here does not.
-  const watchdog = setTimeout(() => process.exit(1), 5000);
-  watchdog.unref();
-
-  try {
-    logger.info('Parent gone, shutting down', { reason });
-  } catch {}
-
-  await server.exit();
+  process.stdin.on('end', () => shutdown('stdin end'));
+  process.stdin.on('close', () => shutdown('stdin close'));
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGHUP', () => shutdown('SIGHUP'));
 }
-
-process.stdin.on('end', () => shutdown('stdin end'));
-process.stdin.on('close', () => shutdown('stdin close'));
-process.on('SIGTERM', () => shutdown('SIGTERM'));
-process.on('SIGHUP', () => shutdown('SIGHUP'));
