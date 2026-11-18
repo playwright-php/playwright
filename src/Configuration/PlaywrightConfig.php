@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace Playwright\Configuration;
 
 use Playwright\Browser\BrowserType;
+use Playwright\Filesystem\PrivateDirectory;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -75,7 +76,7 @@ final class PlaywrightConfig
             return $this->screenshotDir;
         }
 
-        return rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.'playwright';
+        return PrivateDirectory::artifacts();
     }
 
     /**

@@ -114,15 +114,7 @@ final readonly class StorageState
 
     public function saveToFile(string $filePath): void
     {
-        $directory = \dirname($filePath);
-        if (!\is_dir($directory) && !\mkdir($directory, 0755, true) && !\is_dir($directory)) {
-            throw new RuntimeException(\sprintf('Failed to create directory: %s', $directory));
-        }
-
-        $result = \file_put_contents($filePath, $this->toJson(JSON_PRETTY_PRINT));
-        if (false === $result) {
-            throw new RuntimeException(\sprintf('Failed to write storage state file: %s', $filePath));
-        }
+        StorageStateFile::save($filePath, $this->toArray());
     }
 
     public function isEmpty(): bool

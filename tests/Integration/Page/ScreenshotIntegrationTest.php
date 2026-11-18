@@ -224,14 +224,15 @@ class ScreenshotIntegrationTest extends TestCase
     }
 
     #[Test]
-    public function itHandlesDifferentUrlsInFilenames(): void
+    public function itUsesTheHostnameWithoutTheUrlPathInFilenames(): void
     {
         $this->page->goto($this->routeUrl('/page2.html'));
 
         $screenshotPath = $this->page->screenshot();
         $basename = basename($screenshotPath);
 
-        $this->assertStringContainsString('page2', $basename);
+        $this->assertStringContainsString('localhost', $basename);
+        $this->assertStringNotContainsString('page2', $basename);
         $this->assertFileExists($screenshotPath);
         $this->assertPngFileIsValid($screenshotPath);
     }

@@ -94,3 +94,7 @@ $signInButton->click();
 
 By understanding and using these four core concepts, you can build powerful, reliable, and maintainable browser
 automation scripts and tests.
+
+## Private browser output
+
+Automatic screenshots and PDFs use a private, randomly named temporary directory unless `screenshotDir` is configured. Generated names include the hostname, without URL credentials, paths, query parameters, or fragments. `pdfContent()` returns bytes directly without creating a temporary file.

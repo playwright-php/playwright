@@ -129,8 +129,8 @@ $page->setContent('
 ');
 
 // Take initial screenshot
-$page->screenshot('/tmp/drag-drop-initial.png');
-echo "Initial screenshot saved: /tmp/drag-drop-initial.png\n";
+$screenshotPath = $page->screenshotAuto('drag-drop-initial');
+echo "Initial screenshot saved: $screenshotPath\n";
 
 // Example 1: Basic drag and drop
 echo "Performing basic drag and drop...\n";
@@ -138,8 +138,8 @@ $draggableItem = $page->locator('#item1');
 $dropZone = $page->locator('#dropzone1');
 
 $draggableItem->dragTo($dropZone);
-$page->screenshot('/tmp/drag-drop-after-item1.png');
-echo "Screenshot after dragging item1: /tmp/drag-drop-after-item1.png\n";
+$screenshotPath = $page->screenshotAuto('drag-drop-after-item1');
+echo "Screenshot after dragging item1: $screenshotPath\n";
 
 // Example 2: Drag with specific positions
 echo "Performing drag with specific source and target positions...\n";
@@ -150,8 +150,8 @@ $draggableItem2->dragTo($dropZone2, [
     'sourcePosition' => ['x' => 50, 'y' => 50], // Center of source element
     'targetPosition' => ['x' => 100, 'y' => 100], // Center of target element
 ]);
-$page->screenshot('/tmp/drag-drop-after-item2.png');
-echo "Screenshot after dragging item2 with positions: /tmp/drag-drop-after-item2.png\n";
+$screenshotPath = $page->screenshotAuto('drag-drop-after-item2');
+echo "Screenshot after dragging item2 with positions: $screenshotPath\n";
 
 // Example 3: Force drag (bypass actionability checks)
 echo "Performing forced drag and drop...\n";
@@ -161,8 +161,8 @@ $draggableItem3->dragTo($dropZone, [
     'force' => true,
     'timeout' => 5000,
 ]);
-$page->screenshot('/tmp/drag-drop-after-item3.png');
-echo "Screenshot after forced drag of item3: /tmp/drag-drop-after-item3.png\n";
+$screenshotPath = $page->screenshotAuto('drag-drop-after-item3');
+echo "Screenshot after forced drag of item3: $screenshotPath\n";
 
 // Example 4: Verify drop results
 echo "Verifying drop results...\n";
@@ -176,17 +176,12 @@ echo "Drop Zone 1 contains $zone1Count items\n";
 echo "Drop Zone 2 contains $zone2Count items\n";
 
 // Take final screenshot
-$page->screenshot('/tmp/drag-drop-final.png');
-echo "Final screenshot saved: /tmp/drag-drop-final.png\n";
+$screenshotPath = $page->screenshotAuto('drag-drop-final');
+echo "Final screenshot saved: $screenshotPath\n";
 
 // Cleanup
 $page->close();
 $browser->close();
 
 echo "\nDrag and drop examples completed successfully!\n";
-echo "Screenshots saved in /tmp/ directory:\n";
-echo "- drag-drop-initial.png\n";
-echo "- drag-drop-after-item1.png\n";
-echo "- drag-drop-after-item2.png\n";
-echo "- drag-drop-after-item3.png\n";
-echo "- drag-drop-final.png\n";
+echo "Screenshots saved in the configured screenshot directory.\n";

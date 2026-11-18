@@ -494,7 +494,7 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
         $response = $this->transport->send([
             'action' => 'context.storageState',
             'contextId' => $this->contextId,
-            'options' => $path ? ['path' => $path] : [],
+            'options' => [],
         ]);
 
         if (!is_array($response['storageState'])) {
@@ -506,6 +506,10 @@ final class BrowserContext implements BrowserContextInterface, EventDispatcherIn
             if (is_string($key)) {
                 $storageState[$key] = $value;
             }
+        }
+
+        if (null !== $path) {
+            StorageStateFile::save($path, $storageState);
         }
 
         return $storageState;

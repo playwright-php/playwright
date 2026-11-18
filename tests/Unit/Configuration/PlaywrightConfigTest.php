@@ -25,6 +25,21 @@ use Playwright\Tests\Mocks\TestLogger;
 #[CoversClass(BrowserType::class)]
 class PlaywrightConfigTest extends TestCase
 {
+    public function testDefaultArtifactDirectoryIsPrivateAndStableWithinTheProcess(): void
+    {
+        $config = new PlaywrightConfig();
+        $directory = $config->getScreenshotDirectory();
+
+        $this->assertDirectoryExists($directory);
+        $this->assertFalse(is_link($directory));
+        $this->assertSame($directory, (new PlaywrightConfig())->getScreenshotDirectory());
+        $this->assertNotSame(sys_get_temp_dir().DIRECTORY_SEPARATOR.'playwright', $directory);
+
+        if (DIRECTORY_SEPARATOR !== '\\') {
+            $this->assertSame(0700, fileperms($directory) & 0777);
+        }
+    }
+
     #[Test]
     public function itCanBeInstantiatedWithDefaults(): void
     {

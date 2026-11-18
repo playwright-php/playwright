@@ -49,14 +49,14 @@ class ScreenshotHelperTest extends TestCase
     {
         return [
             ['https://example.com', 'example-com'],
-            ['https://www.github.com/user/repo', 'github-com-user-repo'],
-            ['http://api.service.com/v1/users?id=123', 'api-service-com-v1-users-id-123'],
-            ['https://sub.domain.co.uk/path/file.html', 'sub-domain-co-uk-path-file-html'],
-            ['invalid-chars!@#$%^&*()', 'invalid-chars'],
+            ['https://www.github.com/user/repo', 'github-com'],
+            ['http://api.service.com/v1/users?id=123', 'api-service-com'],
+            ['https://sub.domain.co.uk/path/file.html', 'sub-domain-co-uk'],
+            ['invalid-chars!@#$%^&*()', 'screenshot'],
             ['!@#$%^&*()', 'screenshot'],
             ['', 'screenshot'],
             ['https://sub.domain.co.uk/path/file.html', 'sub-domain', 11],
-            ['https://example.com/very-long-path-that-exceeds-the-maximum-length-limit', 'example-com-very-lon', 20],
+            ['https://alice:password@example.com/private-token?key=query-secret#fragment-secret', 'example-com'],
         ];
     }
 
@@ -67,7 +67,7 @@ class ScreenshotHelperTest extends TestCase
 
         $basename = basename($filename);
         $this->assertMatchesRegularExpression(
-            '/^\d{8}_\d{6}_\d{3}_github-com-user-repo\.png$/',
+            '/^\d{8}_\d{6}_\d{3}_github-com\.png$/',
             $basename
         );
 

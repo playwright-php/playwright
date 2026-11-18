@@ -399,12 +399,19 @@ final class BrowserContextTest extends TestCase
             ->with([
                 'action' => 'context.storageState',
                 'contextId' => 'context_1',
-                'options' => ['path' => '/tmp/state.json'],
+                'options' => [],
             ])
             ->willReturn(['storageState' => $expectedState]);
 
-        $result = $this->context->storageState('/tmp/state.json');
-        $this->assertEquals($expectedState, $result);
+        $path = sys_get_temp_dir().'/playwright-state-'.bin2hex(random_bytes(8)).'.json';
+
+        try {
+            $result = $this->context->storageState($path);
+            $this->assertEquals($expectedState, $result);
+            $this->assertSame($expectedState, json_decode((string) file_get_contents($path), true));
+        } finally {
+            @unlink($path);
+        }
     }
 
     public function testStorageStateWithoutPath(): void
