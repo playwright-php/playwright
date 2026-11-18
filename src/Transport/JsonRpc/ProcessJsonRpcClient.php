@@ -39,6 +39,12 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
     /** @var array<int|string, array<string, mixed>> */
     private array $responses = [];
 
+    /** @var array<int|string, true> */
+    private array $waitingRequests = [];
+
+    /** @var \SplQueue<string> */
+    private \SplQueue $messages;
+
     private ?\Closure $eventHandler = null;
     private ?\Throwable $eventHandlerException = null;
 
@@ -55,6 +61,7 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
             defaultTimeoutMs: $defaultTimeoutMs
         );
 
+        $this->messages = new \SplQueue();
         $this->inputStream = $this->processLauncher->getInputStream();
         if (!$this->inputStream instanceof InputStream) {
             throw new NetworkException('ProcessLauncher must have an InputStream for JSON-RPC communication');
@@ -96,9 +103,12 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
             throw new NetworkException('Failed to write to process stdin: '.$e->getMessage(), 0, $e);
         }
 
+        $this->waitingRequests[$requestId] = true;
+
         try {
             return $this->waitForResponse($requestId, $deadline);
         } finally {
+            unset($this->waitingRequests[$requestId], $this->responses[$requestId]);
             $this->throwEventHandlerException();
         }
     }
@@ -149,12 +159,14 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
     private function processAndDispatchMessages(): void
     {
         $decoded = LspFraming::decode($this->outputBuffer);
-
+        $this->outputBuffer = $decoded['remainingBuffer'];
         foreach ($decoded['messages'] as $messageContent) {
-            $this->dispatchMessage($messageContent);
+            $this->messages->enqueue($messageContent);
         }
 
-        $this->outputBuffer = $decoded['remainingBuffer'];
+        while (!$this->messages->isEmpty()) {
+            $this->dispatchMessage($this->messages->dequeue());
+        }
     }
 
     private function dispatchMessage(string $messageContent): void
@@ -195,7 +207,10 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
                         $typedData[$k] = $v;
                     }
                 }
-                $this->responses[$data['id']] = $typedData;
+
+                if (isset($this->waitingRequests[$data['id']])) {
+                    $this->responses[$data['id']] = $typedData;
+                }
             } elseif (isset($data['requestId']) && (is_int($data['requestId']) || is_string($data['requestId']))) {
                 $this->logger->debug('Received raw response', [
                     'requestId' => $data['requestId'],
@@ -207,7 +222,10 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
                         $typedData[$k] = $v;
                     }
                 }
-                $this->responses[$data['requestId']] = $typedData;
+
+                if (isset($this->waitingRequests[$data['requestId']])) {
+                    $this->responses[$data['requestId']] = $typedData;
+                }
             }
 
             if (isset($data['event'])) {
