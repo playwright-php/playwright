@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 namespace Playwright\Frame;
 
+use Playwright\Locator\LiteralSelector;
 use Playwright\Locator\Locator;
 use Playwright\Locator\LocatorInterface;
 use Playwright\Locator\RoleSelectorBuilder;
@@ -51,7 +52,7 @@ final class FrameLocator implements \Stringable, FrameLocatorInterface
      */
     public function getByAltText(string $text, array $options = []): LocatorInterface
     {
-        return $this->locator(\sprintf('[alt="%s"]', $text));
+        return $this->locator(\sprintf('[alt=%s]', LiteralSelector::css($text)));
     }
 
     /**
@@ -59,7 +60,7 @@ final class FrameLocator implements \Stringable, FrameLocatorInterface
      */
     public function getByLabel(string $text, array $options = []): LocatorInterface
     {
-        return $this->locator(\sprintf('label:text-is("%s") >> nth=0', $text));
+        return $this->locator(\sprintf('label:text-is(%s) >> nth=0', LiteralSelector::css($text)));
     }
 
     /**
@@ -67,7 +68,7 @@ final class FrameLocator implements \Stringable, FrameLocatorInterface
      */
     public function getByPlaceholder(string $text, array $options = []): LocatorInterface
     {
-        return $this->locator(\sprintf('[placeholder="%s"]', $text));
+        return $this->locator(\sprintf('[placeholder=%s]', LiteralSelector::css($text)));
     }
 
     /**
@@ -89,7 +90,7 @@ final class FrameLocator implements \Stringable, FrameLocatorInterface
 
     public function getByTestId(string $testId): LocatorInterface
     {
-        return $this->locator(\sprintf('[data-testid="%s"]', $testId));
+        return $this->locator(\sprintf('[data-testid=%s]', LiteralSelector::css($testId)));
     }
 
     /**
@@ -97,7 +98,7 @@ final class FrameLocator implements \Stringable, FrameLocatorInterface
      */
     public function getByText(string $text, array $options = []): LocatorInterface
     {
-        return $this->locator(\sprintf('text="%s"', $text));
+        return $this->locator('internal:text='.LiteralSelector::text($text).'s');
     }
 
     /**
@@ -105,7 +106,7 @@ final class FrameLocator implements \Stringable, FrameLocatorInterface
      */
     public function getByTitle(string $text, array $options = []): LocatorInterface
     {
-        return $this->locator(\sprintf('[title="%s"]', $text));
+        return $this->locator(\sprintf('[title=%s]', LiteralSelector::css($text)));
     }
 
     public function first(): self

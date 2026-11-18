@@ -351,7 +351,7 @@ class FrameTest extends TestCase
         $frame = new Frame($this->transport, $this->pageId, 'iframe#auth', $this->logger);
         $locator = $frame->getByText('Hello');
         $this->assertInstanceOf(LocatorInterface::class, $locator);
-        $this->assertSame('text="Hello"', $locator->getSelector());
+        $this->assertSame('internal:text="Hello"s', $locator->getSelector());
     }
 
     public function testGetByRole(): void

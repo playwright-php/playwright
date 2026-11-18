@@ -94,3 +94,7 @@ $signInButton->click();
 
 By understanding and using these four core concepts, you can build powerful, reliable, and maintainable browser
 automation scripts and tests.
+
+## Frame identity
+
+URL-selected frames retain their native identity as iframe attributes change. Frame references expire when the frame detaches or its page closes.

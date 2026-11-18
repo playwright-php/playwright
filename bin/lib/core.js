@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { NativeFrames } = require('./frames');
 
 const DEBUG = process.env.PLAYWRIGHT_DEBUG === 'true';
 const DEBUG_LEVEL = process.env.PLAYWRIGHT_DEBUG_LEVEL || 'info';
@@ -257,10 +258,35 @@ class PromiseUtils {
 class FrameUtils {
   static resolve(page, chain) {
     if (!chain || chain === ':root') return page;
-    const parts = String(chain).split(' >> ').filter(Boolean);
-    let fl = page;
+    const reference = NativeFrames.resolve(page, chain);
+    const parts = this.parts(reference ? reference.remainder : chain);
+    let fl = reference ? reference.frame : page;
+
+    if (parts[0] === ':root') parts.shift();
+
+    if (reference && /^nth=-?\d+$/.test(parts[0])) {
+      const index = Number(parts.shift().slice(4));
+
+      if (index !== 0 && index !== -1) fl = reference.frame.frameLocator('iframe:not(*)');
+    }
+
     for (const part of parts) fl = fl.frameLocator(part);
     return fl;
+  }
+
+  static parts(chain) {
+    const parts = [];
+
+    for (const part of String(chain).split(' >> ').filter(Boolean)) {
+      if (/^nth=-?\d+$/.test(part) && parts.length) {
+        parts[parts.length - 1] += ' >> ' + part;
+        continue;
+      }
+
+      parts.push(part);
+    }
+
+    return parts;
   }
 
   static async evaluateInFrame(page, frameLocator, isMainFrame, expression, arg) {
@@ -278,43 +304,78 @@ class FrameUtils {
   }
 
   static async resolveNativeFrame(page, chain) {
-    const mainFrame = page.mainFrame();
-    if (!chain || chain === ':root') return mainFrame;
+    if (!chain || chain === ':root') return page.mainFrame();
 
-    for (const frame of page.frames()) {
-      if (frame === mainFrame) continue;
-      try {
-        if (await this.selectorForNativeFrame(frame, mainFrame) === chain) return frame;
-      } catch {
-        // A detached frame cannot be addressed by the PHP selector anymore.
-      }
+    const reference = NativeFrames.resolve(page, chain);
+
+    if (reference && !reference.remainder.trim()) return reference.frame;
+
+    const locator = this.resolve(page, chain).owner();
+    const elements = await locator.elementHandles();
+
+    try {
+      if (elements.length !== 1) throw new Error(`Frame selector must match one frame: ${chain}`);
+
+      const frame = await elements[0].contentFrame();
+
+      if (!frame) throw new Error(`Frame not found for selector: ${chain}`);
+
+      return frame;
+    } finally {
+      await Promise.all(elements.map(element => element.dispose()));
     }
-
-    throw new Error(`Frame not found for selector: ${chain}`);
   }
 
+  /** Page code can replace DOM helpers, so read attributes through Playwright. */
   static async selectorForNativeFrame(frame, mainFrame) {
+    if (frame === mainFrame) return ':root';
+
     const chain = [];
     let current = frame;
     while (current && current !== mainFrame) {
       const element = await current.frameElement();
-      const selector = await element.evaluate((node) => {
-        const escape = (value) => (typeof CSS !== 'undefined' && CSS.escape)
-          ? CSS.escape(value)
-          : String(value).replace(/[^a-zA-Z0-9_-]/g, (match) => `\\${match}`);
-        if (node.id) return `iframe#${escape(node.id)}`;
-        const name = node.getAttribute('name');
-        if (name) return `iframe[name="${name}"]`;
-        const src = node.getAttribute('src');
-        if (src) return `iframe[src="${src}"]`;
-        const iframes = Array.from(node.ownerDocument.querySelectorAll('iframe'));
-        return `iframe >> nth=${iframes.indexOf(node)}`;
-      });
+      let selector;
+
+      try {
+        const id = await element.getAttribute('id');
+        const name = await element.getAttribute('name');
+        const src = await element.getAttribute('src');
+        selector = await this.selectorForElement(current.parentFrame(), element, { id, name, src });
+      } finally {
+        await element.dispose();
+      }
+
       chain.unshift(selector);
       current = current.parentFrame();
     }
 
-    return chain.join(' >> ');
+    return NativeFrames.bind(frame, chain.join(' >> '));
+  }
+
+  static escapeAttribute(value) {
+    return value.replace(/[^a-zA-Z0-9_-]/gu, character => `\\${character.codePointAt(0).toString(16)} `);
+  }
+
+  static async selectorForElement(parent, element, { id, name, src }) {
+    if (id && /^[a-zA-Z_][-_a-zA-Z0-9]*$/.test(id) && id !== '-') return `iframe#${id}`;
+
+    if (id && !id.includes('\0')) return `iframe[id="${this.escapeAttribute(id)}"]`;
+
+    if (name && !name.includes('\0')) return `iframe[name="${this.escapeAttribute(name)}"]`;
+
+    if (src && !src.includes('\0')) return `iframe[src="${this.escapeAttribute(src)}"]`;
+
+    const index = await parent.locator('iframe').evaluateAll((elements, target) => {
+      for (let index = 0; index < elements.length; index++) {
+        if (elements[index] === target) return index;
+      }
+
+      return -1;
+    }, element);
+
+    if (index < 0) throw new Error('Frame element has been detached.');
+
+    return `iframe >> nth=${index}`;
   }
 
   static async waitForReadyState(evalInFrame, state, timeoutMs) {
