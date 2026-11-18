@@ -170,3 +170,7 @@ $playwright->close();
 - `docs/examples/connect_external_browser.php`
 - `docs/examples/connect_remote_browser.php`
 - `docs/examples/launch_server.php`
+
+## Local browser discovery
+
+`Browser::bind()` delegates discovery publication to the installed Playwright version. Its descriptor can contain original launch options, including proxy credentials. Keep the Playwright cache private to the owning user and use a restrictive process umask when creating it. Existing cache files also need owner-only access; changing the umask does not change their permissions. This package does not independently redact Playwright's discovery descriptors.
