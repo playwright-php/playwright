@@ -19,6 +19,7 @@ use Playwright\Exception\ProtocolErrorException;
 use Playwright\Exception\RuntimeException;
 use Playwright\JSHandle\JSHandle;
 use Playwright\JSHandle\JSHandleInterface;
+use Playwright\Locator\LiteralSelector;
 use Playwright\Locator\Locator;
 use Playwright\Locator\LocatorInterface;
 use Playwright\Locator\RoleSelectorBuilder;
@@ -71,7 +72,7 @@ final class Frame implements \Stringable, FrameInterface
      */
     public function getByAltText(string $text, array $options = []): LocatorInterface
     {
-        return $this->locator(\sprintf('[alt="%s"]', $text));
+        return $this->locator(\sprintf('[alt=%s]', LiteralSelector::css($text)));
     }
 
     /**
@@ -79,7 +80,7 @@ final class Frame implements \Stringable, FrameInterface
      */
     public function getByLabel(string $text, array $options = []): LocatorInterface
     {
-        return $this->locator(\sprintf('label:text-is("%s") >> nth=0', $text));
+        return $this->locator(\sprintf('label:text-is(%s) >> nth=0', LiteralSelector::css($text)));
     }
 
     /**
@@ -87,7 +88,7 @@ final class Frame implements \Stringable, FrameInterface
      */
     public function getByPlaceholder(string $text, array $options = []): LocatorInterface
     {
-        return $this->locator(\sprintf('[placeholder="%s"]', $text));
+        return $this->locator(\sprintf('[placeholder=%s]', LiteralSelector::css($text)));
     }
 
     /**
@@ -109,7 +110,7 @@ final class Frame implements \Stringable, FrameInterface
 
     public function getByTestId(string $testId): LocatorInterface
     {
-        return $this->locator(\sprintf('[data-testid="%s"]', $testId));
+        return $this->locator(\sprintf('[data-testid=%s]', LiteralSelector::css($testId)));
     }
 
     /**
@@ -117,7 +118,7 @@ final class Frame implements \Stringable, FrameInterface
      */
     public function getByText(string $text, array $options = []): LocatorInterface
     {
-        return $this->locator(\sprintf('text="%s"', $text));
+        return $this->locator('internal:text='.LiteralSelector::text($text).'s');
     }
 
     /**
@@ -125,7 +126,7 @@ final class Frame implements \Stringable, FrameInterface
      */
     public function getByTitle(string $text, array $options = []): LocatorInterface
     {
-        return $this->locator(\sprintf('[title="%s"]', $text));
+        return $this->locator(\sprintf('[title=%s]', LiteralSelector::css($text)));
     }
 
     public function frameLocator(string $selector): FrameLocatorInterface
@@ -325,6 +326,10 @@ final class Frame implements \Stringable, FrameInterface
 
     public function isDetached(): bool
     {
+        if ($this->page?->isClosed()) {
+            return true;
+        }
+
         $response = $this->sendCommand('frame.isDetached');
 
         return true === ($response['value'] ?? false);

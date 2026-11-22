@@ -648,7 +648,7 @@ final class LocatorTest extends TestCase
     {
         $result = $this->locator->getByText('Hello');
         $this->assertInstanceOf(Locator::class, $result);
-        $this->assertSame('Locator(selector=".element >> text="Hello"")', (string) $result);
+        $this->assertSame('Locator(selector=".element >> internal:text="Hello"s")', (string) $result);
     }
 
     public function testGetByRole(): void
@@ -897,7 +897,7 @@ final class LocatorTest extends TestCase
         $filtered = $this->locator->filter(['hasText' => 'foo']);
 
         $this->assertInstanceOf(Locator::class, $filtered);
-        $this->assertSame('Locator(selector=".items:has-text("foo")")', (string) $filtered);
+        $this->assertSame('Locator(selector=".items >> internal:has-text="foo"i")', (string) $filtered);
     }
 
     public function testFilterWithHas(): void
@@ -908,7 +908,7 @@ final class LocatorTest extends TestCase
         $filtered = $this->locator->filter(['has' => $inner]);
 
         $this->assertInstanceOf(Locator::class, $filtered);
-        $this->assertSame('Locator(selector=".items:has(.inner)")', (string) $filtered);
+        $this->assertSame('Locator(selector=".items >> internal:has=".inner"")', (string) $filtered);
     }
 
     public function testFilterWithHasNotText(): void
@@ -918,7 +918,7 @@ final class LocatorTest extends TestCase
         $filtered = $this->locator->filter(['hasNotText' => 'bar']);
 
         $this->assertInstanceOf(Locator::class, $filtered);
-        $this->assertSame('Locator(selector=".items:not(:has-text("bar"))")', (string) $filtered);
+        $this->assertSame('Locator(selector=".items >> internal:has-not-text="bar"i")', (string) $filtered);
     }
 
     public function testFilterWithHasNot(): void
@@ -929,7 +929,7 @@ final class LocatorTest extends TestCase
         $filtered = $this->locator->filter(['hasNot' => $inner]);
 
         $this->assertInstanceOf(Locator::class, $filtered);
-        $this->assertSame('Locator(selector=".items:not(:has(.inner))")', (string) $filtered);
+        $this->assertSame('Locator(selector=".items >> internal:has-not=".inner"")', (string) $filtered);
     }
 
     public function testAnd(): void
@@ -994,8 +994,8 @@ final class LocatorTest extends TestCase
         ]);
 
         $this->assertInstanceOf(Locator::class, $filtered);
-        $this->assertStringContainsString(':has-text("foo")', (string) $filtered);
-        $this->assertStringContainsString(':has(.inner)', (string) $filtered);
+        $this->assertStringContainsString('internal:has-text="foo"i', (string) $filtered);
+        $this->assertStringContainsString('internal:has=".inner"', (string) $filtered);
     }
 
     public function testNormalizesReturnBodyToFunctionWithElement(): void

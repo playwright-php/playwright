@@ -1,6 +1,7 @@
 const fs = require('fs/promises');
 const { logger, ErrorHandler, CommandRegistry, BaseHandler, PromiseUtils, FrameUtils, RouteUtils } = require('./core');
 const { globalCoordinator } = require('./coordination');
+const { NativeFrames } = require('./frames');
 const { PopupCoordinator } = require('./popup-coordinator');
 
 // Runs Playwright's own toHaveScreenshot machinery: the loop until two
@@ -1067,6 +1068,9 @@ class InteractionHandler extends BaseHandler {
 class FrameHandler extends BaseHandler {
   async handle(command, method) {
     const page = this.validateResource(this.pages, command.pageId, 'Page');
+
+    if (method === 'isDetached') return this.checkDetached(page, command.frameSelector);
+
     const isMainFrame = !command.frameSelector || command.frameSelector === ':root';
     const frameLocator = isMainFrame ? null : FrameUtils.resolve(page, command.frameSelector);
     const evalInFrame = (expression) => FrameUtils.evaluateInFrame(page, frameLocator, isMainFrame, expression);
@@ -1088,9 +1092,8 @@ class FrameHandler extends BaseHandler {
       frameElement: () => this.frameElement(nativeFrame),
       title: () => evalInFrame(() => document.title).then(v => this.createValueResult(v ?? '')),
       url: () => evalInFrame(() => document.location.href).then(v => this.createValueResult(v ?? '')),
-      isDetached: () => this.checkDetached(isMainFrame, frameLocator),
       waitForLoadState: () => isMainFrame ? page.waitForLoadState(command.state || 'load', command.options) : this.waitForLoadState(page, frameLocator, isMainFrame, command),
-      parent: () => this.getParent(isMainFrame, command.frameSelector),
+      parent: () => this.getParent(page, isMainFrame, command.frameSelector),
       children: () => this.getChildren(page, frameLocator, isMainFrame, command.frameSelector)
     });
 
@@ -1115,9 +1118,15 @@ class FrameHandler extends BaseHandler {
     return this.storeHandle(await frame.frameElement());
   }
 
-  async checkDetached(isMainFrame, frameLocator) {
-    if (isMainFrame) return this.createValueResult(false);
-    const count = await frameLocator.locator('html').count();
+  async checkDetached(page, frameSelector) {
+    if (!frameSelector || frameSelector === ':root') return this.createValueResult(false);
+
+    const detached = NativeFrames.detached(page, frameSelector);
+
+    if (detached !== null) return this.createValueResult(detached);
+
+    const scope = FrameUtils.resolve(page, frameSelector);
+    const count = await scope.locator('html').count();
     return this.createValueResult(count === 0);
   }
 
@@ -1133,28 +1142,22 @@ class FrameHandler extends BaseHandler {
     return { success: true };
   }
 
-  getParent(isMainFrame, frameSelector) {
+  async getParent(page, isMainFrame, frameSelector) {
     if (isMainFrame) return { selector: null };
-    const parts = String(frameSelector).split(' >> ').filter(Boolean);
-    parts.pop();
-    const parentSelector = parts.length ? parts.join(' >> ') : ':root';
-    return { selector: parentSelector };
+
+    const frame = await FrameUtils.resolveNativeFrame(page, frameSelector);
+    const parent = frame.parentFrame();
+
+    if (!parent || parent === page.mainFrame()) return { selector: ':root' };
+
+    return { selector: await FrameUtils.selectorForNativeFrame(parent, page.mainFrame()) };
   }
 
   async getChildren(page, frameLocator, isMainFrame, frameSelector) {
-    const selectorBuilder = (root) => {
-      const esc = (s) => (typeof CSS !== 'undefined' && CSS.escape) ? CSS.escape(s) : String(s).replace(/[^a-zA-Z0-9_-]/g, (m) => `\\${m}`);
-      return Array.from(root.ownerDocument.querySelectorAll('iframe')).map((node, idx) => {
-        if (node.id) return `iframe#${esc(node.id)}`;
-        if (node.getAttribute('name')) return `iframe[name="${node.getAttribute('name')}"]`;
-        if (node.getAttribute('src')) return `iframe[src="${node.getAttribute('src')}"]`;
-        return `iframe >> nth=${idx}`;
-      });
-    };
-
-    const childSelectors = isMainFrame ? await page.evaluate(selectorBuilder) : await frameLocator.locator('html').evaluate(selectorBuilder) || [];
-    const prefix = isMainFrame ? '' : (String(frameSelector) + ' >> ');
-    const frames = childSelectors.map(sel => ({ selector: prefix + sel }));
+    const parent = isMainFrame ? page.mainFrame() : await FrameUtils.resolveNativeFrame(page, frameSelector);
+    const frames = await Promise.all(parent.childFrames().map(async frame => ({
+      selector: await FrameUtils.selectorForNativeFrame(frame, page.mainFrame())
+    })));
     return { frames };
   }
 }
