@@ -123,3 +123,7 @@ class ProfilePageTest extends AuthenticatedTestCase
 * Use **UI Login** when you are specifically testing the login, password-reset, or logout features.
 * Use **Reusing Authentication State** for all other tests that require an authenticated user. It will make your test
   suite significantly faster and more stable.
+
+## Virtual credentials
+
+Virtual WebAuthn authenticators are provided by the installed Playwright version. Use disposable test identities and a separate browser context containing only trusted relying-party pages. The wrapper does not independently verify origin claims made through Playwright's virtual-authenticator binding.
