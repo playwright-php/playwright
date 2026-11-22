@@ -91,10 +91,11 @@ if ('/' === $uri) {
 }
 
 // Construct file path
-$file = __DIR__.'/html'.$uri;
+$root = realpath(__DIR__.'/html');
+$file = realpath(__DIR__.'/html'.rawurldecode($uri));
 
 // Serve static file if it exists
-if (file_exists($file) && is_file($file)) {
+if (is_string($root) && is_string($file) && str_starts_with($file, $root.DIRECTORY_SEPARATOR) && is_file($file)) {
     // Determine content type
     $extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
     $contentTypes = [

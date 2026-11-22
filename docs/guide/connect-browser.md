@@ -105,7 +105,7 @@ An explicit `connect($endpoint, $options)` call uses the supplied endpoint and o
 For example, start a Playwright 1.64.1 server with its matching browser image:
 
 ```bash
-docker run --rm --init --ipc=host -p 3000:3000 \
+docker run --rm --init --ipc=host -p 127.0.0.1:3000:3000 \
     --workdir /home/pwuser --user pwuser \
     mcr.microsoft.com/playwright:v1.64.1-noble \
     /bin/sh -c "npx -y playwright@1.64.1 run-server --port 3000 --host 0.0.0.0"
