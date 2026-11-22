@@ -94,3 +94,7 @@ $signInButton->click();
 
 By understanding and using these four core concepts, you can build powerful, reliable, and maintainable browser
 automation scripts and tests.
+
+## Pending browser events
+
+The bridge permits up to 16 MiB of pending browser-event output. It exits with an explicit error if the PHP client stops consuming events and the limit is exceeded. Large screenshot, PDF, and response-body command results do not count toward that event limit.
