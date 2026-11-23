@@ -289,13 +289,14 @@ final class ProcessJsonRpcClientTest extends TestCase
         $this->assertSame('again', $response['value']);
     }
 
-    public function testAServerThatHasNotStartedYetIsNotTimedOut(): void
+    public function testAServerThatNeverStartsThrowsATimeoutException(): void
     {
-        $client = $this->clientReading([...array_fill(0, 20, [500, '']), [500, self::READY.self::RESPONSE]]);
+        $client = $this->clientReading([]);
 
-        $response = $client->sendRaw(['action' => 'launch', 'requestId' => 1], 0.0);
+        $this->expectException(TimeoutException::class);
+        $this->expectExceptionMessage('The Playwright server stopped responding: no output for 2500ms');
 
-        $this->assertSame('done', $response['value']);
+        $client->sendRaw(['action' => 'launch', 'requestId' => 1], 0.0);
     }
 
     public function testTimeDuringWhichPhpWasNotPollingIsNotCountedAsSilence(): void

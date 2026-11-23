@@ -56,8 +56,6 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
     private ?\Closure $eventHandler = null;
     private ?\Throwable $eventHandlerException = null;
 
-    private bool $serverStarted = false;
-
     /**
      * @param float $idleTimeoutMs longest server silence while a request waits for its response; 0 disables the check
      */
@@ -144,14 +142,13 @@ final class ProcessJsonRpcClient extends JsonRpcClient implements JsonRpcClientI
 
             if ($now - $lastPoll > self::POLLING_GAP_MS) {
                 $lastOutput += $now - $lastPoll;
-            } elseif ($this->serverStarted && $this->idleTimeoutMs > 0 && $now - $lastOutput > $this->idleTimeoutMs) {
+            } elseif ($this->idleTimeoutMs > 0 && $now - $lastOutput > $this->idleTimeoutMs) {
                 throw new TimeoutException(sprintf('The Playwright server stopped responding: no output for %.0fms while waiting for request %s.', $now - $lastOutput, $requestId), $this->idleTimeoutMs, null, ['pid' => $this->process->getPid()]);
             }
             $lastPoll = $now;
 
             $this->ensureProcessRunning();
             if ($this->readProcessOutput()) {
-                $this->serverStarted = true;
                 $lastOutput = $this->getCurrentTimeMs();
             }
 
