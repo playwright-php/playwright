@@ -20,7 +20,7 @@
 - `Frame::waitForFunction()` and `Locator::waitForFunction()` call a function given as a string and wait for its result instead of returning at once (#215)
 - `Page::waitForFunction()` evaluates an expression in the page, never in the server process (#215)
 - Each message from the server reaches its handler once, even when an event handler sends a request, and replies that no request waits for are dropped instead of kept in memory (#219)
-- A 30-second idle timeout ends a call when the Playwright server stops responding, instead of hanging forever (#212)
+- A 30-second idle timeout ends a call when the Playwright server stops responding, instead of hanging forever (#227)
 
 ## [1.6.0] - 2026-11-07
 
