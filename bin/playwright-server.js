@@ -475,6 +475,39 @@ let inputBuffer = Buffer.alloc(0);
 
 sendFramedResponse({ type: 'ready', message: 'READY' });
 
+// While a command runs or a request is arriving, tell PHP this process is alive,
+// so PHP can detect a stuck server without bounding how long a command may take.
+const HEARTBEAT_ARGUMENT = '--heartbeat-interval=';
+const heartbeatArgument = process.argv.find((argument) => argument.startsWith(HEARTBEAT_ARGUMENT));
+const heartbeatIntervalMs = Number(heartbeatArgument?.slice(HEARTBEAT_ARGUMENT.length)) || 0;
+let activities = 0;
+let heartbeat = null;
+let receivingRequest = false;
+
+const activityStarted = () => {
+  if (++activities > 1 || heartbeatIntervalMs <= 0) return;
+  heartbeat = setInterval(() => sendFramedResponse({ type: 'heartbeat' }), heartbeatIntervalMs);
+  heartbeat.unref();
+};
+
+const activityEnded = () => {
+  if (--activities > 0) return;
+  clearInterval(heartbeat);
+  heartbeat = null;
+};
+
+// A request too large for one chunk takes time to arrive.
+const trackIncomingRequest = () => {
+  const receiving = inputBuffer.length > 0;
+  if (receiving === receivingRequest) return;
+  receivingRequest = receiving;
+  if (receiving) {
+    activityStarted();
+  } else {
+    activityEnded();
+  }
+};
+
 process.stdin.on('data', ErrorHandler.wrapHandler(async (chunk) => {
   inputBuffer = Buffer.concat([inputBuffer, chunk]);
   try {
@@ -492,7 +525,8 @@ process.stdin.on('data', ErrorHandler.wrapHandler(async (chunk) => {
       try {
         command = JSON.parse(messageContent);
         // Not awaited, so a slow command cannot hold back the rest of the chunk.
-        server.handleCommand(command).then((result) => { if (result) sendFramedResponse(result); }, fail);
+        activityStarted();
+        server.handleCommand(command).then((result) => { if (result) sendFramedResponse(result); }, fail).finally(activityEnded);
       } catch (error) {
         fail(error);
       }
@@ -501,6 +535,7 @@ process.stdin.on('data', ErrorHandler.wrapHandler(async (chunk) => {
     logger.error('LSP FRAMING ERROR', { error: error.message, stack: error.stack });
     sendFramedResponse({ error: 'LSP framing error: ' + error.message });
   }
+  trackIncomingRequest();
 }));
 
 // The PHP process owns this server. Once it is gone, nothing will ever arrive on
