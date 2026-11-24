@@ -44,6 +44,26 @@ final class PopupFailureTest extends TestCase
     }
 
     #[DataProvider('popupOwners')]
+    public function testPopupClosedDuringTheActionIsNotRegisteredAgain(bool $useContext): void
+    {
+        $owner = $useContext ? $this->context : $this->page;
+
+        try {
+            $owner->waitForPopup(function (): void {
+                $this->page->evaluate('() => { const popup = window.open("about:blank"); setTimeout(() => popup.close(), 0); }');
+                usleep(50000);
+                $this->page->title();
+            }, ['timeout' => 1000]);
+            $this->fail('A popup that closed during the action must not be registered again.');
+        } catch (PlaywrightException $exception) {
+            $this->assertStringContainsString('Popup closed', $exception->getMessage());
+        }
+
+        $this->page->title();
+        $this->assertCount(1, $this->context->pages());
+    }
+
+    #[DataProvider('popupOwners')]
     public function testClosingTheOwnerPreservesTheFailure(bool $useContext): void
     {
         $context = $this->browser->newContext();

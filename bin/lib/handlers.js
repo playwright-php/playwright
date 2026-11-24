@@ -374,9 +374,7 @@ class ContextHandler extends BaseHandler {
 
     for (const [pageId, mappedContextId] of this.pageContexts.entries()) {
       if (mappedContextId === contextId) {
-        this.pageContexts.delete(pageId);
-        this.pages.delete(pageId);
-        RouteUtils.forgetRoutes(this.routes, this.routeHandlers, pageId);
+        this.cleanupPageResources(this.pages.get(pageId), pageId);
       }
     }
 
@@ -817,6 +815,8 @@ class PageHandler extends BaseHandler {
         // Ensure popup page is registered in main pages Map
         const popupPageId = result.result.popupPageId;
         const popup = result.result.popup;
+
+        if (popup?.isClosed()) throw new Error('Popup closed before callback completed.');
 
         if (popup && !this.pages.has(popupPageId)) {
           // Re-register the popup page in the main pages Map
