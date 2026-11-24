@@ -35,6 +35,14 @@ jobs:
         #         release that breaks us is reported the day it ships, without
         #         waiting for someone to open a pull request.
         playwright: ['floor', 'latest']
+        # next:   the prerelease Playwright publishes daily under the npm "next"
+        #         tag, so a break shows before the release ships. One PHP
+        #         configuration is enough for that signal.
+        include:
+          - configuration:
+              php-version: '8.4'
+              dependencies: 'high'
+            playwright: 'next'
       fail-fast: false
     steps:
       - name: "Git: checkout"
@@ -67,6 +75,8 @@ jobs:
           range=$(node -p "require('./bin/package.json').dependencies.playwright")
           if [ "$LEG" = "floor" ]; then
             version=$(printf '%s' "$range" | sed 's/^[^0-9]*//')
+          elif [ "$LEG" = "next" ]; then
+            version=$(npm view playwright@next version)
           else
             # A range can match several releases; npm lists one per line.
             version=$(npm view "playwright@$range" version | tail -1 | tr -d "'" | awk '{print $NF}')
