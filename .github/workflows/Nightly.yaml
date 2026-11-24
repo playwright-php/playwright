@@ -104,7 +104,7 @@ jobs:
         timeout-minutes: 15
         run: |
           for attempt in 1 2 3; do
-            if timeout 300 php bin/playwright-install --with-deps; then
+            if timeout 300 php bin/playwright-install --with-deps --verbose; then
               exit 0
             fi
             echo "Attempt $attempt failed or timed out after 5 minutes, retrying."
