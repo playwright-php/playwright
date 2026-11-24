@@ -89,6 +89,28 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "Declared range $range, testing $version"
 
+      # Playwright installs the system libraries of the browsers with apt. Keeping the
+      # downloaded packages spares the Ubuntu mirror, which is sometimes slow enough
+      # to stall the install for more than 5 minutes.
+      - name: "APT: keep downloaded packages"
+        id: apt
+        run: |
+          sudo mkdir -p /var/cache/playwright-apt/partial
+          sudo chown "$USER" /var/cache/playwright-apt
+          sudo chown _apt /var/cache/playwright-apt/partial
+          printf '%s\n' 'Dir::Cache::Archives "/var/cache/playwright-apt/";' 'APT::Keep-Downloaded-Packages "true";' \
+            | sudo tee /etc/apt/apt.conf.d/90-playwright-cache > /dev/null
+          echo "image=$ImageOS-$ImageVersion" >> "$GITHUB_OUTPUT"
+
+      - name: "APT: cache packages"
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/playwright-apt/*.deb
+          key: playwright-apt-${{ runner.os }}-${{ steps.apt.outputs.image }}-${{ steps.resolve.outputs.version }}
+          restore-keys: |
+            playwright-apt-${{ runner.os }}-${{ steps.apt.outputs.image }}-
+            playwright-apt-${{ runner.os }}-
+
       - name: "Playwright: cache browsers"
         uses: actions/cache@v4
         with:
