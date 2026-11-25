@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 namespace Playwright\Browser;
 
+use Playwright\Browser\Options\LaunchOptions;
 use Playwright\Configuration\PlaywrightConfig;
 use Playwright\Exception\MissingDependencyException;
 use Playwright\Exception\PlaywrightException;
@@ -107,25 +108,35 @@ final class BrowserBuilder
         return $this;
     }
 
-    public function launch(): BrowserInterface
+    /**
+     * Explicit options override the builder settings; array keys are passed to Playwright as they are.
+     *
+     * @param array<string, mixed>|LaunchOptions $options
+     */
+    public function launch(array|LaunchOptions $options = []): BrowserInterface
     {
+        $launchOptions = array_replace(
+            $this->launchOptions,
+            $options instanceof LaunchOptions ? $options->toArray() : $options
+        );
+
         if (null !== $this->config->wsEndpoint) {
             return $this->connectToBrowserServer($this->config->wsEndpoint, [
                 'timeout' => $this->config->timeoutMs,
-                'slowMo' => $this->launchOptions['slowMo'] ?? 0,
+                'slowMo' => $launchOptions['slowMo'] ?? 0,
             ], $this->config->toContextOptions());
         }
 
-        // Launch options can carry proxy credentials, so never log them raw.
+        // Launch options can carry proxy credentials and secrets in env values, so never log them raw.
         $this->logger->info('Launching browser', [
             'browser' => $this->browserType,
-            'options' => Sanitizer::sanitizeParams($this->launchOptions),
+            'options' => Sanitizer::sanitizeParams($launchOptions),
         ]);
 
         $response = $this->transport->send([
             'action' => 'launch',
             'browser' => $this->browserType,
-            'options' => $this->launchOptions,
+            'options' => $launchOptions,
             // The server creates the default context during launch, so its
             // options have to travel with the launch command.
             'contextOptions' => $this->config->toContextOptions(),

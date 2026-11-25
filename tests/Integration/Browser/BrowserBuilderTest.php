@@ -19,6 +19,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Playwright\Browser\Browser;
 use Playwright\Browser\BrowserBuilder;
+use Playwright\Browser\Options\LaunchOptions;
 use Playwright\Configuration\PlaywrightConfig;
 use Playwright\Exception\MissingDependencyException;
 use Playwright\Exception\PlaywrightException;
@@ -242,6 +243,56 @@ class BrowserBuilderTest extends TestCase
     }
 
     #[Test]
+    public function itPassesLaunchArrayOptionsThroughUnchanged(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static function (array $message): bool {
+                return 'launch' === $message['action']
+                    && ['--mute-audio'] === $message['options']['ignoreDefaultArgs']
+                    && ['FOO' => 'bar'] === $message['options']['env'];
+            }))
+            ->willReturn(['browserId' => 'b', 'defaultContextId' => 'c', 'version' => '1.0']);
+
+        $this->builder->launch(['ignoreDefaultArgs' => ['--mute-audio'], 'env' => ['FOO' => 'bar']]);
+    }
+
+    #[Test]
+    public function itSendsLaunchOptionsObjectInTheLaunchPayload(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static function (array $message): bool {
+                return 'launch' === $message['action']
+                    && 'chrome' === $message['options']['channel']
+                    && 25 === $message['options']['slowMo'];
+            }))
+            ->willReturn(['browserId' => 'b', 'defaultContextId' => 'c', 'version' => '1.0']);
+
+        $this->builder->launch(new LaunchOptions(channel: 'chrome', slowMo: 25));
+    }
+
+    #[Test]
+    public function itLetsExplicitLaunchOptionsOverrideTheBuilderSettings(): void
+    {
+        $this->transport->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static function (array $message): bool {
+                return 'launch' === $message['action']
+                    && false === $message['options']['headless']
+                    && ['--lang=en'] === $message['options']['args']
+                    && 'msedge' === $message['options']['channel'];
+            }))
+            ->willReturn(['browserId' => 'b', 'defaultContextId' => 'c', 'version' => '1.0']);
+
+        $this->builder
+            ->withHeadless(true)
+            ->withArgs(['--mute-audio'])
+            ->withChannel('msedge')
+            ->launch(['headless' => false, 'args' => ['--lang=en']]);
+    }
+
+    #[Test]
     public function itDoesNotLogTheProxyPassword(): void
     {
         $logger = $this->createMock(LoggerInterface::class);
@@ -262,6 +313,29 @@ class BrowserBuilderTest extends TestCase
             'username' => 'user',
             'password' => 'secret',
         ])->launch();
+    }
+
+    #[Test]
+    public function itDoesNotLogEnvValues(): void
+    {
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())
+            ->method('info')
+            ->with('Launching browser', $this->callback(static function (array $context): bool {
+                return ['DATABASE_URL' => '[REDACTED]'] === $context['options']['env'];
+            }));
+
+        $transport = $this->createMock(TransportInterface::class);
+        $transport->expects($this->once())
+            ->method('send')
+            ->with($this->callback(static function (array $message): bool {
+                return ['DATABASE_URL' => 'postgres://user:pass@db/app'] === $message['options']['env'];
+            }))
+            ->willReturn(['browserId' => 'b', 'defaultContextId' => 'c', 'version' => '1.0']);
+
+        $builder = new BrowserBuilder('chromium', $transport, $logger, new PlaywrightConfig());
+
+        $builder->launch(['env' => ['DATABASE_URL' => 'postgres://user:pass@db/app']]);
     }
 
     #[Test]

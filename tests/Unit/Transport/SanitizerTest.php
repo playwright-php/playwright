@@ -80,6 +80,18 @@ class SanitizerTest extends TestCase
     }
 
     #[Test]
+    public function itKeepsOnlyEnvVariableNames(): void
+    {
+        $result = Sanitizer::sanitizeParams([
+            'headless' => true,
+            'env' => ['DATABASE_URL' => 'postgres://user:pass@db/app', 'TZ' => 'UTC'],
+        ]);
+
+        $this->assertTrue($result['headless']);
+        $this->assertSame(['DATABASE_URL' => '[REDACTED]', 'TZ' => '[REDACTED]'], $result['env']);
+    }
+
+    #[Test]
     public function itSanitizesObjects(): void
     {
         $object = (object) [
